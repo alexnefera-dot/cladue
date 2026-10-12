@@ -1,0 +1,3042 @@
+{
+    "источник": {
+        "каталог": "https:\/\/www.slotsmate.com",
+        "собрано": "2026-10-12T16:37:51+00:00"
+    },
+    "игры": [
+        {
+            "слаг": "10-cash-bisons",
+            "н": "10 Cash Bisons",
+            "п": "Push Gaming",
+            "rtp": "96.43",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "13th-trial-hercules-abyssways",
+            "н": "13th Trial Hercules Abyssways",
+            "п": "Play'n GO",
+            "rtp": "96",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "1429-uncharted-seas",
+            "н": "1429 Uncharted Seas",
+            "п": "Thunderkick",
+            "rtp": "98.6",
+            "темы": [
+                "animals"
+            ],
+            "т": [
+                "пиратская тема"
+            ],
+            "корпус": true,
+            "путь": "\/software\/thunderkick\/1429-uncharted-seas"
+        },
+        {
+            "слаг": "3-magic-pots",
+            "н": "3 Magic Pots",
+            "п": "Push Gaming",
+            "rtp": "96.23",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "5-reel-drive",
+            "н": "5 Reel Drive",
+            "п": "Microgaming",
+            "rtp": "96.95",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "adventure-palace",
+            "н": "Adventure Palace",
+            "п": "Microgaming",
+            "rtp": "96.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "aftermath",
+            "н": "Aftermath",
+            "п": "NetEnt",
+            "rtp": "96.08",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "age-of-the-gods",
+            "н": "Age of the Gods",
+            "п": "Playtech",
+            "rtp": "95.6",
+            "темы": [
+                "fantasy"
+            ],
+            "т": [
+                "греческая мифология",
+                "прогрессивный джекпот",
+                "джекпоты"
+            ],
+            "корпус": true,
+            "путь": "\/software\/playtech\/age-of-the-gods"
+        },
+        {
+            "слаг": "agent-jane-blonde",
+            "н": "Agent Jane Blonde",
+            "п": "Microgaming",
+            "rtp": "96.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "aloha-cluster-pays",
+            "н": "Aloha Cluster Pays",
+            "п": "NetEnt",
+            "rtp": "96.42",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "angel-vs-sinner-eternal-battle",
+            "н": "Angel vs Sinner Eternal Battle",
+            "п": "Pragmatic Play",
+            "rtp": "98.04",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "avalon",
+            "н": "Avalon",
+            "п": "Microgaming",
+            "rtp": "96.01",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bait-n-bank",
+            "н": "Bait n Bank",
+            "п": "Push Gaming",
+            "rtp": "96.37",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "basketball-star",
+            "н": "Basketball Star",
+            "п": "Microgaming",
+            "rtp": "96.45",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "beast-of-wealth",
+            "н": "Beast of Wealth",
+            "п": "Play'n GO",
+            "rtp": "96.17",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "big-bamboo",
+            "н": "Big Bamboo",
+            "п": "Push Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "animals"
+            ],
+            "т": [
+                "азиатская тема",
+                "бонусный раунд"
+            ],
+            "корпус": true,
+            "путь": "\/software\/push-gaming\/big-bamboo"
+        },
+        {
+            "слаг": "big-bang-boom",
+            "н": "Big Bang Boom",
+            "п": "NetEnt",
+            "rtp": "94.08",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "big-bass-bonanza",
+            "н": "Big Bass Bonanza",
+            "п": "Pragmatic Play",
+            "rtp": "96.71",
+            "темы": [
+                "ocean"
+            ],
+            "т": [
+                "рыбалка",
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/big-bass-bonanza"
+        },
+        {
+            "слаг": "big-bass-crash",
+            "н": "Big Bass Crash",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "big-bass-splash",
+            "н": "Big Bass Splash",
+            "п": "Pragmatic Play",
+            "rtp": "96.71",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "рыбалка",
+                "продолжение серии"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/big-bass-splash"
+        },
+        {
+            "слаг": "big-bass-splash-halloween-1000",
+            "н": "Big Bass Splash Halloween 1000",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "big-top",
+            "н": "Big Top",
+            "п": "Microgaming",
+            "rtp": "96.94",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bigger-bass-bonanza",
+            "н": "Bigger Bass Bonanza",
+            "п": "Pragmatic Play",
+            "rtp": "96.71",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "blazin-bullfrog",
+            "н": "Blazin Bullfrog",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "blood-suckers",
+            "н": "Blood Suckers",
+            "п": "NetEnt",
+            "rtp": "98.0",
+            "темы": [
+                "halloween"
+            ],
+            "т": [
+                "мистика",
+                "бонусный раунд"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/blood-suckers"
+        },
+        {
+            "слаг": "boat-bonanza-rider",
+            "н": "Boat Bonanza Rider",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bonanza-megaways",
+            "н": "Bonanza Megaways",
+            "п": "Big Time Gaming",
+            "rtp": "96.0",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "т": [
+                "классика",
+                "Megaways",
+                "каскады"
+            ],
+            "корпус": true,
+            "путь": "\/software\/big-time-gaming\/bonanza-megaways"
+        },
+        {
+            "слаг": "book-of-99",
+            "н": "Book of 99",
+            "п": "Relax Gaming",
+            "rtp": "99.0",
+            "темы": [
+                "mystery"
+            ],
+            "т": [
+                "классика",
+                "механика Book of"
+            ],
+            "корпус": true,
+            "путь": "\/software\/relax-gaming\/book-of-99"
+        },
+        {
+            "слаг": "book-of-chilli-big-bass-jackpot-bonanza",
+            "н": "Book of Chilli Big Bass Jackpot Bonanza",
+            "п": "Pragmatic Play",
+            "rtp": "94.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "book-of-ra-deluxe",
+            "н": "Book of Ra Deluxe",
+            "п": "Novomatic",
+            "rtp": "96.0",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "бонусный раунд",
+                "переиздание"
+            ],
+            "корпус": true,
+            "путь": "\/software\/novomatic\/book-of-ra-deluxe"
+        },
+        {
+            "слаг": "break-da-bank-again",
+            "н": "Break da Bank Again",
+            "п": "Microgaming",
+            "rtp": "96.0",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "т": [
+                "продолжение серии"
+            ],
+            "корпус": true,
+            "путь": "\/software\/games-global\/break-da-bank-again"
+        },
+        {
+            "слаг": "bucking-rider",
+            "н": "Bucking Rider",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "buffalo-king",
+            "н": "Buffalo King",
+            "п": "Pragmatic Play",
+            "rtp": "96.06",
+            "темы": [
+                "animals"
+            ],
+            "т": [
+                "вестерн",
+                "каскады",
+                "множители"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/buffalo-king"
+        },
+        {
+            "слаг": "buffalo-king-megaways",
+            "н": "Buffalo King Megaways",
+            "п": "Pragmatic Play",
+            "rtp": "96.48",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "Megaways",
+                "переиздание"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/buffalo-king-megaways"
+        },
+        {
+            "слаг": "burning-desire",
+            "н": "Burning Desire",
+            "п": "Microgaming",
+            "rtp": "96.19",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bust-the-bank",
+            "н": "Bust the Bank",
+            "п": "Microgaming",
+            "rtp": "96.75",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "cash-a-cabana",
+            "н": "Cash A Cabana",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "cashapillar",
+            "н": "Cashapillar",
+            "п": "Microgaming",
+            "rtp": "95.13",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "celebration-of-wealth",
+            "н": "Celebration of Wealth",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "cheetah-wild",
+            "н": "Cheetah Wild",
+            "п": "Pragmatic Play",
+            "rtp": "96.57",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "chicken-plus",
+            "н": "Chicken Plus",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "chilli-heat",
+            "н": "Chilli Heat",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "food"
+            ],
+            "т": [
+                "тема ацтеков",
+                "множители",
+                "джекпоты"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/chilli-heat"
+        },
+        {
+            "слаг": "chunky-carlos-money-mania",
+            "н": "Chunky Carlos Money Mania",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "danger-high-voltage",
+            "н": "Danger High Voltage",
+            "п": "Big Time Gaming",
+            "rtp": "96.45",
+            "темы": [
+                "horror"
+            ],
+            "т": [
+                "бонусный раунд",
+                "много линий"
+            ],
+            "корпус": true,
+            "путь": "\/software\/big-time-gaming\/danger-high-voltage"
+        },
+        {
+            "слаг": "dazzle-me",
+            "н": "Dazzle Me",
+            "п": "NetEnt",
+            "rtp": "96.91",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dazzle-me-megaways",
+            "н": "Dazzle Me Megaways",
+            "п": "NetEnt",
+            "rtp": "96.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dead-or-alive",
+            "н": "Dead or Alive",
+            "п": "NetEnt",
+            "rtp": "96.8",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "вестерн",
+                "высокая волатильность"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/dead-or-alive"
+        },
+        {
+            "слаг": "dead-or-alive-2",
+            "н": "Dead Or Alive 2",
+            "п": "NetEnt",
+            "rtp": "96.82",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "вестерн",
+                "бонусный раунд"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/dead-or-alive-2"
+        },
+        {
+            "слаг": "diamond-supernova-40",
+            "н": "Diamond Supernova 40",
+            "п": "Push Gaming",
+            "rtp": "96.32",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "diamond-supernova-5",
+            "н": "Diamond Supernova 5",
+            "п": "Push Gaming",
+            "rtp": "96.34",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dino-pd",
+            "н": "Dino PD",
+            "п": "Push Gaming",
+            "rtp": "96.38",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dinopolis",
+            "н": "Dinopolis",
+            "п": "Push Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "divine-fortune",
+            "н": "Divine Fortune",
+            "п": "NetEnt",
+            "rtp": "96.6",
+            "темы": [
+                "fantasy"
+            ],
+            "т": [
+                "греческая мифология",
+                "прогрессивный джекпот",
+                "джекпоты"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/divine-fortune"
+        },
+        {
+            "слаг": "divine-fortune-gold",
+            "н": "Divine Fortune Gold",
+            "п": "NetEnt",
+            "rtp": "96.95",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dolphins-pearl",
+            "н": "Dolphins Pearl",
+            "п": "Novomatic",
+            "rtp": "96.0",
+            "темы": [
+                "animals"
+            ],
+            "т": [],
+            "корпус": true,
+            "путь": "\/software\/novomatic\/dolphins-pearl"
+        },
+        {
+            "слаг": "dork-unit",
+            "н": "Dork Unit",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.3",
+            "темы": [
+                "carnival"
+            ],
+            "т": [],
+            "корпус": true,
+            "путь": "\/software\/hacksaw-gaming\/dork-unit"
+        },
+        {
+            "слаг": "double-double-bonus-power-poker",
+            "н": "Double Double Bonus Power Poker",
+            "п": "Microgaming",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "duck-hunters",
+            "н": "Duck Hunters",
+            "п": "Nolimit City",
+            "rtp": "96.0",
+            "темы": [
+                "adventure"
+            ],
+            "т": [],
+            "корпус": true,
+            "путь": "\/software\/nolimit-city\/duck-hunters"
+        },
+        {
+            "слаг": "eggomatic",
+            "н": "EggOmatic",
+            "п": "NetEnt",
+            "rtp": "96.48",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "esqueleto-explosivo",
+            "н": "Esqueleto Explosivo",
+            "п": "Thunderkick",
+            "rtp": "96.5",
+            "темы": [
+                "horror"
+            ],
+            "т": [
+                "тема ацтеков"
+            ],
+            "корпус": true,
+            "путь": "\/software\/thunderkick\/esqueleto-explosivo"
+        },
+        {
+            "слаг": "fang-city",
+            "н": "Fang City",
+            "п": "Push Gaming",
+            "rtp": "96.43",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "fat-drac",
+            "н": "Fat Drac",
+            "п": "Push Gaming",
+            "rtp": "96.57",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "fat-rabbit",
+            "н": "Fat Rabbit",
+            "п": "Push Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "animals"
+            ],
+            "т": [
+                "множители"
+            ],
+            "корпус": true,
+            "путь": "\/software\/push-gaming\/fat-rabbit"
+        },
+        {
+            "слаг": "fire-joker",
+            "н": "Fire Joker",
+            "п": "Play'n GO",
+            "rtp": "96.5",
+            "темы": [
+                "fruit-machines"
+            ],
+            "т": [
+                "классика",
+                "респины"
+            ],
+            "корпус": true,
+            "путь": "\/software\/play-n-go\/fire-joker"
+        },
+        {
+            "слаг": "fishin-frenzy",
+            "н": "Fishin Frenzy",
+            "п": "Blueprint Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "рыбалка",
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true,
+            "путь": "\/software\/blueprint-gaming\/fishin-frenzy"
+        },
+        {
+            "слаг": "floating-dragon-hold-and-spin",
+            "н": "Floating Dragon Hold and Spin",
+            "п": "Pragmatic Play",
+            "rtp": "96.71",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "forbidden-throne",
+            "н": "Forbidden Throne",
+            "п": "Microgaming",
+            "rtp": "96.01",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "frog-grog",
+            "н": "Frog Grog",
+            "п": "Thunderkick",
+            "rtp": "96.5",
+            "темы": [
+                "animals"
+            ],
+            "т": [],
+            "корпус": true,
+            "путь": "\/software\/thunderkick\/frog-grog"
+        },
+        {
+            "слаг": "fruit-shop",
+            "н": "Fruit Shop",
+            "п": "NetEnt",
+            "rtp": "96.71",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "fruit-warp",
+            "н": "Fruit Warp",
+            "п": "Thunderkick",
+            "rtp": "97.0",
+            "темы": [],
+            "т": [
+                "фруктовая тема"
+            ],
+            "корпус": true,
+            "путь": "\/software\/thunderkick\/fruit-warp"
+        },
+        {
+            "слаг": "gameshow-party-jackpot-play",
+            "н": "Gameshow Party Jackpot Play",
+            "п": "Pragmatic Play",
+            "rtp": "95.67",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "gates-of-olympus",
+            "н": "Gates of Olympus",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "fire"
+            ],
+            "т": [
+                "каскады",
+                "множители"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/gates-of-olympus"
+        },
+        {
+            "слаг": "gates-of-olympus-super-scatter",
+            "н": "Gates of Olympus Super Scatter",
+            "п": "Pragmatic Play",
+            "rtp": "96.55",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "gemix",
+            "н": "GEMiX",
+            "п": "Play'n GO",
+            "rtp": "96.5",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "драгоценности",
+                "кластеры",
+                "множители"
+            ],
+            "корпус": true,
+            "путь": "\/software\/play-n-go\/gemix"
+        },
+        {
+            "слаг": "ghost-booster-go-guaranteed",
+            "н": "Ghost Booster Go Guaranteed",
+            "п": "Play'n GO",
+            "rtp": "96.06",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "go-craps",
+            "н": "Go Craps",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "gold-factory",
+            "н": "Gold Factory",
+            "п": "Microgaming",
+            "rtp": "96.54",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "gonzos-quest",
+            "н": "Gonzos Quest",
+            "п": "NetEnt",
+            "rtp": "95.97",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "каскады",
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/gonzos-quest"
+        },
+        {
+            "слаг": "gonzos-quest-megaways",
+            "н": "Gonzos Quest Megaways",
+            "п": "Red Tiger",
+            "rtp": "96.0",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "Megaways",
+                "каскады",
+                "переиздание"
+            ],
+            "корпус": true,
+            "путь": "\/software\/red-tiger-gaming\/gonzos-quest-megaways"
+        },
+        {
+            "слаг": "great-blue",
+            "н": "Great Blue",
+            "п": "Playtech",
+            "rtp": "95.7",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true,
+            "путь": "\/software\/playtech\/great-blue"
+        },
+        {
+            "слаг": "great-rhino",
+            "н": "Great Rhino",
+            "п": "Pragmatic Play",
+            "rtp": "96.53",
+            "темы": [
+                "africa"
+            ],
+            "т": [
+                "африканская тема",
+                "респины",
+                "джекпоты"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/great-rhino"
+        },
+        {
+            "слаг": "grim-muerto",
+            "н": "Grim Muerto",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "halloween-jack",
+            "н": "Halloween Jack",
+            "п": "NetEnt",
+            "rtp": "96.28",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "hand-of-anubis",
+            "н": "Hand of Anubis",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.3",
+            "темы": [
+                "egyptian"
+            ],
+            "т": [
+                "египетская тема"
+            ],
+            "корпус": true,
+            "путь": "\/software\/hacksaw-gaming\/hand-of-anubis"
+        },
+        {
+            "слаг": "happy-bamboo",
+            "н": "Happy Bamboo",
+            "п": "Push Gaming",
+            "rtp": "96.31",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "hearts-highway",
+            "н": "Hearts Highway",
+            "п": "Push Gaming",
+            "rtp": "96.43",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "immortal-romance",
+            "н": "Immortal Romance",
+            "п": "Microgaming",
+            "rtp": "96.86",
+            "темы": [
+                "love-and-romance"
+            ],
+            "т": [
+                "мистика"
+            ],
+            "корпус": true,
+            "путь": "\/software\/games-global\/immortal-romance"
+        },
+        {
+            "слаг": "jack-and-the-beanstalk",
+            "н": "Jack and the Beanstalk",
+            "п": "NetEnt",
+            "rtp": "96.3",
+            "темы": [
+                "fairytale"
+            ],
+            "т": [
+                "сказочная тема",
+                "каскады"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/jack-and-the-beanstalk"
+        },
+        {
+            "слаг": "jack-and-the-beanstalk-2",
+            "н": "Jack and the Beanstalk 2",
+            "п": "NetEnt",
+            "rtp": "96.45",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jack-hammer",
+            "н": "Jack Hammer",
+            "п": "NetEnt",
+            "rtp": "96.96",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jack-hammer-2",
+            "н": "Jack Hammer 2",
+            "п": "NetEnt",
+            "rtp": "97.07",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jackpot-6000",
+            "н": "Jackpot 6000",
+            "п": "NetEnt",
+            "rtp": "98.9",
+            "темы": [
+                "fruit-machines"
+            ],
+            "т": [
+                "классика",
+                "джекпоты"
+            ],
+            "корпус": true,
+            "путь": "\/software\/netent\/jackpot-6000"
+        },
+        {
+            "слаг": "jammin-jars",
+            "н": "Jammin Jars",
+            "п": "Push Gaming",
+            "rtp": "96.83",
+            "темы": [
+                "food"
+            ],
+            "т": [
+                "фруктовая тема",
+                "кластеры",
+                "множители",
+                "вайлды"
+            ],
+            "корпус": true,
+            "путь": "\/software\/push-gaming\/jammin-jars"
+        },
+        {
+            "слаг": "jiggys-pot-o-gold",
+            "н": "Jiggys Pot O Gold",
+            "п": "Push Gaming",
+            "rtp": "96.28",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jimi-hendrix",
+            "н": "Jimi Hendrix",
+            "п": "NetEnt",
+            "rtp": "96.9",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "john-hunter-and-the-book-of-tut-megaways",
+            "н": "John Hunter And The Book Of Tut Megaways",
+            "п": "Pragmatic Play",
+            "rtp": "96",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "joker-pro",
+            "н": "Joker Pro",
+            "п": "NetEnt",
+            "rtp": "96.8",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jokers-jewels",
+            "н": "Jokers Jewels",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "circus"
+            ],
+            "т": [
+                "драгоценности"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/jokers-jewels"
+        },
+        {
+            "слаг": "judgemental",
+            "н": "Judgemental",
+            "п": "NetEnt",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jungle-jim-el-dorado",
+            "н": "Jungle Jim El Dorado",
+            "п": "Microgaming",
+            "rtp": "96.31",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "jurassic-park",
+            "н": "Jurassic Park",
+            "п": "Microgaming",
+            "rtp": "96.67",
+            "темы": [
+                "adventure"
+            ],
+            "т": [
+                "бонусный раунд"
+            ],
+            "корпус": true,
+            "путь": "\/software\/games-global\/jurassic-park"
+        },
+        {
+            "слаг": "koi-princess",
+            "н": "Koi Princess",
+            "п": "NetEnt",
+            "rtp": "96.23",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lady-in-red",
+            "н": "Lady in Red",
+            "п": "Microgaming",
+            "rtp": "96.25",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lawn-n-complete-disorder",
+            "н": "Lawn N Complete Disorder",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lawn-n-disorder",
+            "н": "Lawn n Disorder",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "le-bandit",
+            "н": "Le Bandit",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.3",
+            "темы": [
+                "animals"
+            ],
+            "т": [],
+            "корпус": true,
+            "путь": "\/software\/hacksaw-gaming\/le-bandit"
+        },
+        {
+            "слаг": "legacy-of-dead",
+            "н": "Legacy of Dead",
+            "п": "Play'n GO",
+            "rtp": "96.58",
+            "темы": [
+                "egyptian"
+            ],
+            "т": [
+                "египетская тема",
+                "фриспины",
+                "расширяющиеся символы"
+            ],
+            "корпус": true,
+            "путь": "\/software\/play-n-go\/legacy-of-dead"
+        },
+        {
+            "слаг": "legacy-of-egypt",
+            "н": "Legacy Of Egypt",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "leprechaun-goes-egypt",
+            "н": "Leprechaun goes Egypt",
+            "п": "Play'n GO",
+            "rtp": "96.75",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "limbo-plus",
+            "н": "Limbo Plus",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lordi-reel-monsters",
+            "н": "Lordi Reel Monsters",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lotus-treasure-oranje-jackpot",
+            "н": "Lotus Treasure Oranje Jackpot",
+            "п": "Pragmatic Play",
+            "rtp": "94.51",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mad-blast",
+            "н": "Mad Blast",
+            "п": "Push Gaming",
+            "rtp": "96.34",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mad-cars",
+            "н": "Mad Cars",
+            "п": "Push Gaming",
+            "rtp": "96.39",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "madame-destiny-megaways",
+            "н": "Madame Destiny Megaways",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "magic"
+            ],
+            "т": [
+                "Megaways",
+                "переиздание"
+            ],
+            "корпус": true,
+            "путь": "\/software\/pragmatic-play\/madame-destiny-megaways"
+        },
+        {
+            "слаг": "mahjong-88",
+            "н": "Mahjong 88",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mega-joker",
+            "н": "Mega Joker",
+            "п": "Novomatic",
+            "rtp": "99.0",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "mermaids-millions",
+            "н": "Mermaids Millions",
+            "п": "Microgaming",
+            "rtp": "96.56",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mighty-munching-melons",
+            "н": "Mighty Munching Melons",
+            "п": "Pragmatic Play",
+            "rtp": "96.05",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "miner-donkey-rider",
+            "н": "Miner Donkey Rider",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mole-digger",
+            "н": "Mole Digger",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "money-cart-3",
+            "н": "Money Cart 3",
+            "п": "Relax Gaming",
+            "rtp": "96.0",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "продолжение серии"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "money-train-2",
+            "н": "Money Train 2",
+            "п": "Relax Gaming",
+            "rtp": "96.4",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "высокая волатильность"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "money-train-3",
+            "н": "Money Train 3",
+            "п": "Relax Gaming",
+            "rtp": "96.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "бонусный раунд",
+                "продолжение серии"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "monkey-battle-for-the-scrolls",
+            "н": "Monkey Battle for the Scrolls",
+            "п": "Play'n GO",
+            "rtp": "96.21",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "moon-princess",
+            "н": "Moon Princess",
+            "п": "Play'n GO",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "сказочная тема",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "munchkins",
+            "н": "Munchkins",
+            "п": "Microgaming",
+            "rtp": "95.33",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mustang-gold",
+            "н": "Mustang Gold",
+            "п": "Pragmatic Play",
+            "rtp": "96.53",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "вестерн",
+                "джекпоты",
+                "бонусный раунд"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "netent-american-roulette",
+            "н": "NetEnt American Roulette",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-baccarat-pro-series",
+            "н": "NetEnt Baccarat Pro Series",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-blackjack",
+            "н": "NetEnt Blackjack",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-casino-night",
+            "н": "NetEnt Casino Night",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-european-roulette",
+            "н": "NetEnt European Roulette",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-french-roulette",
+            "н": "NetEnt French Roulette",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-jacks-or-better-double-up",
+            "н": "NetEnt Jacks Or Better Double Up",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-mega-fortune",
+            "н": "NetEnt Mega Fortune",
+            "п": "NetEnt",
+            "rtp": "96",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "netent-mega-joker",
+            "н": "NetEnt Mega Joker",
+            "п": "NetEnt",
+            "rtp": "99",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "olympus-unleashed",
+            "н": "Olympus Unleashed",
+            "п": "Push Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "греческая мифология",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "pelican-payday",
+            "н": "Pelican Payday",
+            "п": "Pragmatic Play",
+            "rtp": "96.59",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "piggy-riches",
+            "н": "Piggy Riches",
+            "п": "NetEnt",
+            "rtp": "96.4",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "piggy-riches-megaways",
+            "н": "Piggy Riches Megaways",
+            "п": "Red Tiger",
+            "rtp": "95.77",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "Megaways",
+                "переиздание"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "pink-elephants",
+            "н": "Pink Elephants",
+            "п": "Thunderkick",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "мистика"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "play-n-go-rich-wilde-and-the-book-of-dead",
+            "н": "Play n GO Rich Wilde and the Book of Dead",
+            "п": "Play'n GO",
+            "rtp": "96.21",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "plinko",
+            "н": "Plinko",
+            "п": "Bgaming",
+            "rtp": "97.0",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "plinko-plus",
+            "н": "Plinko Plus",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "potion-of-madness",
+            "н": "Potion of Madness",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "power-of-thor-megaways",
+            "н": "Power of Thor Megaways",
+            "п": "Pragmatic Play",
+            "rtp": "96.55",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "power-paws",
+            "н": "Power Paws",
+            "п": "Push Gaming",
+            "rtp": "96.25",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "pragmatic-play-american-blackjack",
+            "н": "Pragmatic Play American Blackjack",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "pragmatic-play-fruit-party",
+            "н": "Pragmatic Play Fruit Party",
+            "п": "Pragmatic Play",
+            "rtp": "96.47",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "queenie",
+            "н": "Queenie",
+            "п": "Pragmatic Play",
+            "rtp": "96.51",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "rabid-randy-gone-fishing",
+            "н": "Rabid Randy Gone Fishing",
+            "п": "NetEnt",
+            "rtp": "96.07",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "razor-returns",
+            "н": "Razor Returns",
+            "п": "Push Gaming",
+            "rtp": "96.38",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "переиздание"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "razor-shark",
+            "н": "Razor Shark",
+            "п": "Push Gaming",
+            "rtp": "96.7",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "множители",
+                "краш-игра"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "razor-shark-jackpots",
+            "н": "Razor Shark Jackpots",
+            "п": "Push Gaming",
+            "rtp": "96.38",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "reactoonz",
+            "н": "Reactoonz",
+            "п": "Play'n GO",
+            "rtp": "96.51",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "космос",
+                "кластеры"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "reactoonz-2",
+            "н": "Reactoonz 2",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "космос",
+                "кластеры",
+                "продолжение серии"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "reel-gems",
+            "н": "Reel Gems",
+            "п": "Microgaming",
+            "rtp": "96.52",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "reel-rush",
+            "н": "Reel Rush",
+            "п": "NetEnt",
+            "rtp": "96.96",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "release-the-kraken",
+            "н": "Release the Kraken",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "resident",
+            "н": "Resident",
+            "п": "Igrosoft",
+            "rtp": "96.0",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "retro-tapes",
+            "н": "Retro Tapes",
+            "п": "Push Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "retroverse",
+            "н": "RetroVerse",
+            "п": "Push Gaming",
+            "rtp": "96.42",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "rich-wilde-and-the-tome-of-madness",
+            "н": "Rich Wilde and the Tome Of Madness",
+            "п": "Play'n GO",
+            "rtp": "96.52",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "приключения",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "rise-of-merlin",
+            "н": "Rise Of Merlin",
+            "п": "Play'n GO",
+            "rtp": "96.58",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "rise-of-olympus",
+            "н": "Rise Of Olympus",
+            "п": "Play'n GO",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "греческая мифология",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "rise-of-olympus-bingo",
+            "н": "Rise of Olympus Bingo",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "rugby-star",
+            "н": "Rugby Star",
+            "п": "Microgaming",
+            "rtp": "96.45",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sabaton",
+            "н": "Sabaton",
+            "п": "Play'n GO",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sakura-fortune",
+            "н": "Sakura Fortune",
+            "п": "Quickspin",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "азиатская тема",
+                "множители"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "santa-hopper",
+            "н": "Santa Hopper",
+            "п": "Push Gaming",
+            "rtp": "96.37",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "santas-vault",
+            "н": "Santas Vault",
+            "п": "Push Gaming",
+            "rtp": "96.37",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sea-of-spirits",
+            "н": "Sea of Spirits",
+            "п": "Push Gaming",
+            "rtp": "96.36",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "shamrock-saints",
+            "н": "Shamrock Saints",
+            "п": "Push Gaming",
+            "rtp": "94.97",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sizzling-spins",
+            "н": "Sizzling Spins",
+            "п": "Play'n GO",
+            "rtp": "96.49",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "space-wars-2-powerpoints",
+            "н": "Space Wars 2 Powerpoints",
+            "п": "NetEnt",
+            "rtp": "96.05",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "spaceman",
+            "н": "Spaceman",
+            "п": "Pragmatic Play",
+            "rtp": "97.0",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "космос",
+                "множители",
+                "краш-игра"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "spice",
+            "н": "Spice",
+            "п": "NetEnt",
+            "rtp": "96.09",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "spinata-grande",
+            "н": "Spinata Grande",
+            "п": "NetEnt",
+            "rtp": "96.84",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "spinnin-records-raving-reels",
+            "н": "Spinnin Records Raving Reels",
+            "п": "Play'n GO",
+            "rtp": "94.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "spire-plus",
+            "н": "Spire Plus",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "star-joker",
+            "н": "Star Joker",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "starburst",
+            "н": "Starburst",
+            "п": "NetEnt",
+            "rtp": "96.09",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика",
+                "расширяющиеся символы"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "starburst-tap-a-roo",
+            "н": "Starburst Tap A Roo",
+            "п": "NetEnt",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "starlight-kiss",
+            "н": "Starlight Kiss",
+            "п": "Microgaming",
+            "rtp": "96.52",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "starlight-princess-1000",
+            "н": "Starlight Princess 1000",
+            "п": "Pragmatic Play",
+            "rtp": "96.5",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "множители",
+                "переиздание"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "starlight-princess-oranje-jackpot",
+            "н": "Starlight Princess Oranje Jackpot",
+            "п": "Pragmatic Play",
+            "rtp": "92.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "static-nightmare-abyssways",
+            "н": "Static Nightmare Abyssways",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "steam-tower",
+            "н": "Steam Tower",
+            "п": "NetEnt",
+            "rtp": "97.04",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sugar-rush",
+            "н": "Sugar Rush",
+            "п": "Pragmatic Play",
+            "rtp": "96.48",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "каскады",
+                "множители",
+                "краш-игра"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "sweet-alchemy",
+            "н": "Sweet Alchemy",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "sweet-bonanza",
+            "н": "Sweet Bonanza",
+            "п": "Pragmatic Play",
+            "rtp": "96.48",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "кластеры",
+                "бонусный раунд",
+                "много линий"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "table-game-dragon-tiger",
+            "н": "Table Game Dragon Tiger",
+            "п": "Pragmatic Play",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "temple-of-wealth",
+            "н": "Temple of Wealth",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-catfather",
+            "н": "The Catfather",
+            "п": "Pragmatic Play",
+            "rtp": "98.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-dog-house",
+            "н": "The Dog House",
+            "п": "Pragmatic Play",
+            "rtp": "96.51",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "фриспины",
+                "вайлды"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "the-dog-house-megaways",
+            "н": "The Dog House Megaways",
+            "п": "Pragmatic Play",
+            "rtp": "96.55",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "Megaways",
+                "много линий",
+                "переиздание"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "the-dog-house-no-dog-left-behind",
+            "н": "The Dog House No Dog Left Behind",
+            "п": "Pragmatic Play",
+            "rtp": "98.02",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-dog-mansion-royal-hunt",
+            "н": "The Dog Mansion Royal Hunt",
+            "п": "Pragmatic Play",
+            "rtp": "98.02",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-finer-reels-of-life",
+            "н": "The Finer Reels of Life",
+            "п": "Microgaming",
+            "rtp": "96.47",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "three-pots-of-the-genie",
+            "н": "Three Pots of The Genie",
+            "п": "Play'n GO",
+            "rtp": "96.2",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "thunderstruck",
+            "н": "Thunderstruck",
+            "п": "Microgaming",
+            "rtp": "96.1",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "thunderstruck-ii",
+            "н": "Thunderstruck II",
+            "п": "Microgaming",
+            "rtp": "96.65",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "греческая мифология"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "titan-thunder-wrath-of-hades",
+            "н": "Titan Thunder Wrath of Hades",
+            "п": "Quickspin",
+            "rtp": "94.18",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "греческая мифология"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "tome-of-madness-bingo",
+            "н": "Tome of Madness Bingo",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "twin-spin",
+            "н": "Twin Spin",
+            "п": "NetEnt",
+            "rtp": "96.55",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "ugga-bugga",
+            "н": "Ugga Bugga",
+            "п": "Playtech",
+            "rtp": "99.07",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": true
+        },
+        {
+            "слаг": "vegas-vault",
+            "н": "Vegas Vault",
+            "п": "Push Gaming",
+            "rtp": "96.36",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "viking-runecraft",
+            "н": "Viking Runecraft",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "viking-runecraft-bingo",
+            "н": "Viking Runecraft Bingo",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "vikings-go-wild",
+            "н": "Vikings Go Wild",
+            "п": "Yggdrasil",
+            "rtp": "96.3",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "викинги",
+                "вайлды"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "viva-lock-vegas",
+            "н": "Viva Lock Vegas",
+            "п": "Push Gaming",
+            "rtp": "96.35",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wanted-dead-or-a-wild",
+            "н": "Wanted Dead Or A Wild",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.4",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "вестерн",
+                "бонусный раунд",
+                "высокая волатильность"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "warlords-crystals-of-power",
+            "н": "Warlords Crystals of Power",
+            "п": "NetEnt",
+            "rtp": "96.89",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wild-swarm-3-chocolate-eggs",
+            "н": "Wild Swarm 3 Chocolate Eggs",
+            "п": "Push Gaming",
+            "rtp": "96.48",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wild-west-gold",
+            "н": "Wild West Gold",
+            "п": "Pragmatic Play",
+            "rtp": "96.51",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "вестерн",
+                "множители",
+                "фриспины"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "wild-wild-riches",
+            "н": "Wild Wild Riches",
+            "п": "Pragmatic Play",
+            "rtp": "96.77",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wolf-gold",
+            "н": "Wolf Gold",
+            "п": "Pragmatic Play",
+            "rtp": "96.01",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [
+                "классика",
+                "множители",
+                "джекпоты"
+            ],
+            "корпус": true
+        },
+        {
+            "слаг": "zeus-vs-hades-gods-of-war",
+            "н": "Zeus vs Hades Gods of War",
+            "п": "Pragmatic Play",
+            "rtp": "96.07",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "zz-top-roadside-riches",
+            "н": "ZZ Top Roadside Riches",
+            "п": "Play'n GO",
+            "rtp": "",
+            "темы": [
+                "777",
+                "christmas",
+                "asian"
+            ],
+            "т": [],
+            "корпус": false
+        }
+    ]
+}
