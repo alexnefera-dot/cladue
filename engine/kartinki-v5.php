@@ -808,18 +808,20 @@ const ПУЛ_СЮЖЕТОВ = [
  */
 /** Какие файлы обложек и правда показывают свою игру.
  *
- * Сверка картинок с именами: из двенадцати совпали две. На sweet-bonanza.webp
- * напечатано «BOOK OF OIL», на book-of-dead.webp — «THE MONEY GAME», на
- * starburst.webp — «ALICE Wonderluck», на the-dog-house.webp — «KRAKEN'S
- * CATCH», на gates-of-olympus.webp — «ZEUS vs HADES». Название чужой игры
- * набрано на самой картинке крупно и читается в карточке: подпись «Sweet
- * Bonanza» над картинкой «BOOK OF OIL» — это уже не однообразие, а ошибка.
+ * Было: из двенадцати совпадали две. На sweet-bonanza.webp стояло «BOOK OF
+ * OIL», на book-of-dead.webp — «THE MONEY GAME», на starburst.webp — «ALICE
+ * Wonderluck». Название чужой игры набрано на самой картинке крупно и
+ * читалось в карточке — это не однообразие, а ошибка.
  *
- * Фото идут в карточки только если подтверждены ВСЕ имена витрины: две
- * фотографии среди десяти рисунков читались бы случайностью, а не выбором.
- * Появятся верные файлы — впишите имена сюда, и фото вернутся сами.
+ * Стало: все двенадцать пересняты скриншотами настоящих игр
+ * (engine/instrumenty/sobrat-oblozhki.php) и сверены глазом по контактному
+ * листу (svod-oblozhek.php). Фото идут в карточки только если подтверждены
+ * ВСЕ имена витрины: несколько фотографий среди рисунков читались бы
+ * случайностью, а не выбором. Меняете файл — сверяйте заново.
  */
-const ОБЛОЖКИ_ПОДТВЕРЖДЕНЫ = ['Big Bass Bonanza', 'Sugar Rush'];
+const ОБЛОЖКИ_ПОДТВЕРЖДЕНЫ = ['Sweet Bonanza', 'Gates of Olympus', 'Book of Dead', 'Big Bass Bonanza',
+    'Starburst', 'Sugar Rush', 'Money Train 3', 'The Dog House', 'Wanted Dead or Wild',
+    'Wanted Dead or a Wild', 'Starlight Princess', 'Razor Shark', 'Fruit Party'];
 
 const ОБЛОЖКИ_ИГР = [
     'Sweet Bonanza' => 'sweet-bonanza', 'Gates of Olympus' => 'gates-of-olympus', 'Book of Dead' => 'book-of-dead',
