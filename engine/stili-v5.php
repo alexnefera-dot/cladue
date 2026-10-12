@@ -33,14 +33,16 @@ function стНормаль(string $правило): string
  * Оформление, которое никогда не уезжает в <style>.
  *
  * Только каркас карточки слота и её обложка: без них узкий шаблон рассыпает
- * блок в строку. Всё прочее в классы уходит.
+ * блок в строку. Всё прочее в классы уходит. Сюда же SEO-блок: его
+ * visually-hidden должен держаться, даже если шаблон сайта класс не знает —
+ * иначе спрятанный текст выпадает читателю на страницу.
  */
 function стКритичный(string $тег, string $атрибуты): bool
 {
     if (strtolower($тег) === 'img') { return true; }
     return (bool) preg_match('~\sclass="(?:[^"]*\s)?(?:slots-grid|slot-card|slot-card-inner'
         . '|slot-poster|slot-info|slot-footer|slot-name|slot-provider|slot-rtp|slot-play-btn'
-        . '|related-cards|related-card)(?:\s[^"]*)?"~', $атрибуты);
+        . '|related-cards|related-card|yandex-index-only)(?:\s[^"]*)?"~', $атрибуты);
 }
 
 /** Заменяет style="…" на класс, дописывая его к уже имеющимся. */

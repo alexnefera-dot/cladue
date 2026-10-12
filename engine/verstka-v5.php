@@ -343,6 +343,11 @@ $ПРАВИЛА = [
     'related-card-link'        => 'display:block;color:inherit;text-decoration:none',
     'related-card-title'       => 'font-weight:600;margin:0 0 3px;font-size:15px;line-height:1.3;overflow-wrap:break-word',
     'related-card-desc'        => 'margin:0;font-size:13px;opacity:.85;line-height:1.45',
+    // ── SEO-блок (B4): visually-hidden ровно как в эталоне. Читателю блок
+    // не виден, поисковику виден; радиусы и тени темы к нему не применяются,
+    // потому что показывать там нечего.
+    'yandex-index-only' => 'position:absolute;width:1px;height:1px;margin:-1px;padding:0'
+        . ';overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0',
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border:1px solid ' . ЗОЛОТО . ';border-radius:8px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none;white-space:nowrap',
 ];
 
