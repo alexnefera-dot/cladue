@@ -6329,14 +6329,23 @@ const V5_MEBEL = ['related-sections', 'yandex-index-only'];
  */
 function v5OtsechMebel(string $html): array
 {
-    $шаблон = '~\s*<section\b[^>]*class="(?:' . implode('|', V5_MEBEL)
-        . ')\b[^"]*".*?</section>~is';
+    // Не вся мебель — <section>. Всплывашки выигрышей стоят в html пустым
+    // контейнером со скриптом рядом, и скрипт тоже надо срезать: перекрут
+    // работает по строкам файла, и его текст уходит в бюджет синонимов —
+    // ровно так первый блок менял прозу, которой не касался.
+    $шаблоны = [
+        '~\s*<section\b[^>]*class="(?:' . implode('|', V5_MEBEL) . ')\b[^"]*".*?</section>~is',
+        '~\s*<div\b[^>]*class="win-notifications-root"[^>]*>\s*</div>\s*<script\b.*?</script>~is',
+    ];
     $мебель = '';
-    $чистый = preg_replace_callback($шаблон, function (array $m) use (&$мебель): string {
-        $мебель .= $m[0];
-        return '';
-    }, $html);
-    if ($чистый === null) { return [$html, '']; }
+    $чистый = $html;
+    foreach ($шаблоны as $шаблон) {
+        $итог = preg_replace_callback($шаблон, function (array $m) use (&$мебель): string {
+            $мебель .= $m[0];
+            return '';
+        }, $чистый);
+        if ($итог !== null) { $чистый = $итог; }
+    }
     return [$чистый, $мебель];
 }
 
