@@ -42,7 +42,8 @@ function стКритичный(string $тег, string $атрибуты): bool
     if (strtolower($тег) === 'img') { return true; }
     return (bool) preg_match('~\sclass="(?:[^"]*\s)?(?:slots-grid|slot-card|slot-card-inner'
         . '|slot-poster|slot-info|slot-footer|slot-name|slot-provider|slot-rtp|slot-play-btn'
-        . '|related-cards|related-card|yandex-index-only)(?:\s[^"]*)?"~', $атрибуты);
+        . '|related-cards|related-card|yandex-index-only'
+        . '|win-notifications-root)(?:\s[^"]*)?"~', $атрибуты);
 }
 
 /** Заменяет style="…" на класс, дописывая его к уже имеющимся. */

@@ -5877,6 +5877,88 @@ function v5SklejkaChitaetsya(string $строка): bool
  * только main, поэтому форма взята с замера, а не с ТЗ.
  */
 
+/**
+ * Блок B5 `win-notifications-root` — всплывашки выигрышей.
+ *
+ * Замер по эталону: в HTML стоит пустой контейнер, а записи лежат в скрипте
+ * рядом — массив `{player, amount, game}` и массив эмодзи. ТЗ показывает тост
+ * готовой разметкой; в корпусе её нет, тост рисует скрипт по таймеру.
+ * Десять записей у них, ТЗ просит 8–15 — берём замер с небольшим разбросом.
+ *
+ * Имена берутся мимо банка набора: если в тосте окажется герой страницы, сито
+ * честно скажет «одно имя — разные истории». Игры — из базы, подмножеством и
+ * в своём порядке (режим С по ТЗ).
+ *
+ * @param list<string> $имена имена героев набора, которые брать нельзя
+ * @param list<array<string,mixed>> $база игры
+ */
+function v5BlokVsplyvashek(int $сид, array $имена, array $база): string
+{
+    $rng = new Rng('всплывашки|' . $сид);
+    $занято = [];
+    foreach ($имена as $имя) {
+        if ($имя !== '') { $занято[mb_strtolower((string) $имя)] = true; }
+    }
+    $свободные = array_values(array_filter(PersonNames::full(),
+        static fn (string $имя): bool => !isset($занято[mb_strtolower($имя)])));
+    $игры = array_values(array_filter($база,
+        static fn (array $и): bool => ($и['н'] ?? '') !== ''));
+    if (count($свободные) < 15 || count($игры) < 15) { return ''; }
+
+    $буквы = ['А', 'Б', 'В', 'Г', 'Д', 'Ж', 'З', 'К', 'Л', 'М', 'Н', 'П', 'Р', 'С', 'Т', 'Ф', 'Ш'];
+    $сколько = $rng->int(8, 12);
+    $записи = [];
+    $взятые = [];
+    for ($i = 0; $i < $сколько; $i++) {
+        $n = $rng->int(0, count($свободные) - 1);
+        $имя = $свободные[$n];
+        array_splice($свободные, $n, 1);
+        $g = $rng->int(0, count($игры) - 1);
+        $игра = (string) $игры[$g]['н'];
+        array_splice($игры, $g, 1);
+        if (isset($взятые[$игра])) { continue; }
+        $взятые[$игра] = true;
+        // Суммы круглые, как у них: десятки тысяч, от 45 до 790 тысяч.
+        $сумма = $rng->int(9, 158) * 5000;
+        $записи[] = sprintf("{ player: '%s %s.*', amount: %d, game: '%s' }",
+            addslashes($имя), addslashes((string) $rng->pick($буквы)), $сумма, addslashes($игра));
+    }
+    if (count($записи) < 8) { return ''; }
+
+    $эмодзи = ['💰', '🎰', '💎', '⭐', '🔥', '💵', '🎁', '🏆'];
+    $rng->shuffle($эмодзи);
+    $эмодзи = array_slice($эмодзи, 0, $rng->int(5, 8));
+    $пауза = $rng->int(9, 17) * 1000;
+    $показ = $rng->int(5, 8) * 1000;
+
+    return '<div id="winNotifications" class="win-notifications-root" aria-live="polite"></div>' . "\n"
+        . '<script>' . "\n"
+        . '(function () {' . "\n"
+        . '  var wins = [' . "\n    " . implode(",\n    ", $записи) . "\n" . '  ];' . "\n"
+        . "  var emojis = ['" . implode("', '", $эмодзи) . "'];" . "\n"
+        . '  function showWinToast() {' . "\n"
+        . "    var cont = document.getElementById('winNotifications');" . "\n"
+        . '    if (!cont) { return; }' . "\n"
+        . '    var w = wins[Math.floor(Math.random() * wins.length)];' . "\n"
+        . '    var em = emojis[Math.floor(Math.random() * emojis.length)];' . "\n"
+        . "    var div = document.createElement('div');" . "\n"
+        . "    div.className = 'win-notification-toast';" . "\n"
+        . '    div.innerHTML = \'<div class="win-toast-inner"><span class="win-toast-emoji">\' + em'
+        . ' + \'</span><div class="win-toast-body"><div class="win-toast-player">\' + w.player'
+        . ' + \'</div><div class="win-toast-amount">\' + w.amount.toLocaleString(\'ru-RU\')'
+        . ' + \' &#8381;</div><div class="win-toast-game">\' + w.game'
+        . ' + \'</div></div><button type="button" class="win-toast-close" aria-label="Закрыть">&times;</button></div>\';' . "\n"
+        . "    var close = div.querySelector('.win-toast-close');" . "\n"
+        . "    if (close) { close.addEventListener('click', function () { cont.removeChild(div); }); }" . "\n"
+        . '    cont.appendChild(div);' . "\n"
+        . '    setTimeout(function () { if (div.parentNode === cont) { cont.removeChild(div); } }, '
+        . $показ . ');' . "\n"
+        . '  }' . "\n"
+        . '  setInterval(showWinToast, ' . $пауза . ');' . "\n"
+        . '})();' . "\n"
+        . '</script>';
+}
+
 /** Смежность разделов: с какой страницы куда ведут ссылки блока. */
 const V5_SEO_SMEZH = [
     'main'        => ['bonus', 'registracia', 'zerkalo', 'slots', 'vhod', 'app', 'news', 'obzor', 'info', 'promo', 'partnery'],

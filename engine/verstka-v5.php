@@ -343,6 +343,11 @@ $ПРАВИЛА = [
     'related-card-link'        => 'display:block;color:inherit;text-decoration:none',
     'related-card-title'       => 'font-weight:600;margin:0 0 3px;font-size:15px;line-height:1.3;overflow-wrap:break-word',
     'related-card-desc'        => 'margin:0;font-size:13px;opacity:.85;line-height:1.45',
+    // ── всплывашки выигрышей (B5): в html стоит только контейнер, тосты
+    // рисует скрипт. Контейнер оформляется здесь, сами тосты — инлайном
+    // внутри скрипта: до узлов, которых в html нет, вёрстка не дотянется.
+    'win-notifications-root' => 'position:fixed;bottom:20px;left:20px;z-index:9998;max-width:320px'
+        . ';pointer-events:none;display:flex;flex-direction:column;gap:10px;align-items:flex-start',
     // ── SEO-блок (B4): visually-hidden ровно как в эталоне. Читателю блок
     // не виден, поисковику виден; радиусы и тени темы к нему не применяются,
     // потому что показывать там нечего.
