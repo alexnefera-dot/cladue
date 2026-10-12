@@ -48,7 +48,9 @@ $добавить = function (string $вид, string $тип, string $что, st
  */
 function v5ТекстБлоками(string $html): string
 {
-    $html = preg_replace('~<style\b[^>]*>.*?</style>~is', ' ', $html);
+    // Скрипт — не текст. Сверка и сито снимают его давно; здесь он до сих пор
+    // попадал в разбор, потому что в наших страницах скриптов не было вовсе.
+    $html = preg_replace('~<(script|style)\b[^>]*>.*?</\1>~is', ' ', $html);
     $h = preg_replace('~</(p|li|h[1-6]|div|td|th|section|article|button|span)>~i', ' ¶ ', $html);
     return trim(preg_replace('~\s+~u', ' ',
         html_entity_decode(preg_replace('~<[^>]*>~', ' ', $h), ENT_QUOTES, 'UTF-8')));
