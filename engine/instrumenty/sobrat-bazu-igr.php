@@ -132,6 +132,12 @@ foreach ($очередь as $к => $з) {
     // «NetEnt French Roulette», «NetEnt Blackjack» — префикс их не ловит.
     if (preg_match('~(table game|\blive\b|roulette|blackjack|baccarat|video poker|jacks or better|sic bo|craps|\bkeno\b|\bbingo\b|scratch|dragon tiger|andar|teen patti|casino night)~i', $з['имя'])) { continue; }
     if ($толькоТемы && !isset($поСлагу[$слаг])) { continue; }
+    // В режиме тем берём только неосвежённые: признак первой, сломанной
+    // версии разбора — метки меню сайта «777» и «christmas» разом.
+    if ($толькоТемы) {
+        $ст = (array) ($поСлагу[$слаг]['темы'] ?? []);
+        if (!(in_array('777', $ст, true) && in_array('christmas', $ст, true))) { continue; }
+    }
     if (!$толькоТемы && isset($поСлагу[$слаг]) && is_file("$обложки/$слаг.webp")) { $пропущено++; continue; }
     if (катЗапрещено($з['путь'])) { $беды[] = $з['имя'] . ': robots.txt'; continue; }
 
