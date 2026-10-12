@@ -5978,6 +5978,82 @@ function v5BlokVsplyvashek(int $сид, array $имена, array $база): str
         . '</script>';
 }
 
+/**
+ * Блок B6 `support-widget` — плавающая кнопка поддержки с раскрывающейся
+ * панелью. Стоит на всех двенадцати страницах, версий нет.
+ *
+ * Поля взяты по ТЗ (`badge`, `panel_title`, `status_text`, `quick_questions`),
+ * а не по нашему единственному эталонному набору: у него в панели телефон,
+ * почта и телеграм, но это один сайт против семидесяти в замере ТЗ. Заодно
+ * это снимает вопрос, откуда брать контакты: выдуманный номер на живом сайте
+ * уводит чужие жалобы к случайному человеку, а подставлять «example.com»
+ * честнее не делает.
+ */
+function v5BlokPodderzhki(int $сид): string
+{
+    $rng = new Rng('поддержка|' . $сид);
+    $бейджи = ['24/7', '24 / 7', 'онлайн', '0–24', 'круглосуточно'];
+    $шапки = [
+        ['{кто} поддержки', ['кто' => ['Служба', 'Команда', 'Линия']]],
+        ['{кто} помощи', ['кто' => ['Служба', 'Центр', 'Линия']]],
+        ['{как} поддержка', ['как' => ['Живая', 'Круглосуточная', 'Быстрая']]],
+        ['Поддержка {кому}', ['кому' => ['игроков', 'круглосуточно', 'без выходных']]],
+    ];
+    $статусы = [
+        ['{сост} {когда}', ['сост' => ['Онлайн', 'На связи', 'Отвечаем', 'В сети'],
+            'когда' => ['24/7', 'круглосуточно', 'без выходных', 'сейчас']]],
+        ['{сост}, ответ {срок}', ['сост' => ['Онлайн', 'На связи', 'В сети'],
+            'срок' => ['за минуту', 'в пару минут', 'сразу', 'без очереди']]],
+    ];
+    $вопросы = [
+        'Как вывести выигрыш?', 'Не приходит бонус', 'Проблема со входом',
+        'Сколько идёт проверка документов?', 'Где взять промокод?',
+        'Не открывается сайт', 'Как отыграть вейджер?', 'Забыл пароль',
+        'Деньги не зачислились', 'Как сменить валюту счёта?',
+        'Почему отменили ставку?', 'Как закрыть аккаунт?',
+    ];
+    $кнопки = ['Начать чат', 'Написать в чат', 'Задать вопрос', 'Связаться с нами',
+               'Открыть переписку'];
+
+    $шапка = v5SobratPoShablonu($rng, (array) $rng->pick($шапки));
+    $статус = v5SobratPoShablonu($rng, (array) $rng->pick($статусы));
+    $rng->shuffle($вопросы);
+    $взятые = array_slice($вопросы, 0, $rng->int(3, 4));
+
+    $пункты = '';
+    foreach ($взятые as $в) {
+        $пункты .= '      <button type="button" class="support-quick">'
+            . htmlspecialchars($в, ENT_NOQUOTES, 'UTF-8') . '</button>' . "\n";
+    }
+
+    return '<div id="supportWidget" class="support-widget">' . "\n"
+        . '  <button id="supportButton" class="support-button" aria-label="Открыть чат поддержки">' . "\n"
+        . '    <span class="support-icon">&#128172;</span>' . "\n"
+        . '    <span class="support-badge">' . htmlspecialchars((string) $rng->pick($бейджи), ENT_NOQUOTES, 'UTF-8')
+        . '</span>' . "\n"
+        . '  </button>' . "\n"
+        . '  <div id="supportPanel" class="support-panel" hidden="">' . "\n"
+        . '    <div class="support-panel-header">' . "\n"
+        . '      <div>' . "\n"
+        . '        <h3 class="support-panel-title">' . htmlspecialchars($шапка, ENT_NOQUOTES, 'UTF-8')
+        . '</h3>' . "\n"
+        . '        <div class="support-panel-status">' . "\n"
+        . '          <span class="status-indicator"></span>' . "\n"
+        . '          <span class="status-text">' . htmlspecialchars($статус, ENT_NOQUOTES, 'UTF-8')
+        . '</span>' . "\n"
+        . '        </div>' . "\n"
+        . '      </div>' . "\n"
+        . '      <button id="supportClose" class="support-close" aria-label="Закрыть">&times;</button>' . "\n"
+        . '    </div>' . "\n"
+        . '    <div class="support-panel-body">' . "\n"
+        . $пункты
+        . '      <button type="button" class="support-chat-button">'
+        . htmlspecialchars((string) $rng->pick($кнопки), ENT_NOQUOTES, 'UTF-8') . '</button>' . "\n"
+        . '    </div>' . "\n"
+        . '  </div>' . "\n"
+        . '</div>';
+}
+
 /** Смежность разделов: с какой страницы куда ведут ссылки блока. */
 const V5_SEO_SMEZH = [
     'main'        => ['bonus', 'registracia', 'zerkalo', 'slots', 'vhod', 'app', 'news', 'obzor', 'info', 'promo', 'partnery'],
@@ -6355,6 +6431,7 @@ function v5OtsechMebel(string $html): array
     $шаблоны = [
         '~\s*<section\b[^>]*class="(?:' . implode('|', V5_MEBEL) . ')\b[^"]*".*?</section>~is',
         '~\s*<div\b[^>]*class="win-notifications-root"[^>]*>\s*</div>\s*<script\b.*?</script>~is',
+        '~\s*<div\b[^>]*id="supportWidget"[^>]*>.*?\n</div>~is',
     ];
     $мебель = '';
     $чистый = $html;

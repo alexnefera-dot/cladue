@@ -348,6 +348,28 @@ $ПРАВИЛА = [
     // внутри скрипта: до узлов, которых в html нет, вёрстка не дотянется.
     'win-notifications-root' => 'position:fixed;bottom:20px;left:20px;z-index:9998;max-width:320px'
         . ';pointer-events:none;display:flex;flex-direction:column;gap:10px;align-items:flex-start',
+    // ── виджет поддержки (B6): плавающая кнопка справа внизу и панель,
+    // раскрываемая скриптом. Панель отдаётся скрытой (hidden), иначе на
+    // странице без JS она висит поверх текста.
+    'support-widget'       => 'position:fixed;bottom:24px;right:24px;z-index:9999',
+    'support-button'       => 'width:60px;height:60px;border:0;border-radius:50%;cursor:pointer'
+        . ';position:relative;background:rgba(17,17,20,.92);box-shadow:0 6px 22px rgba(0,0,0,.4)',
+    'support-icon'         => 'font-size:26px;display:block;line-height:1',
+    'support-badge'        => 'position:absolute;top:-5px;right:-5px;background:#fff;color:#111'
+        . ';font-size:10px;font-weight:800;padding:3px 6px;border-radius:10px;white-space:nowrap',
+    'support-panel'        => 'position:absolute;bottom:72px;right:0;width:280px;max-width:78vw'
+        . ';background:rgba(17,17,20,.96);color:#fff;border-radius:14px;padding:14px'
+        . ';box-shadow:0 14px 44px rgba(0,0,0,.5);text-align:left',
+    'support-panel-header' => 'display:flex;align-items:flex-start;justify-content:space-between;gap:10px',
+    'support-panel-title'  => 'margin:0;font-size:15px;font-weight:700;color:inherit',
+    'support-panel-status' => 'display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;opacity:.75',
+    'status-indicator'     => 'width:8px;height:8px;border-radius:50%;background:#4ad07d;display:inline-block',
+    'support-close'        => 'background:none;border:0;color:#fff;opacity:.6;font-size:18px;line-height:1;cursor:pointer',
+    'support-panel-body'   => 'display:flex;flex-direction:column;gap:7px;margin-top:12px',
+    'support-quick'        => 'text-align:left;background:rgba(255,255,255,.07);border:0;color:#fff'
+        . ';font-size:12px;padding:8px 10px;border-radius:9px;cursor:pointer;font-family:inherit',
+    'support-chat-button'  => 'background:#fff;color:#111;border:0;font-size:13px;font-weight:700'
+        . ';padding:9px 12px;border-radius:9px;cursor:pointer;font-family:inherit;margin-top:3px',
     // ── SEO-блок (B4): visually-hidden ровно как в эталоне. Читателю блок
     // не виден, поисковику виден; радиусы и тени темы к нему не применяются,
     // потому что показывать там нечего.
