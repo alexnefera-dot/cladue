@@ -1,7 +1,7 @@
 {
     "источник": {
         "каталог": "https:\/\/www.slotsmate.com",
-        "собрано": "2026-10-13T12:17:03+00:00"
+        "собрано": "2026-10-13T12:17:35+00:00"
     },
     "игры": [
         {
@@ -129,6 +129,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/netent\/aloha-cluster-pays"
+        },
+        {
+            "слаг": "alpha-eagle",
+            "н": "Alpha Eagle",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.44",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/alpha-eagle",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "angel-vs-sinner-eternal-battle",
@@ -758,6 +770,18 @@
             "путь": "\/software\/games-global\/double-double-bonus-power-poker"
         },
         {
+            "слаг": "double-rainbow",
+            "н": "Double Rainbow",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.42",
+            "темы": [
+                "candy"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/double-rainbow",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "duck-hunters",
             "н": "Duck Hunters",
             "п": "Nolimit City",
@@ -899,6 +923,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/games-global\/forbidden-throne"
+        },
+        {
+            "слаг": "franks-farm",
+            "н": "Franks Farm",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.39",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/franks-farm",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "frog-grog",
@@ -1101,6 +1137,16 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/grim-muerto"
+        },
+        {
+            "слаг": "hacksaw-gaming-plinko",
+            "н": "Hacksaw Gaming Plinko",
+            "п": "Hacksaw Gaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/hacksaw-gaming\/hacksaw-gaming-plinko",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "halloween-jack",
@@ -1652,6 +1698,16 @@
             "путь": "\/software\/relax-gaming\/money-cart-3"
         },
         {
+            "слаг": "money-plane-bail-2-win",
+            "н": "Money Plane Bail 2 Win",
+            "п": "Hacksaw Gaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/hacksaw-gaming\/money-plane-bail-2-win",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "money-train-2",
             "н": "Money Train 2",
             "п": "Relax Gaming",
@@ -2127,6 +2183,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/play-n-go\/rise-of-olympus"
+        },
+        {
+            "слаг": "rotten",
+            "н": "Rotten",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.27",
+            "темы": [
+                "horror"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/rotten",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "rugby-star",
@@ -2726,6 +2794,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/netent\/warlords-crystals-of-power"
+        },
+        {
+            "слаг": "warrior-ways",
+            "н": "Warrior Ways",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.51",
+            "темы": [
+                "asian"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/warrior-ways",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "wild-orient",
