@@ -1,7 +1,7 @@
 {
     "источник": {
         "каталог": "https:\/\/www.slotsmate.com",
-        "собрано": "2026-10-13T12:32:27+00:00"
+        "собрано": "2026-10-13T12:36:45+00:00"
     },
     "игры": [
         {
@@ -41,6 +41,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/thunderkick\/1429-uncharted-seas"
+        },
+        {
+            "слаг": "2-wild-2-die",
+            "н": "2 Wild 2 Die",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.25",
+            "темы": [
+                "wild-west"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/2-wild-2-die",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "2016-gladiators",
@@ -309,6 +321,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/push-gaming\/bait-n-bank"
+        },
+        {
+            "слаг": "bash-bros",
+            "н": "Bash Bros",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.32",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/bash-bros",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "basketball-star",
@@ -1098,6 +1122,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/big-time-gaming\/danger-high-voltage"
+        },
+        {
+            "слаг": "danger-high-voltage-2",
+            "н": "Danger High Voltage 2",
+            "п": "Big Time Gaming",
+            "rtp": "96.77",
+            "темы": [
+                "carnival"
+            ],
+            "путь": "\/software\/big-time-gaming\/danger-high-voltage-2",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "dazzle-me",
@@ -2513,6 +2549,18 @@
             "корпус": false
         },
         {
+            "слаг": "king-carrot",
+            "н": "King Carrot",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.41",
+            "темы": [
+                "farm"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/king-carrot",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "kitchen-drama-sushi-mania",
             "н": "Kitchen Drama Sushi Mania",
             "п": "Nolimit City",
@@ -2781,6 +2829,16 @@
             "rtp": "",
             "темы": [],
             "путь": "\/software\/hacksaw-gaming\/lucky-number-x12",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lucky-number-x16",
+            "н": "Lucky Number x16",
+            "п": "Hacksaw Gaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/hacksaw-gaming\/lucky-number-x16",
             "т": [],
             "корпус": false
         },
@@ -3816,6 +3874,18 @@
             "путь": "\/software\/netent\/reel-rush"
         },
         {
+            "слаг": "reign-of-rome",
+            "н": "Reign of Rome",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.35",
+            "темы": [
+                "ancient-rome"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/reign-of-rome",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "release-the-kraken",
             "н": "Release the Kraken",
             "п": "Pragmatic Play",
@@ -3943,6 +4013,18 @@
                 "adventure"
             ],
             "путь": "\/software\/igrosoft\/rock-climber",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "rocket-reels",
+            "н": "Rocket Reels",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.34",
+            "темы": [
+                "space-and-aliens"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/rocket-reels",
             "т": [],
             "корпус": false
         },
@@ -4466,6 +4548,18 @@
             "путь": "\/software\/play-n-go\/temple-of-wealth"
         },
         {
+            "слаг": "temple-quest-spinfinity",
+            "н": "Temple Quest Spinfinity",
+            "п": "Big Time Gaming",
+            "rtp": "96.17",
+            "темы": [
+                "aztec"
+            ],
+            "путь": "\/software\/big-time-gaming\/temple-quest-spinfinity",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "terminator-2-remastered",
             "н": "Terminator 2 Remastered",
             "п": "Microgaming",
@@ -4601,6 +4695,18 @@
                 "ocean"
             ],
             "путь": "\/software\/igrosoft\/the-heat",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-jack-and-rose",
+            "н": "The Jack and Rose",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.36",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/the-jack-and-rose",
             "т": [],
             "корпус": false
         },
@@ -4960,6 +5066,18 @@
                 "adventure"
             ],
             "путь": "\/software\/big-time-gaming\/white-rabbit-2",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wicked-grin",
+            "н": "Wicked Grin",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.27",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/wicked-grin",
             "т": [],
             "корпус": false
         },
