@@ -1,7 +1,7 @@
 {
     "источник": {
         "каталог": "https:\/\/www.slotsmate.com",
-        "собрано": "2026-10-13T13:11:22+00:00"
+        "собрано": "2026-10-13T13:33:14+00:00"
     },
     "игры": [
         {
@@ -127,6 +127,18 @@
             "корпус": false
         },
         {
+            "слаг": "40-wild-craze-prizetower",
+            "н": "40 Wild Craze PrizeTower",
+            "п": "Kalamba Games",
+            "rtp": "96.43",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/kalamba-games\/40-wild-craze-prizetower",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "5-reel-drive",
             "н": "5 Reel Drive",
             "п": "Microgaming",
@@ -163,6 +175,18 @@
             "корпус": false
         },
         {
+            "слаг": "7th-squadron-doublemax",
+            "н": "7th Squadron DoubleMax",
+            "п": "Yggdrasil",
+            "rtp": "94",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/7th-squadron-doublemax",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "9-blazing-cashpots-50k",
             "н": "9 Blazing Cashpots 50K",
             "п": "Kalamba Games",
@@ -171,6 +195,18 @@
                 "fruit-machines"
             ],
             "путь": "\/software\/kalamba-games\/9-blazing-cashpots-50k",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "a-night-out",
+            "н": "A Night Out",
+            "п": "Playtech",
+            "rtp": "97",
+            "темы": [
+                "food"
+            ],
+            "путь": "\/software\/playtech\/a-night-out",
             "т": [],
             "корпус": false
         },
@@ -225,6 +261,30 @@
             ],
             "корпус": true,
             "путь": "\/software\/playtech\/age-of-the-gods"
+        },
+        {
+            "слаг": "age-of-the-gods-furious-4",
+            "н": "Age of the Gods Furious 4",
+            "п": "Playtech",
+            "rtp": "94.88",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/playtech\/age-of-the-gods-furious-4",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "age-of-the-gods-god-of-storms",
+            "н": "Age of the Gods God of Storms",
+            "п": "Playtech",
+            "rtp": "96.14",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/playtech\/age-of-the-gods-god-of-storms",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "agent-jane-blonde",
@@ -287,6 +347,18 @@
             "путь": "\/software\/pragmatic-play\/angel-vs-sinner-eternal-battle"
         },
         {
+            "слаг": "ark-of-mystery",
+            "н": "Ark of Mystery",
+            "п": "Quickspin",
+            "rtp": "96.53",
+            "темы": [
+                "egyptian"
+            ],
+            "путь": "\/software\/quickspin\/ark-of-mystery",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "atlantis-megaways",
             "н": "Atlantis Megaways",
             "п": "Yggdrasil",
@@ -335,6 +407,40 @@
             "путь": "\/software\/push-gaming\/bait-n-bank"
         },
         {
+            "слаг": "balloon-odyssey-crash",
+            "н": "Balloon Odyssey Crash",
+            "п": "Kalamba Games",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/kalamba-games\/balloon-odyssey-crash",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bangkok-hilton",
+            "н": "Bangkok Hilton",
+            "п": "Nolimit City",
+            "rtp": "96.14",
+            "темы": [
+                "cops-and-robbers"
+            ],
+            "путь": "\/software\/nolimit-city\/bangkok-hilton",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bankin-more-bacon",
+            "н": "Bankin More Bacon",
+            "п": "Blueprint Gaming",
+            "rtp": "96",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/blueprint-gaming\/bankin-more-bacon",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "bash-bros",
             "н": "Bash Bros",
             "п": "Hacksaw Gaming",
@@ -371,6 +477,18 @@
             "корпус": false
         },
         {
+            "слаг": "beach-life",
+            "н": "Beach Life",
+            "п": "Playtech",
+            "rtp": "93",
+            "темы": [
+                "food"
+            ],
+            "путь": "\/software\/playtech\/beach-life",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "beast-of-wealth",
             "н": "Beast of Wealth",
             "п": "Play'n GO",
@@ -383,6 +501,18 @@
             "путь": "\/software\/play-n-go\/beast-of-wealth"
         },
         {
+            "слаг": "beers-on-reels",
+            "н": "Beers on Reels",
+            "п": "Kalamba Games",
+            "rtp": "97.26",
+            "темы": [
+                "food"
+            ],
+            "путь": "\/software\/kalamba-games\/beers-on-reels",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "benji-killed-in-vegas",
             "н": "Benji Killed in Vegas",
             "п": "Nolimit City",
@@ -391,6 +521,18 @@
                 "celebrity"
             ],
             "путь": "\/software\/nolimit-city\/benji-killed-in-vegas",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "betty-bonkers",
+            "н": "Betty Bonkers",
+            "п": "Quickspin",
+            "rtp": "96.1",
+            "темы": [
+                "american"
+            ],
+            "путь": "\/software\/quickspin\/betty-bonkers",
             "т": [],
             "корпус": false
         },
@@ -413,6 +555,18 @@
             "rtp": "",
             "темы": [],
             "путь": "\/software\/bgaming\/bgaming-lucky-birds",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "bgaming-star-trek-the-next-generation",
+            "н": "BGaming Star Trek The Next Generation",
+            "п": "Bgaming",
+            "rtp": "96.6",
+            "темы": [
+                "space-and-aliens"
+            ],
+            "путь": "\/software\/bgaming\/bgaming-star-trek-the-next-generation",
             "т": [],
             "корпус": false
         },
@@ -555,6 +709,18 @@
             "корпус": false
         },
         {
+            "слаг": "bisonado-2-prizematch",
+            "н": "Bisonado 2 PrizeMatch",
+            "п": "Kalamba Games",
+            "rtp": "96.37",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/kalamba-games\/bisonado-2-prizematch",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "blazin-bullfrog",
             "н": "Blazin Bullfrog",
             "п": "Play'n GO",
@@ -602,6 +768,30 @@
                 "adventure"
             ],
             "путь": "\/software\/yggdrasil-gaming\/bloody-pesos",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "blue-wizard",
+            "н": "Blue Wizard",
+            "п": "Quickspin",
+            "rtp": "96",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/quickspin\/blue-wizard",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "blueprint-gaming-eye-of-horus",
+            "н": "Blueprint Gaming Eye Of Horus",
+            "п": "Blueprint Gaming",
+            "rtp": "96.31",
+            "темы": [
+                "egyptian"
+            ],
+            "путь": "\/software\/blueprint-gaming\/blueprint-gaming-eye-of-horus",
             "т": [],
             "корпус": false
         },
@@ -794,6 +984,18 @@
             "корпус": false
         },
         {
+            "слаг": "breakout",
+            "н": "Breakout",
+            "п": "Nolimit City",
+            "rtp": "96.08",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/nolimit-city\/breakout",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "brute-force",
             "н": "Brute Force",
             "п": "Nolimit City",
@@ -828,6 +1030,18 @@
             "корпус": false
         },
         {
+            "слаг": "buffalo-blitz",
+            "н": "Buffalo Blitz",
+            "п": "Playtech",
+            "rtp": "95.96",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/buffalo-blitz",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "buffalo-king",
             "н": "Buffalo King",
             "п": "Pragmatic Play",
@@ -857,6 +1071,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/pragmatic-play\/buffalo-king-megaways"
+        },
+        {
+            "слаг": "bullion-rush-7s-hold-and-win",
+            "н": "Bullion Rush 7s Hold and Win",
+            "п": "Kalamba Games",
+            "rtp": "96.57",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/kalamba-games\/bullion-rush-7s-hold-and-win",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "burgers",
@@ -907,6 +1133,18 @@
             "путь": "\/software\/play-n-go\/cash-a-cabana"
         },
         {
+            "слаг": "cash-fortress",
+            "н": "Cash Fortress",
+            "п": "Playtech",
+            "rtp": "95.91",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/playtech\/cash-fortress",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "cash-tank",
             "н": "Cash Tank",
             "п": "Endorphina",
@@ -931,6 +1169,18 @@
             "путь": "\/software\/games-global\/cashapillar"
         },
         {
+            "слаг": "cats-collect",
+            "н": "Cats Collect",
+            "п": "Playtech",
+            "rtp": "95.91",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/cats-collect",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "cats-soup",
             "н": "Cats Soup",
             "п": "Bgaming",
@@ -953,6 +1203,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/celebration-of-wealth"
+        },
+        {
+            "слаг": "celestial-sisters-megaways-build-your-bonus",
+            "н": "Celestial Sisters Megaways Build Your Bonus",
+            "п": "Blueprint Gaming",
+            "rtp": "96",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/blueprint-gaming\/celestial-sisters-megaways-build-your-bonus",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "cheetah-wild",
@@ -1063,6 +1325,54 @@
             "корпус": false
         },
         {
+            "слаг": "cod-of-thunder-dream-drop",
+            "н": "Cod of Thunder Dream Drop",
+            "п": "Relax Gaming",
+            "rtp": "94",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/cod-of-thunder-dream-drop",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "convertus-aurum",
+            "н": "Convertus Aurum",
+            "п": "Blueprint Gaming",
+            "rtp": "95.96",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/blueprint-gaming\/convertus-aurum",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "cop-the-lot-megaways-even-more-swag",
+            "н": "Cop The Lot Megaways Even More Swag",
+            "п": "Blueprint Gaming",
+            "rtp": "95",
+            "темы": [
+                "cops-and-robbers"
+            ],
+            "путь": "\/software\/blueprint-gaming\/cop-the-lot-megaways-even-more-swag",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "cop-the-lot-megaways-jackpot-king",
+            "н": "Cop The Lot Megaways Jackpot King",
+            "п": "Blueprint Gaming",
+            "rtp": "92.5",
+            "темы": [
+                "cops-and-robbers"
+            ],
+            "путь": "\/software\/blueprint-gaming\/cop-the-lot-megaways-jackpot-king",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "crazy-ex-girlfriend",
             "н": "Crazy Ex Girlfriend",
             "п": "Nolimit City",
@@ -1107,6 +1417,18 @@
                 "fire"
             ],
             "путь": "\/software\/kalamba-games\/crown-triumph-7s-hold-and-win",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "crystal-queens-coins",
+            "н": "Crystal Queens Coins",
+            "п": "Quickspin",
+            "rtp": "96.94",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/quickspin\/crystal-queens-coins",
             "т": [],
             "корпус": false
         },
@@ -1226,6 +1548,28 @@
             "корпус": false
         },
         {
+            "слаг": "deep-rush",
+            "н": "Deep Rush",
+            "п": "Kalamba Games",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/kalamba-games\/deep-rush",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "demonic-dolls",
+            "н": "Demonic Dolls",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.36",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/demonic-dolls",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "desert-gem",
             "н": "Desert Gem",
             "п": "Kalamba Games",
@@ -1296,6 +1640,18 @@
             "корпус": false
         },
         {
+            "слаг": "diego-wild-search-for-the-hidden-tiger",
+            "н": "Diego Wild Search for the Hidden Tiger",
+            "п": "Blueprint Gaming",
+            "rtp": "96.55",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/diego-wild-search-for-the-hidden-tiger",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "ding-dong-death",
             "н": "Ding Dong Death",
             "п": "Nolimit City",
@@ -1330,6 +1686,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/push-gaming\/dinopolis"
+        },
+        {
+            "слаг": "divine-dreams",
+            "н": "Divine Dreams",
+            "п": "Quickspin",
+            "rtp": "96.12",
+            "темы": [
+                "asian"
+            ],
+            "путь": "\/software\/quickspin\/divine-dreams",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "divine-fortune",
@@ -1368,6 +1736,18 @@
                 "fantasy"
             ],
             "путь": "\/software\/bgaming\/divine-queen-power-of-sun",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dolphin-reef",
+            "н": "Dolphin Reef",
+            "п": "Playtech",
+            "rtp": "96",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/dolphin-reef",
             "т": [],
             "корпус": false
         },
@@ -1414,6 +1794,18 @@
                 "candy"
             ],
             "путь": "\/software\/hacksaw-gaming\/double-rainbow",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "dr-fortuno-slot",
+            "н": "Dr Fortuno Slot",
+            "п": "Yggdrasil",
+            "rtp": "96.2",
+            "темы": [
+                "circus"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/dr-fortuno-slot",
             "т": [],
             "корпус": false
         },
@@ -1526,6 +1918,18 @@
             "корпус": false
         },
         {
+            "слаг": "epic-fish-winter-catch",
+            "н": "Epic Fish Winter Catch",
+            "п": "Quickspin",
+            "rtp": "96.57",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/quickspin\/epic-fish-winter-catch",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "esqueleto-explosivo",
             "н": "Esqueleto Explosivo",
             "п": "Thunderkick",
@@ -1548,6 +1952,18 @@
                 "carnival"
             ],
             "путь": "\/software\/thunderkick\/esqueleto-explosivo-2",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "everybodys-jackpot",
+            "н": "Everybodys Jackpot",
+            "п": "Playtech",
+            "rtp": "94.01",
+            "темы": [
+                "television"
+            ],
+            "путь": "\/software\/playtech\/everybodys-jackpot",
             "т": [],
             "корпус": false
         },
@@ -1627,6 +2043,18 @@
             "путь": "\/software\/play-n-go\/fire-joker"
         },
         {
+            "слаг": "fire-tale",
+            "н": "Fire Tale",
+            "п": "Quickspin",
+            "rtp": "96.92",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/quickspin\/fire-tale",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "fishin-frenzy",
             "н": "Fishin Frenzy",
             "п": "Blueprint Gaming",
@@ -1641,6 +2069,28 @@
             ],
             "корпус": true,
             "путь": "\/software\/blueprint-gaming\/fishin-frenzy"
+        },
+        {
+            "слаг": "fishin-frenzy-reely-big-catch",
+            "н": "Fishin Frenzy Reely Big Catch",
+            "п": "Blueprint Gaming",
+            "rtp": "93.5",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/fishin-frenzy-reely-big-catch",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "flip-a-licious",
+            "н": "Flip a Licious",
+            "п": "Playtech",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/playtech\/flip-a-licious",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "floating-dragon-hold-and-spin",
@@ -1745,6 +2195,18 @@
                 "animals"
             ],
             "путь": "\/software\/endorphina\/fortune-stars",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "frankie-dettoris-magic-seven",
+            "н": "Frankie Dettoris Magic Seven",
+            "п": "Playtech",
+            "rtp": "95.99",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/frankie-dettoris-magic-seven",
             "т": [],
             "корпус": false
         },
@@ -1857,6 +2319,18 @@
             "путь": "\/software\/thunderkick\/fruit-warp"
         },
         {
+            "слаг": "fruitinator-island",
+            "н": "Fruitinator Island",
+            "п": "Blueprint Gaming",
+            "rtp": "96.11",
+            "темы": [
+                "fire"
+            ],
+            "путь": "\/software\/blueprint-gaming\/fruitinator-island",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "fruitpunk",
             "н": "FruitPunk",
             "п": "Yggdrasil",
@@ -1889,6 +2363,42 @@
                 "adventure"
             ],
             "путь": "\/software\/endorphina\/fruletta-dice",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "funky-buddha",
+            "н": "Funky Buddha",
+            "п": "Blueprint Gaming",
+            "rtp": "95",
+            "темы": [
+                "music"
+            ],
+            "путь": "\/software\/blueprint-gaming\/funky-buddha",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "funky-fruits",
+            "н": "Funky Fruits",
+            "п": "Playtech",
+            "rtp": "93.98",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/playtech\/funky-fruits",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "funky-fruits-farm",
+            "н": "Funky Fruits Farm",
+            "п": "Playtech",
+            "rtp": "92.07",
+            "темы": [
+                "farm"
+            ],
+            "путь": "\/software\/playtech\/funky-fruits-farm",
             "т": [],
             "корпус": false
         },
@@ -1972,6 +2482,18 @@
             "путь": "\/software\/play-n-go\/gemix"
         },
         {
+            "слаг": "gemstone-jam",
+            "н": "Gemstone Jam",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/gemstone-jam",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "ghost-booster-go-guaranteed",
             "н": "Ghost Booster Go Guaranteed",
             "п": "Play'n GO",
@@ -1982,6 +2504,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/ghost-booster-go-guaranteed"
+        },
+        {
+            "слаг": "giga-zombies",
+            "н": "Giga Zombies",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/giga-zombies",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "gigagong-gigablox",
@@ -2020,6 +2554,18 @@
             "корпус": false
         },
         {
+            "слаг": "goblins-and-gemstones-hit-n-roll",
+            "н": "Goblins and Gemstones Hit n Roll",
+            "п": "Kalamba Games",
+            "rtp": "96.86",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/kalamba-games\/goblins-and-gemstones-hit-n-roll",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "gold-factory",
             "н": "Gold Factory",
             "п": "Microgaming",
@@ -2030,6 +2576,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/games-global\/gold-factory"
+        },
+        {
+            "слаг": "gold-lab",
+            "н": "Gold Lab",
+            "п": "Quickspin",
+            "rtp": "96.09",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/quickspin\/gold-lab",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "golden-antelope",
@@ -2052,6 +2610,18 @@
                 "adventure"
             ],
             "путь": "\/software\/big-time-gaming\/golden-goose-megaways",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "goldstorm-ultra",
+            "н": "GoldStorm Ultra",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/goldstorm-ultra",
             "т": [],
             "корпус": false
         },
@@ -2086,6 +2656,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/red-tiger-gaming\/gonzos-quest-megaways"
+        },
+        {
+            "слаг": "good-feathers",
+            "н": "Good Feathers",
+            "п": "Blueprint Gaming",
+            "rtp": "96.32",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/blueprint-gaming\/good-feathers",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "great-blue",
@@ -2131,6 +2713,18 @@
             "путь": "\/software\/play-n-go\/grim-muerto"
         },
         {
+            "слаг": "gronks-gems",
+            "н": "Gronks Gems",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.38",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/gronks-gems",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "growing-grandma-dream-drop",
             "н": "Growing Grandma Dream Drop",
             "п": "Relax Gaming",
@@ -2149,6 +2743,18 @@
             "rtp": "",
             "темы": [],
             "путь": "\/software\/hacksaw-gaming\/hacksaw-gaming-plinko",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "halloween-fortune",
+            "н": "Halloween Fortune",
+            "п": "Playtech",
+            "rtp": "97.06",
+            "темы": [
+                "halloween"
+            ],
+            "путь": "\/software\/playtech\/halloween-fortune",
             "т": [],
             "корпус": false
         },
@@ -2225,6 +2831,18 @@
             "корпус": false
         },
         {
+            "слаг": "heimdalls-gate-cash-quest",
+            "н": "Heimdalls Gate Cash Quest",
+            "п": "Kalamba Games",
+            "rtp": "96.85",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/kalamba-games\/heimdalls-gate-cash-quest",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "hell-hot-dice-20",
             "н": "Hell Hot Dice 20",
             "п": "Endorphina",
@@ -2249,6 +2867,18 @@
             "корпус": false
         },
         {
+            "слаг": "highway-kings",
+            "н": "Highway Kings",
+            "п": "Playtech",
+            "rtp": "97.05",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/playtech\/highway-kings",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "home-of-the-brave",
             "н": "Home of the Brave",
             "п": "Nolimit City",
@@ -2257,6 +2887,30 @@
                 "american"
             ],
             "путь": "\/software\/nolimit-city\/home-of-the-brave",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "homeland-fortune-7s-hold-and-win",
+            "н": "Homeland Fortune 7s Hold and Win",
+            "п": "Kalamba Games",
+            "rtp": "94.31",
+            "темы": [
+                "american"
+            ],
+            "путь": "\/software\/kalamba-games\/homeland-fortune-7s-hold-and-win",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "hop-n-pop",
+            "н": "Hop n Pop",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.2",
+            "темы": [
+                "farm"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/hop-n-pop",
             "т": [],
             "корпус": false
         },
@@ -2285,6 +2939,18 @@
             "корпус": false
         },
         {
+            "слаг": "illuminous",
+            "н": "Illuminous",
+            "п": "Quickspin",
+            "rtp": "96.5",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "путь": "\/software\/quickspin\/illuminous",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "immortal-romance",
             "н": "Immortal Romance",
             "п": "Microgaming",
@@ -2307,6 +2973,18 @@
                 "cops-and-robbers"
             ],
             "путь": "\/software\/hacksaw-gaming\/iron-sight",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "island",
+            "н": "Island",
+            "п": "Igrosoft",
+            "rtp": "94",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/igrosoft\/island",
             "т": [],
             "корпус": false
         },
@@ -2387,6 +3065,18 @@
             ],
             "корпус": true,
             "путь": "\/software\/netent\/jackpot-6000"
+        },
+        {
+            "слаг": "jackpot-giant",
+            "н": "Jackpot Giant",
+            "п": "Playtech",
+            "rtp": "94.22",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "путь": "\/software\/playtech\/jackpot-giant",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "jammin-jars",
@@ -2512,6 +3202,18 @@
             "корпус": false
         },
         {
+            "слаг": "joker-fortune-blitz",
+            "н": "Joker Fortune Blitz",
+            "п": "Kalamba Games",
+            "rtp": "96.58",
+            "темы": [
+                "circus"
+            ],
+            "путь": "\/software\/kalamba-games\/joker-fortune-blitz",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "joker-hit-n-goal",
             "н": "Joker Hit n Goal",
             "п": "Kalamba Games",
@@ -2546,6 +3248,54 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/netent\/joker-pro"
+        },
+        {
+            "слаг": "joker-rainbows",
+            "н": "Joker Rainbows",
+            "п": "Kalamba Games",
+            "rtp": "96.31",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/kalamba-games\/joker-rainbows",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "joker-spark-7s",
+            "н": "Joker Spark 7s",
+            "п": "Kalamba Games",
+            "rtp": "94.46",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/kalamba-games\/joker-spark-7s",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "joker-spark-7s-deluxe",
+            "н": "Joker Spark 7s Deluxe",
+            "п": "Kalamba Games",
+            "rtp": "96.26",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/kalamba-games\/joker-spark-7s-deluxe",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "joker-strike",
+            "н": "Joker Strike",
+            "п": "Quickspin",
+            "rtp": "98.11",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "путь": "\/software\/quickspin\/joker-strike",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "jokerizer",
@@ -2751,6 +3501,18 @@
             "корпус": false
         },
         {
+            "слаг": "le-vampire",
+            "н": "Le Vampire",
+            "п": "Hacksaw Gaming",
+            "rtp": "97.57",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/le-vampire",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "legacy-of-dead",
             "н": "Legacy of Dead",
             "п": "Play'n GO",
@@ -2789,6 +3551,40 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/leprechaun-goes-egypt"
+        },
+        {
+            "слаг": "leprechaun-hills",
+            "н": "Leprechaun Hills",
+            "п": "Quickspin",
+            "rtp": "96.49",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/quickspin\/leprechaun-hills",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "leprechauns-luck-cash-collect-megaways",
+            "н": "Leprechauns Luck Cash Collect Megaways",
+            "п": "Playtech",
+            "rtp": "94.93",
+            "темы": [
+                "irish"
+            ],
+            "путь": "\/software\/playtech\/leprechauns-luck-cash-collect-megaways",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lil-demon-click-a-win",
+            "н": "Lil Demon Click A Win",
+            "п": "Playtech",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/playtech\/lil-demon-click-a-win",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "limbo",
@@ -2905,6 +3701,18 @@
             "корпус": false
         },
         {
+            "слаг": "luck-of-the-irish-fortune-spins",
+            "н": "Luck of the Irish Fortune Spins",
+            "п": "Blueprint Gaming",
+            "rtp": "95.32",
+            "темы": [
+                "irish"
+            ],
+            "путь": "\/software\/blueprint-gaming\/luck-of-the-irish-fortune-spins",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "lucky-haunter",
             "н": "Lucky Haunter",
             "п": "Igrosoft",
@@ -2955,6 +3763,18 @@
             "rtp": "",
             "темы": [],
             "путь": "\/software\/hacksaw-gaming\/lucky-number-x20",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "lucky-pharaoh",
+            "н": "Lucky Pharaoh",
+            "п": "Blueprint Gaming",
+            "rtp": "96.25",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/lucky-pharaoh",
             "т": [],
             "корпус": false
         },
@@ -3066,6 +3886,28 @@
             "корпус": false
         },
         {
+            "слаг": "maradona-el-diez",
+            "н": "Maradona El Diez",
+            "п": "Blueprint Gaming",
+            "rtp": "95",
+            "темы": [
+                "celebrity"
+            ],
+            "путь": "\/software\/blueprint-gaming\/maradona-el-diez",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "maradona-full-house",
+            "н": "Maradona Full House",
+            "п": "Blueprint Gaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/blueprint-gaming\/maradona-full-house",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "marching-legions",
             "н": "Marching Legions",
             "п": "Relax Gaming",
@@ -3086,6 +3928,18 @@
                 "adventure"
             ],
             "путь": "\/software\/big-time-gaming\/max-megaways-3",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "mayana",
+            "н": "Mayana",
+            "п": "Quickspin",
+            "rtp": "96.63",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/quickspin\/mayana",
             "т": [],
             "корпус": false
         },
@@ -3160,6 +4014,18 @@
                 "aztec"
             ],
             "путь": "\/software\/yggdrasil-gaming\/mexomax-2-wildenergy-multimax",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "miami-sunset-7s-hold-and-win",
+            "н": "Miami Sunset 7s Hold and Win",
+            "п": "Kalamba Games",
+            "rtp": "95.4",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/kalamba-games\/miami-sunset-7s-hold-and-win",
             "т": [],
             "корпус": false
         },
@@ -3266,6 +4132,30 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/mole-digger"
+        },
+        {
+            "слаг": "money-cart",
+            "н": "Money Cart",
+            "п": "Relax Gaming",
+            "rtp": "98",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/relax-gaming\/money-cart",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "money-cart-2",
+            "н": "Money Cart 2",
+            "п": "Relax Gaming",
+            "rtp": "98",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/money-cart-2",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "money-cart-3",
@@ -3462,6 +4352,18 @@
             "корпус": false
         },
         {
+            "слаг": "mummys-gold",
+            "н": "Mummys Gold",
+            "п": "Bgaming",
+            "rtp": "96.96",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/bgaming\/mummys-gold",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "munchies",
             "н": "Munchies",
             "п": "Nolimit City",
@@ -3574,6 +4476,18 @@
             "корпус": false
         },
         {
+            "слаг": "nigel-of-ra",
+            "н": "Nigel of Ra",
+            "п": "Quickspin",
+            "rtp": "96.27",
+            "темы": [
+                "egyptian"
+            ],
+            "путь": "\/software\/quickspin\/nigel-of-ra",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "nitro-circus",
             "н": "Nitro Circus",
             "п": "Yggdrasil",
@@ -3634,6 +4548,18 @@
             "корпус": false
         },
         {
+            "слаг": "olympus-7s-dream-drop",
+            "н": "Olympus 7s Dream Drop",
+            "п": "Relax Gaming",
+            "rtp": "94",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/relax-gaming\/olympus-7s-dream-drop",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "olympus-unleashed",
             "н": "Olympus Unleashed",
             "п": "Push Gaming",
@@ -3673,6 +4599,18 @@
             "корпус": false
         },
         {
+            "слаг": "outlaws-inc",
+            "н": "Outlaws Inc",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.34",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/outlaws-inc",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "outsourced-2-balkan-engineering",
             "н": "Outsourced 2 Balkan Engineering",
             "п": "Nolimit City",
@@ -3707,6 +4645,16 @@
             "корпус": false
         },
         {
+            "слаг": "pearl-o-plinko-mermaid-cove",
+            "н": "Pearl o Plinko Mermaid Cove",
+            "п": "Quickspin",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/quickspin\/pearl-o-plinko-mermaid-cove",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "pelican-payday",
             "н": "Pelican Payday",
             "п": "Pragmatic Play",
@@ -3727,6 +4675,16 @@
                 "egyptian"
             ],
             "путь": "\/software\/kalamba-games\/pharaohs-reign",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "piggies-and-the-bank-click-a-win",
+            "н": "Piggies and the Bank Click A Win",
+            "п": "Playtech",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/playtech\/piggies-and-the-bank-click-a-win",
             "т": [],
             "корпус": false
         },
@@ -3823,6 +4781,30 @@
             "путь": "\/software\/play-n-go\/play-n-go-rich-wilde-and-the-book-of-dead"
         },
         {
+            "слаг": "playtech-hot-gems",
+            "н": "Playtech Hot Gems",
+            "п": "Playtech",
+            "rtp": "96",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "путь": "\/software\/playtech\/playtech-hot-gems",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "plenty-o-fortune",
+            "н": "Plenty O Fortune",
+            "п": "Playtech",
+            "rtp": "91.95",
+            "темы": [
+                "irish"
+            ],
+            "путь": "\/software\/playtech\/plenty-o-fortune",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "plinko",
             "н": "Plinko",
             "п": "Bgaming",
@@ -3892,6 +4874,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/pragmatic-play\/pragmatic-play-fruit-party"
+        },
+        {
+            "слаг": "queen-of-the-3-pyramids-cash-collect",
+            "н": "Queen of the 3 Pyramids Cash Collect",
+            "п": "Playtech",
+            "rtp": "95.77",
+            "темы": [
+                "desert"
+            ],
+            "путь": "\/software\/playtech\/queen-of-the-3-pyramids-cash-collect",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "queenie",
@@ -4026,6 +5020,18 @@
             "корпус": false
         },
         {
+            "слаг": "red-dragon-sails",
+            "н": "Red Dragon Sails",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/red-dragon-sails",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "reel-gems",
             "н": "Reel Gems",
             "п": "Microgaming",
@@ -4115,6 +5121,30 @@
             "путь": "\/software\/push-gaming\/retroverse"
         },
         {
+            "слаг": "return-of-kong-megaways",
+            "н": "Return of Kong Megaways",
+            "п": "Blueprint Gaming",
+            "rtp": "96.03",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/blueprint-gaming\/return-of-kong-megaways",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "revolution-patriots-fortune",
+            "н": "Revolution Patriots Fortune",
+            "п": "Blueprint Gaming",
+            "rtp": "95.4",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/revolution-patriots-fortune",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "rich-wilde-and-the-tome-of-madness",
             "н": "Rich Wilde and the Tome Of Madness",
             "п": "Play'n GO",
@@ -4165,6 +5195,18 @@
                 "animals"
             ],
             "путь": "\/software\/nolimit-city\/roadkill",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "robbits",
+            "н": "Robbits",
+            "п": "Quickspin",
+            "rtp": "96.51",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/quickspin\/robbits",
             "т": [],
             "корпус": false
         },
@@ -4292,6 +5334,30 @@
             "корпус": false
         },
         {
+            "слаг": "samba-reels",
+            "н": "Samba Reels",
+            "п": "Blueprint Gaming",
+            "rtp": "95",
+            "темы": [
+                "carnival"
+            ],
+            "путь": "\/software\/blueprint-gaming\/samba-reels",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "santa-blitz-hold-and-win",
+            "н": "Santa Blitz Hold and Win",
+            "п": "Kalamba Games",
+            "rtp": "96.83",
+            "темы": [
+                "circus"
+            ],
+            "путь": "\/software\/kalamba-games\/santa-blitz-hold-and-win",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "santa-hopper",
             "н": "Santa Hopper",
             "п": "Push Gaming",
@@ -4302,6 +5368,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/push-gaming\/santa-hopper"
+        },
+        {
+            "слаг": "santa-surprise",
+            "н": "Santa Surprise",
+            "п": "Playtech",
+            "rtp": "97",
+            "темы": [
+                "christmas"
+            ],
+            "путь": "\/software\/playtech\/santa-surprise",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "santas-vault",
@@ -4316,6 +5394,18 @@
             "путь": "\/software\/push-gaming\/santas-vault"
         },
         {
+            "слаг": "sapphire-supreme-7s",
+            "н": "Sapphire Supreme 7s",
+            "п": "Kalamba Games",
+            "rtp": "96.5",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/kalamba-games\/sapphire-supreme-7s",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "sea-of-spirits",
             "н": "Sea of Spirits",
             "п": "Push Gaming",
@@ -4326,6 +5416,30 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/push-gaming\/sea-of-spirits"
+        },
+        {
+            "слаг": "second-strike",
+            "н": "Second Strike",
+            "п": "Quickspin",
+            "rtp": "96.22",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/quickspin\/second-strike",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "secrets-of-the-amazon",
+            "н": "Secrets of the Amazon",
+            "п": "Playtech",
+            "rtp": "98",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/secrets-of-the-amazon",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "shamrock-saints",
@@ -4372,6 +5486,18 @@
                 "animals"
             ],
             "путь": "\/software\/bgaming\/snoop-dogg-dollars",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "space-knight-merge-up-2",
+            "н": "Space Knight Merge Up 2",
+            "п": "Bgaming",
+            "rtp": "98",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/bgaming\/space-knight-merge-up-2",
             "т": [],
             "корпус": false
         },
@@ -4438,6 +5564,18 @@
             "путь": "\/software\/netent\/spinata-grande"
         },
         {
+            "слаг": "spinions-xmas-party",
+            "н": "Spinions Xmas Party",
+            "п": "Quickspin",
+            "rtp": "96.05",
+            "темы": [
+                "christmas"
+            ],
+            "путь": "\/software\/quickspin\/spinions-xmas-party",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "spinnin-records-raving-reels",
             "н": "Spinnin Records Raving Reels",
             "п": "Play'n GO",
@@ -4482,6 +5620,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/star-joker"
+        },
+        {
+            "слаг": "star-spinner",
+            "н": "Star Spinner",
+            "п": "Blueprint Gaming",
+            "rtp": "96.47",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/blueprint-gaming\/star-spinner",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "starburst",
@@ -4624,6 +5774,18 @@
             "путь": "\/software\/pragmatic-play\/sugar-rush"
         },
         {
+            "слаг": "sun-wukong",
+            "н": "Sun Wukong",
+            "п": "Playtech",
+            "rtp": "96",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/sun-wukong",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "sunny-shores",
             "н": "Sunny Shores",
             "п": "Yggdrasil",
@@ -4688,6 +5850,18 @@
             "корпус": false
         },
         {
+            "слаг": "tales-of-dr-dolittle",
+            "н": "Tales of Dr Dolittle",
+            "п": "Quickspin",
+            "rtp": "96.7",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/quickspin\/tales-of-dr-dolittle",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "temple-cats",
             "н": "Temple Cats",
             "п": "Endorphina",
@@ -4744,6 +5918,18 @@
                 "adventure"
             ],
             "путь": "\/software\/games-global\/terminator-2-remastered",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "tesla-jolt",
+            "н": "Tesla Jolt",
+            "п": "Nolimit City",
+            "rtp": "96.61",
+            "темы": [
+                "mystery"
+            ],
+            "путь": "\/software\/nolimit-city\/tesla-jolt",
             "т": [],
             "корпус": false
         },
@@ -4863,6 +6049,54 @@
             "путь": "\/software\/games-global\/the-finer-reels-of-life"
         },
         {
+            "слаг": "the-flintstones-rock-around-the-pots",
+            "н": "The Flintstones Rock Around The Pots",
+            "п": "Blueprint Gaming",
+            "rtp": "93",
+            "темы": [
+                "comics"
+            ],
+            "путь": "\/software\/blueprint-gaming\/the-flintstones-rock-around-the-pots",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-flintstones-rocky-riches",
+            "н": "The Flintstones Rocky Riches",
+            "п": "Blueprint Gaming",
+            "rtp": "95",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/the-flintstones-rocky-riches",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-goonies-cash-inferno",
+            "н": "The Goonies Cash Inferno",
+            "п": "Blueprint Gaming",
+            "rtp": "94",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/the-goonies-cash-inferno",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-grim-reaper",
+            "н": "The Grim Reaper",
+            "п": "Quickspin",
+            "rtp": "96.61",
+            "темы": [
+                "halloween"
+            ],
+            "путь": "\/software\/quickspin\/the-grim-reaper",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "the-heat",
             "н": "The Heat",
             "п": "Igrosoft",
@@ -4899,6 +6133,18 @@
             "корпус": false
         },
         {
+            "слаг": "the-racaroon-halloween",
+            "н": "The Racaroon Halloween",
+            "п": "Playtech",
+            "rtp": "95.01",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/playtech\/the-racaroon-halloween",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "the-rift",
             "н": "The Rift",
             "п": "Thunderkick",
@@ -4907,6 +6153,16 @@
                 "fantasy"
             ],
             "путь": "\/software\/thunderkick\/the-rift",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "the-walking-dead-click-a-win",
+            "н": "The Walking Dead Click A Win",
+            "п": "Playtech",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/playtech\/the-walking-dead-click-a-win",
             "т": [],
             "корпус": false
         },
@@ -4961,6 +6217,18 @@
             "путь": "\/software\/games-global\/thunderstruck-ii"
         },
         {
+            "слаг": "timber-trail-treasures",
+            "н": "Timber Trail Treasures",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/timber-trail-treasures",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "time-spinners",
             "н": "Time Spinners",
             "п": "Hacksaw Gaming",
@@ -4987,6 +6255,18 @@
             "путь": "\/software\/quickspin\/titan-thunder-wrath-of-hades"
         },
         {
+            "слаг": "top-cat-dining-for-dollars",
+            "н": "Top Cat Dining For Dollars",
+            "п": "Blueprint Gaming",
+            "rtp": "93.5",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/top-cat-dining-for-dollars",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "tower-poker",
             "н": "Tower Poker",
             "п": "Igrosoft",
@@ -5005,6 +6285,18 @@
                 "fantasy"
             ],
             "путь": "\/software\/hacksaw-gaming\/trials-of-zeus",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "triple-nugget-trail-hold-and-win",
+            "н": "Triple Nugget Trail Hold and Win",
+            "п": "Kalamba Games",
+            "rtp": "96.45",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/kalamba-games\/triple-nugget-trail-hold-and-win",
             "т": [],
             "корпус": false
         },
@@ -5041,6 +6333,18 @@
                 "mystery"
             ],
             "путь": "\/software\/nolimit-city\/true-grit-redemption-2",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "true-kult",
+            "н": "True Kult",
+            "п": "Nolimit City",
+            "rtp": "96.32",
+            "темы": [
+                "nature"
+            ],
+            "путь": "\/software\/nolimit-city\/true-kult",
             "т": [],
             "корпус": false
         },
@@ -5270,6 +6574,18 @@
             "корпус": false
         },
         {
+            "слаг": "wild-cash",
+            "н": "Wild Cash",
+            "п": "Bgaming",
+            "rtp": "96.23",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/bgaming\/wild-cash",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "wild-dragon-riches",
             "н": "Wild Dragon Riches",
             "п": "Spinomenal",
@@ -5290,6 +6606,18 @@
                 "adventure"
             ],
             "путь": "\/software\/bgaming\/wild-fox",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wild-gambler",
+            "н": "Wild Gambler",
+            "п": "Playtech",
+            "rtp": "97",
+            "темы": [
+                "africa"
+            ],
+            "путь": "\/software\/playtech\/wild-gambler",
             "т": [],
             "корпус": false
         },
@@ -5316,6 +6644,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/push-gaming\/wild-swarm-3-chocolate-eggs"
+        },
+        {
+            "слаг": "wild-tiger-2",
+            "н": "Wild Tiger 2",
+            "п": "Bgaming",
+            "rtp": "97",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/bgaming\/wild-tiger-2",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "wild-unicorns",
@@ -5358,6 +6698,18 @@
             "путь": "\/software\/pragmatic-play\/wild-wild-riches"
         },
         {
+            "слаг": "wins-of-fortune",
+            "н": "Wins of Fortune",
+            "п": "Quickspin",
+            "rtp": "96.54",
+            "темы": [
+                "asian"
+            ],
+            "путь": "\/software\/quickspin\/wins-of-fortune",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "winterberries-2",
             "н": "Winterberries 2",
             "п": "Yggdrasil",
@@ -5366,6 +6718,30 @@
                 "food"
             ],
             "путь": "\/software\/yggdrasil-gaming\/winterberries-2",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "wish-upon-a-jackpot-megaways",
+            "н": "Wish Upon a Jackpot Megaways",
+            "п": "Blueprint Gaming",
+            "rtp": "95.99",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/blueprint-gaming\/wish-upon-a-jackpot-megaways",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "witchcraft-riches",
+            "н": "Witchcraft Riches",
+            "п": "Bgaming",
+            "rtp": "96.68",
+            "темы": [
+                "fantasy"
+            ],
+            "путь": "\/software\/bgaming\/witchcraft-riches",
             "т": [],
             "корпус": false
         },
@@ -5398,6 +6774,18 @@
             "путь": "\/software\/pragmatic-play\/wolf-gold"
         },
         {
+            "слаг": "world-class-kick-off-dream-drop",
+            "н": "World Class Kick Off Dream Drop",
+            "п": "Relax Gaming",
+            "rtp": "94",
+            "темы": [
+                "football"
+            ],
+            "путь": "\/software\/relax-gaming\/world-class-kick-off-dream-drop",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "xmas-lightning",
             "н": "Xmas Lightning",
             "п": "Kalamba Games",
@@ -5406,6 +6794,18 @@
                 "christmas"
             ],
             "путь": "\/software\/kalamba-games\/xmas-lightning",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "xpander",
+            "н": "Xpander",
+            "п": "Hacksaw Gaming",
+            "rtp": "96.25",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/hacksaw-gaming\/xpander",
             "т": [],
             "корпус": false
         },
@@ -5428,6 +6828,18 @@
             "rtp": "96.2",
             "темы": [],
             "путь": "\/software\/nolimit-city\/xways-hoarder-2",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "your-own-island",
+            "н": "Your Own Island",
+            "п": "Yggdrasil",
+            "rtp": "96",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/yggdrasil-gaming\/your-own-island",
             "т": [],
             "корпус": false
         },
