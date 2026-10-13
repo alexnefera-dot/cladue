@@ -1,7 +1,7 @@
 {
     "источник": {
         "каталог": "https:\/\/www.slotsmate.com",
-        "собрано": "2026-10-13T12:36:45+00:00"
+        "собрано": "2026-10-13T13:11:22+00:00"
     },
     "игры": [
         {
@@ -171,6 +171,18 @@
                 "fruit-machines"
             ],
             "путь": "\/software\/kalamba-games\/9-blazing-cashpots-50k",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "a-tale-of-elves",
+            "н": "A Tale of Elves",
+            "п": "Microgaming",
+            "rtp": "95.07",
+            "темы": [
+                "christmas"
+            ],
+            "путь": "\/software\/games-global\/a-tale-of-elves",
             "т": [],
             "корпус": false
         },
@@ -529,6 +541,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/pragmatic-play\/bigger-bass-bonanza"
+        },
+        {
+            "слаг": "bill-and-coin",
+            "н": "Bill and Coin",
+            "п": "Relax Gaming",
+            "rtp": "96.1",
+            "темы": [
+                "fruit-machines"
+            ],
+            "путь": "\/software\/relax-gaming\/bill-and-coin",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "blazin-bullfrog",
@@ -1190,6 +1214,18 @@
             "путь": "\/software\/netent\/dead-or-alive-2"
         },
         {
+            "слаг": "deco-joker",
+            "н": "Deco Joker",
+            "п": "Relax Gaming",
+            "rtp": "94.61",
+            "темы": [
+                "jewels-and-gems"
+            ],
+            "путь": "\/software\/relax-gaming\/deco-joker",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "desert-gem",
             "н": "Desert Gem",
             "п": "Kalamba Games",
@@ -1442,6 +1478,18 @@
             "путь": "\/software\/netent\/eggomatic"
         },
         {
+            "слаг": "electric-wilds",
+            "н": "Electric Wilds",
+            "п": "Relax Gaming",
+            "rtp": "96.17",
+            "темы": [
+                "space-and-aliens"
+            ],
+            "путь": "\/software\/relax-gaming\/electric-wilds",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "elvis-frog-trueways",
             "н": "Elvis Frog Trueways",
             "п": "Bgaming",
@@ -1679,6 +1727,16 @@
             "корпус": false
         },
         {
+            "слаг": "fortune-finder-with-sarati",
+            "н": "Fortune Finder With Sarati",
+            "п": "Microgaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/games-global\/fortune-finder-with-sarati",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "fortune-stars",
             "н": "Fortune Stars",
             "п": "Endorphina",
@@ -1687,6 +1745,18 @@
                 "animals"
             ],
             "путь": "\/software\/endorphina\/fortune-stars",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "franks-diner",
+            "н": "Franks Diner",
+            "п": "Relax Gaming",
+            "rtp": "96.1",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/franks-diner",
             "т": [],
             "корпус": false
         },
@@ -1938,6 +2008,18 @@
             "корпус": false
         },
         {
+            "слаг": "go-glenn",
+            "н": "Go Glenn",
+            "п": "Relax Gaming",
+            "rtp": "96.95",
+            "темы": [
+                "football"
+            ],
+            "путь": "\/software\/relax-gaming\/go-glenn",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "gold-factory",
             "н": "Gold Factory",
             "п": "Microgaming",
@@ -2047,6 +2129,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/play-n-go\/grim-muerto"
+        },
+        {
+            "слаг": "growing-grandma-dream-drop",
+            "н": "Growing Grandma Dream Drop",
+            "п": "Relax Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/growing-grandma-dream-drop",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "hacksaw-gaming-plinko",
@@ -2717,6 +2811,18 @@
             "путь": "\/software\/pragmatic-play\/limbo-plus"
         },
         {
+            "слаг": "line-busters-dream-drop",
+            "н": "Line Busters Dream Drop",
+            "п": "Relax Gaming",
+            "rtp": "96.84",
+            "темы": [
+                "space-and-aliens"
+            ],
+            "путь": "\/software\/relax-gaming\/line-busters-dream-drop",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "lions-land-hold-and-win",
             "н": "Lions Land Hold and Win",
             "п": "Kalamba Games",
@@ -2863,6 +2969,18 @@
             "корпус": false
         },
         {
+            "слаг": "lure-of-fortune",
+            "н": "Lure of Fortune",
+            "п": "Relax Gaming",
+            "rtp": "96.1",
+            "темы": [
+                "gold"
+            ],
+            "путь": "\/software\/relax-gaming\/lure-of-fortune",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "machina-prizematch",
             "н": "Machina PrizeMatch",
             "п": "Kalamba Games",
@@ -2944,6 +3062,18 @@
                 "africa"
             ],
             "путь": "\/software\/spinomenal\/majestic-white-rhino",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "marching-legions",
+            "н": "Marching Legions",
+            "п": "Relax Gaming",
+            "rtp": "98.12",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/marching-legions",
             "т": [],
             "корпус": false
         },
@@ -3150,6 +3280,16 @@
             ],
             "корпус": true,
             "путь": "\/software\/relax-gaming\/money-cart-3"
+        },
+        {
+            "слаг": "money-plane",
+            "н": "Money Plane",
+            "п": "Relax Gaming",
+            "rtp": "",
+            "темы": [],
+            "путь": "\/software\/relax-gaming\/money-plane",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "money-plane-bail-2-win",
@@ -3374,6 +3514,18 @@
             "корпус": false
         },
         {
+            "слаг": "necromancers-gate",
+            "н": "Necromancers Gate",
+            "п": "Relax Gaming",
+            "rtp": "96.5",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/necromancers-gate",
+            "т": [],
+            "корпус": false
+        },
+        {
             "слаг": "neon-west",
             "н": "Neon West",
             "п": "Yggdrasil",
@@ -3442,6 +3594,30 @@
                 "fruit-machines"
             ],
             "путь": "\/software\/nolimit-city\/nolimit-city-fruits",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "nugget-ridge",
+            "н": "Nugget Ridge",
+            "п": "Relax Gaming",
+            "rtp": "96.36",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/relax-gaming\/nugget-ridge",
+            "т": [],
+            "корпус": false
+        },
+        {
+            "слаг": "octos-crab-shack",
+            "н": "Octos Crab Shack",
+            "п": "Relax Gaming",
+            "rtp": "94.27",
+            "темы": [
+                "animals"
+            ],
+            "путь": "\/software\/relax-gaming\/octos-crab-shack",
             "т": [],
             "корпус": false
         },
@@ -4757,6 +4933,18 @@
             "т": [],
             "корпус": false,
             "путь": "\/software\/games-global\/thunderstruck"
+        },
+        {
+            "слаг": "thunderstruck-2-mega-moolah",
+            "н": "Thunderstruck 2 Mega Moolah",
+            "п": "Microgaming",
+            "rtp": "92.01",
+            "темы": [
+                "adventure"
+            ],
+            "путь": "\/software\/games-global\/thunderstruck-2-mega-moolah",
+            "т": [],
+            "корпус": false
         },
         {
             "слаг": "thunderstruck-ii",
