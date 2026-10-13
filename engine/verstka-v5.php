@@ -348,6 +348,25 @@ $ПРАВИЛА = [
     // внутри скрипта: до узлов, которых в html нет, вёрстка не дотянется.
     'win-notifications-root' => 'position:fixed;bottom:20px;left:20px;z-index:9998;max-width:320px'
         . ';pointer-events:none;display:flex;flex-direction:column;gap:10px;align-items:flex-start',
+    // ── зазывалки и CTA
+    'cta-block'       => '' . ШРИФТ . ';display:block;text-align:center;padding:22px;margin:26px 0'
+        . ';border:' . КАНТ . ';border-radius:16px',
+    'cta-icon'        => 'font-size:34px;line-height:1;margin:0 0 10px',
+    'cta-title'       => 'margin:0 0 6px;font-size:20px;font-weight:800;line-height:1.25',
+    'cta-subtitle'    => 'margin:0 0 8px;font-size:15px;line-height:1.45',
+    'cta-trust'       => 'margin:0 0 14px;font-size:13px;opacity:.8',
+    'spot-cta-block'  => '' . ШРИФТ . ';display:block;padding:20px;margin:24px 0'
+        . ';border:' . КАНТ . ';border-radius:16px',
+    'spot-cta-inner'  => 'display:flex;align-items:flex-start;gap:14px',
+    'spot-cta-number' => 'flex:0 0 auto;width:34px;height:34px;border:' . КАНТ
+        . ';border-radius:50%;display:inline-flex;align-items:center;justify-content:center'
+        . ';font-weight:800;font-size:16px',
+    'spot-cta-body'   => 'min-width:0',
+    'spot-cta-title'  => 'margin:0 0 6px;font-size:19px;font-weight:700;line-height:1.3',
+    'spot-cta-desc'   => 'margin:0 0 12px;font-size:14px;line-height:1.5;opacity:.9',
+    'hero-cta'        => 'display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0 0',
+    'btn'             => 'display:inline-block;padding:10px 18px;border:1px solid ' . ЗОЛОТО
+        . ';border-radius:10px;color:inherit;font-weight:700;text-decoration:none;font-family:inherit',
     // ── таймер акции: версии настоящие, под v2..v4 у корпуса есть правила.
     'promo-timer-widget' => '' . ШРИФТ . ';display:block;margin:26px 0;padding:22px'
         . ';border:' . КАНТ . ';border-radius:18px;text-align:center',
