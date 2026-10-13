@@ -45,7 +45,7 @@ function стКритичный(string $тег, string $атрибуты): bool
         . '|related-cards|related-card|yandex-index-only'
         . '|win-notifications-root|support-widget|support-panel'
         . '|timer-display|timer-item|spot-cta-inner|spot-cta-number'
-        . '|hero-cta)(?:\s[^"]*)?"~', $атрибуты);
+        . '|hero-cta|keywords-inner|keyword-pill)(?:\s[^"]*)?"~', $атрибуты);
 }
 
 /** Заменяет style="…" на класс, дописывая его к уже имеющимся. */

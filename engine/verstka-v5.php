@@ -348,6 +348,16 @@ $ПРАВИЛА = [
     // внутри скрипта: до узлов, которых в html нет, вёрстка не дотянется.
     'win-notifications-root' => 'position:fixed;bottom:20px;left:20px;z-index:9998;max-width:320px'
         . ';pointer-events:none;display:flex;flex-direction:column;gap:10px;align-items:flex-start',
+    // ── облако ключей: три размера пилюль, как в эталоне
+    'keywords-block'   => '' . ШРИФТ . ';display:block;margin:24px 0;padding:18px'
+        . ';border:' . КАНТ . ';border-radius:14px',
+    'keywords-heading' => 'margin:0 0 12px;font-size:16px;font-weight:700',
+    'keywords-inner'   => 'display:flex;flex-wrap:wrap;gap:8px',
+    'keyword-pill'     => 'display:inline-block;padding:5px 11px;border:' . КАНТ
+        . ';border-radius:999px;color:inherit;text-decoration:none;line-height:1.3',
+    'tag-sm'           => 'font-size:12px;opacity:.78',
+    'tag-md'           => 'font-size:13px',
+    'tag-lg'           => 'font-size:15px;font-weight:600',
     // ── зазывалки и CTA
     'cta-block'       => '' . ШРИФТ . ';display:block;text-align:center;padding:22px;margin:26px 0'
         . ';border:' . КАНТ . ';border-radius:16px',
