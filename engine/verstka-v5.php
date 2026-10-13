@@ -416,6 +416,11 @@ $ПРАВИЛА = [
     // потому что показывать там нечего.
     'yandex-index-only' => 'position:absolute;width:1px;height:1px;margin:-1px;padding:0'
         . ';overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0',
+    // график активности в карточке слота
+    'slot-chart'       => 'margin:8px 0 0',
+    'slot-chart-label' => 'display:block;font-size:11px;opacity:.7;margin:0 0 5px',
+    'slot-chart-bars'  => 'display:flex;align-items:flex-end;gap:3px;height:34px',
+    'slot-chart-bar'   => 'flex:1 1 0;min-width:0;border-radius:3px 3px 0 0;background:' . ЗОЛОТО . ';opacity:.55',
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border:1px solid ' . ЗОЛОТО . ';border-radius:8px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none;white-space:nowrap',
 ];
 

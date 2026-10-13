@@ -41,7 +41,7 @@ function стКритичный(string $тег, string $атрибуты): bool
 {
     if (strtolower($тег) === 'img') { return true; }
     return (bool) preg_match('~\sclass="(?:[^"]*\s)?(?:slots-grid|slot-card|slot-card-inner'
-        . '|slot-poster|slot-info|slot-footer|slot-name|slot-provider|slot-rtp|slot-play-btn'
+        . '|slot-poster|slot-info|slot-footer|slot-name|slot-provider|slot-rtp|slot-play-btn|slot-chart|slot-chart-bars|slot-chart-bar'
         . '|related-cards|related-card|yandex-index-only'
         . '|win-notifications-root|support-widget|support-panel'
         . '|timer-display|timer-item|spot-cta-inner|spot-cta-number'

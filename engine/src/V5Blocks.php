@@ -5740,6 +5740,40 @@ function v5ZhrebijVitriny(array $донорские, array $база, int $си�
 }
 
 /** Вписать состав витрины в карточки блока: имя, студия, отдача, значок. */
+/**
+ * Дорисовывает карточке слота график активности — восемь столбиков с подписью.
+ * У эталона корпуса он есть, в нашем скелете его нет: скелет снят со старого
+ * банка доноров, где карточка беднее. Переписывать скелет ради одного блока
+ * дороже, чем дописать его тем же проходом, что уже правит имя и RTP.
+ *
+ * Высоты пляшут вокруг отдачи игры: у слота с RTP 96 столбики ниже, чем у
+ * 98 — число на карточке и картинка рядом не спорят друг с другом.
+ */
+function v5GrafikKartochki(string $карточка, array $игра): string
+{
+    if (strpos($карточка, 'slot-chart') !== false) { return $карточка; }
+    $якорь = '~(<div\b[^>]*class="[^"]*\bslot-footer\b[^"]*"[^>]*>)~su';
+    if (!preg_match($якорь, $карточка)) { return $карточка; }
+
+    $rtp = (float) str_replace(',', '.', (string) ($игра['rtp'] ?? '96'));
+    $основа = max(45, min(90, (int) round(($rtp - 92) * 11)));
+    $rng = new Rng('график|' . ($игра['слаг'] ?? $игра['н'] ?? ''));
+    $подписи = ['Активность 24ч', 'Игроков за сутки', 'Интерес за сутки',
+                'Запусков за 24ч', 'Динамика суток'];
+
+    $столбики = '';
+    for ($i = 0; $i < 8; $i++) {
+        $в = max(28, min(100, $основа + $rng->int(-12, 14) + (int) round($i * 1.4)));
+        $столбики .= '<div class="slot-chart-bar" style="height:' . $в . '%;animation-delay:'
+            . number_format($i * 0.04, 2, '.', '') . 's"></div>';
+    }
+    $график = '<div class="slot-chart"><span class="slot-chart-label">'
+        . htmlspecialchars((string) $rng->pick($подписи), ENT_NOQUOTES, 'UTF-8')
+        . '</span><div class="slot-chart-bars">' . $столбики . '</div></div>';
+
+    return (string) preg_replace($якорь, $график . '$1', $карточка, 1);
+}
+
 function v5VpisatVitrinu(string $html, array $витрина): string
 {
     if (!$витрина) { return $html; }
@@ -5763,7 +5797,7 @@ function v5VpisatVitrinu(string $html, array $витрина): string
                     static fn (array $x): string => $x[1] . htmlspecialchars($значение, ENT_NOQUOTES, 'UTF-8')
                                                     . ($x[3] ?? ''), $карточка, 1);
             }
-            return $карточка;
+            return v5GrafikKartochki($карточка, $г);
         }, $html);
 }
 
@@ -6028,10 +6062,21 @@ function v5BlokPodderzhki(int $сид): string
     ];
     $кнопки = ['Начать чат', 'Написать в чат', 'Задать вопрос', 'Связаться с нами',
                'Открыть переписку'];
+    // Контакты разыгрываются. Почта и телеграм строятся от прорези бренда —
+    // после подстановки это адрес самой площадки, а не чужой. У телефона
+    // две последние группы одинаковы: номер случайный, но читается как
+    // заглушка и не наводит на живой.
+    $почтовые = ['support', 'help', 'info', 'care', 'service'];
+    $тгхвосты = ['support', 'help', 'bot', 'care', 'online'];
 
     $занятыхНет = [];
     $шапка = v5NePovtoryaya($rng, $шапки, $занятыхНет, 'v5SklejkaChitaetsya');
     $статус = v5SobratPoShablonu($rng, (array) $rng->pick($статусы));
+    $пара = $rng->int(10, 99);
+    $телефон = sprintf('+7 (%s) %d-%02d-%02d', (string) $rng->pick(['800', '804', '812']),
+        $rng->int(100, 999), $пара, $пара);
+    $почта = (string) $rng->pick($почтовые) . '@%brand_name_en%.com';
+    $тг = '%brand_name_en%_' . (string) $rng->pick($тгхвосты);
     $rng->shuffle($вопросы);
     $взятые = array_slice($вопросы, 0, $rng->int(3, 4));
 
@@ -6042,7 +6087,7 @@ function v5BlokPodderzhki(int $сид): string
     }
 
     return '<div id="supportWidget" class="support-widget">' . "\n"
-        . '  <button id="supportButton" class="support-button" aria-label="Открыть чат поддержки">' . "\n"
+        . '  <button id="supportButton" class="support-button" type="button" aria-expanded="false" aria-controls="supportPanel" aria-label="Открыть чат поддержки">' . "\n"
         . '    <span class="support-icon">&#128172;</span>' . "\n"
         . '    <span class="support-badge">' . htmlspecialchars((string) $rng->pick($бейджи), ENT_NOQUOTES, 'UTF-8')
         . '</span>' . "\n"
@@ -6061,11 +6106,56 @@ function v5BlokPodderzhki(int $сид): string
         . '      <button id="supportClose" class="support-close" aria-label="Закрыть">&times;</button>' . "\n"
         . '    </div>' . "\n"
         . '    <div class="support-panel-body">' . "\n"
+        . '      <div class="support-contact-item">' . "\n"
+        . '        <div class="contact-icon" aria-hidden="true">&#128222;</div>' . "\n"
+        . '        <div class="contact-content">' . "\n"
+        . '          <div class="contact-label">Телефон</div>' . "\n"
+        . '          <a href="tel:' . preg_replace('~[^+\d]~', '', $телефон)
+        . '" class="contact-link">' . htmlspecialchars($телефон, ENT_NOQUOTES, 'UTF-8')
+        . '</a>' . "\n"
+        . '        </div>' . "\n"
+        . '      </div>' . "\n"
+        . '      <div class="support-contact-item">' . "\n"
+        . '        <div class="contact-icon" aria-hidden="true">&#9993;</div>' . "\n"
+        . '        <div class="contact-content">' . "\n"
+        . '          <div class="contact-label">Почта</div>' . "\n"
+        . '          <a href="mailto:' . $почта . '" class="contact-link">' . $почта . '</a>' . "\n"
+        . '        </div>' . "\n"
+        . '      </div>' . "\n"
+        . '      <div class="support-contact-item">' . "\n"
+        . '        <div class="contact-icon" aria-hidden="true">&#9992;</div>' . "\n"
+        . '        <div class="contact-content">' . "\n"
+        . '          <div class="contact-label">Telegram</div>' . "\n"
+        . '          <a href="https://t.me/' . $тг . '" class="contact-link">@' . $тг . '</a>' . "\n"
+        . '        </div>' . "\n"
+        . '      </div>' . "\n"
         . $пункты
         . '      <button type="button" class="support-chat-button">'
         . htmlspecialchars((string) $rng->pick($кнопки), ENT_NOQUOTES, 'UTF-8') . '</button>' . "\n"
         . '    </div>' . "\n"
         . '  </div>' . "\n"
+        . '  <script>' . "\n"
+        . '  (function () {' . "\n"
+        . "    var b = document.getElementById('supportButton');" . "\n"
+        . "    var p = document.getElementById('supportPanel');" . "\n"
+        . "    var c = document.getElementById('supportClose');" . "\n"
+        . '    if (!b || !p) { return; }' . "\n"
+        . '    var open = false;' . "\n"
+        . '    function toggle(v) {' . "\n"
+        . '      open = v === undefined ? !open : v;' . "\n"
+        . "      if (open) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }" . "\n"
+        . "      b.setAttribute('aria-expanded', open ? 'true' : 'false');" . "\n"
+        . '    }' . "\n"
+        . "    b.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });" . "\n"
+        . "    if (c) { c.addEventListener('click', function (e) { e.stopPropagation(); toggle(false); }); }" . "\n"
+        . "    document.addEventListener('click', function (e) {" . "\n"
+        . "      if (open && !e.target.closest('#supportWidget')) { toggle(false); }" . "\n"
+        . '    });' . "\n"
+        . "    document.addEventListener('keydown', function (e) {" . "\n"
+        . "      if (open && e.key === 'Escape') { toggle(false); }" . "\n"
+        . '    });' . "\n"
+        . '  })();' . "\n"
+        . '  </script>' . "\n"
         . '</div>';
 }
 
@@ -6406,6 +6496,11 @@ const V5_KLYUCHI_HVOSTY = [
     'partnery' => ['партнёрская программа', 'RevShare', 'вебмастерам', 'выплаты партнёрам'],
 ];
 
+/**
+ * НЕ ПОДКЛЮЧЁН. Облако тегов шаблон сайта отдаёт сам, второе такое же в
+ * странице не нужно. Сборщик оставлен: если понадобится своё облако,
+ * вернуть вызов в пост-проход генератора и класс в вырез мебели.
+ */
 function v5BlokKlyuchej(string $тип, int $сид): string
 {
     $rng = new Rng('ключи|' . $сид . '|' . $тип);
@@ -6841,7 +6936,7 @@ function v5OtsechMebel(string $html, bool $сМетками = false): array
         . '|<div\b[^>]*class="win-notifications-root"[^>]*>\s*</div>\s*<script\b.*?</script>'
         . '|<div\b[^>]*id="supportWidget"[^>]*>.*?\n</div>'
         . '|<div\b[^>]*class="hero-cta"[^>]*>(?:(?!</div>).)*?</div>'
-        . '|<div\b[^>]*class="keywords-block"[^>]*>.*?\n</div>'
+
         . ')~is';
     $мебель = '';
     $куски = [];
