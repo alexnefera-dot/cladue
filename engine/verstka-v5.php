@@ -411,6 +411,28 @@ $ПРАВИЛА = [
         . ';font-size:12px;padding:8px 10px;border-radius:9px;cursor:pointer;font-family:inherit',
     'support-chat-button'  => 'background:#fff;color:#111;border:0;font-size:13px;font-weight:700'
         . ';padding:9px 12px;border-radius:9px;cursor:pointer;font-family:inherit;margin-top:3px',
+    // ── бонусный калькулятор (B10): поля ввода и строки итога. Поля
+    // размечены явной шириной — хост-страница любит класть input'ам
+    // `width:100%` вперемешку с собственным padding'ом.
+    'bonus-calculator-widget' => '' . ШРИФТ . ';display:block;margin:26px 0;padding:22px'
+        . ';border:' . КАНТ . ';border-radius:18px',
+    'calculator-header'       => 'margin:0 0 16px',
+    'calculator-title'        => 'margin:0 0 5px;font-size:20px;font-weight:800;line-height:1.25',
+    'calculator-subtitle'     => 'margin:0;font-size:14px;line-height:1.45;opacity:.85',
+    'calculator-inputs'       => 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px',
+    'calculator-input-group'  => 'min-width:0',
+    'calculator-label'        => 'display:block;font-size:13px;opacity:.8;margin:0 0 6px',
+    'calculator-input'        => 'display:block;width:100%;box-sizing:border-box;padding:10px 12px'
+        . ';border:' . КАНТ . ';border-radius:10px;background:rgba(255,255,255,.05);color:inherit'
+        . ';font-family:inherit;font-size:15px;font-weight:600;line-height:1.3',
+    'calculator-result'       => 'display:flex;flex-direction:column;gap:8px;margin:0 0 16px',
+    'result-row'              => 'display:flex;align-items:baseline;justify-content:space-between;gap:12px',
+    'result-label'            => 'font-size:14px;opacity:.8',
+    'result-value'            => 'font-size:17px;font-weight:800;white-space:nowrap',
+    'result-total'            => 'padding-top:8px;border-top:' . КАНТ,
+    'calculator-button'       => 'display:inline-block;padding:10px 18px;border:1px solid ' . ЗОЛОТО
+        . ';border-radius:10px;color:inherit;font-weight:700;font-family:inherit;font-size:15px'
+        . ';cursor:pointer;background:none;line-height:1.3',
     // ── SEO-блок (B4): visually-hidden ровно как в эталоне. Читателю блок
     // не виден, поисковику виден; радиусы и тени темы к нему не применяются,
     // потому что показывать там нечего.
@@ -578,9 +600,35 @@ foreach ($файлы as $файл) {
         if (strpos($л, 'class="') !== false) {
             $ряд_ссылка = &$ряд;
             $новая = preg_replace_callback('~class="([^"]+)"~', function ($m) use (&$правил, &$ряд_ссылка, $ПРАВИЛА) {
-                $первый = strtok($m[1], ' ');
-                if (!isset($ПРАВИЛА[$первый])) return $m[0];
-                $стиль = $ПРАВИЛА[$первый];
+                // Правила берутся со ВСЕХ классов элемента, а не с первого.
+                // Так работает каскад, и так размечен корпус: итоговая строка
+                // калькулятора у него `result-row result-total`, где рядность
+                // даёт первый класс, а черту сверху — второй. Прежний strtok
+                // второй класс терял молча. Проверено счётом: на наборе из
+                // двенадцати страниц непервый класс со своим правилом ровно
+                // один — этот.
+                $части = preg_split('~\s+~', trim($m[1]));
+                $первый = $части[0];
+                $куски = [];
+                foreach ($части as $кл) {
+                    if (isset($ПРАВИЛА[$кл])) { $куски[] = $ПРАВИЛА[$кл]; }
+                }
+                if (!$куски) return $m[0];
+                $стиль = $куски[0];
+                if (count($куски) > 1) {
+                    // Склейка двух правил повторяет общий хвост (color, шрифт,
+                    // выключка) — в CSS это безвредно, в разметке заметно.
+                    // Свойства схлопываются: позиция первая, значение последнее.
+                    $свойства = [];
+                    foreach (explode(';', implode(';', $куски)) as $пара) {
+                        $двоеточие = strpos($пара, ':');
+                        if ($двоеточие === false) { continue; }
+                        $свойства[substr($пара, 0, $двоеточие)] = substr($пара, $двоеточие + 1);
+                    }
+                    $стиль = implode(';', array_map(
+                        static fn ($к, $v): string => $к . ':' . $v,
+                        array_keys($свойства), $свойства));
+                }
                 if ($первый === 'payout-row' && ($ряд_ссылка++ % 2)) $стиль .= ';background:' . ПОДЛОЖКА;
                 $правил++;
                 return $m[0] . ' style="' . $стиль . '"';

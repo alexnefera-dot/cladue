@@ -6578,6 +6578,124 @@ function v5BlokKlyuchej(string $тип, int $сид): string
         . '</div>';
 }
 
+/**
+ * Жребий наличия калькулятора. Второй блок конструктора, который
+ * разыгрывается наличием, а не картой страниц.
+ *
+ * Счёт по корпусу: `<section class="bonus-calculator-widget">` есть ровно в
+ * одном наборе эталона из семи и ни в одном из ста наборов конкурента. Своя
+ * разметка блока — только в `samples/v3-reference/7/bonus.htm`. Ставка 1 к 7
+ * взята по той семье, где блок вообще существует: реже — блок мёртвый, чаще
+ * — наш отпечаток, которого у корпуса нет.
+ */
+function v5ZhrebijKalkulyatora(int $сид): bool
+{
+    return (new Rng('калькулятор-наличие|' . $сид))->int(1, 7) === 1;
+}
+
+/**
+ * Бонусный калькулятор `bonus-calculator-widget`. По замеру эталона стоит
+ * только на `bonus`: два поля ввода, две строки итога, кнопка.
+ *
+ * Процент берётся ИЗ ПАСПОРТА набора, а не выдумывается. Сито следит за
+ * правилом «пакет звучит разными числами» и мебель оно читает: калькулятор
+ * с чужим процентом поспорил бы с прозой той же страницы.
+ *
+ * Счёт идёт в скрипте, а не только в разметке: кнопка у корпуса рабочая.
+ * Скрипт лежит внутри секции — так весь блок режется одним шаблоном
+ * V5_MEBEL, как у таймера.
+ */
+function v5BlokKalkulyatora(string $тип, int $сид, int $процентПакета): string
+{
+    if ($тип !== 'bonus') { return ''; }
+    $rng = new Rng('калькулятор|' . $сид);
+    $проц = $процентПакета > 0 ? $процентПакета : 100;
+
+    $шапки = [
+        ['Калькулятор {чего}', ['чего' => ['приветственного бонуса', 'бонуса', 'первого депозита',
+                                           'бонусного пакета']]],
+        ['{что} на калькуляторе', ['что' => ['Посчитать бонус', 'Прикинуть бонус', 'Проверить пакет']]],
+        ['Сколько {даст} пакет', ['даст' => ['даст', 'добавит', 'принесёт']]],
+    ];
+    // Подписи без обращения: «вы» в мебели спорит с прозой на тех шести
+    // наборах из семи, где у набора обращение на «ты». Остальные восемь
+    // блоков слоя Б по той же причине обращения не содержат вовсе.
+    $подписи = [
+        'Сумма бонуса и итог на счёте в %brand_name_ru%',
+        'Считает бонус и стартовый баланс',
+        'Депозит, бонус к нему и общая сумма',
+        'Бонус и общий баланс после зачисления',
+    ];
+    $кнопки = ['Рассчитать бонус', 'Посчитать', 'Показать итог', 'Рассчитать'];
+
+    $занятыхНет = [];
+    $шапка = v5NePovtoryaya($rng, $шапки, $занятыхНет, 'v5SklejkaChitaetsya');
+    $депозит = $rng->int(3, 20) * 1000;
+    $бонус = (int) round($депозит * $проц / 100);
+    // Потолок и шаг поля считаются от процента, а не берутся постоянными:
+    // в банке есть и 15, и 1000, и при max="500" со значением 600 браузер
+    // метит поле ошибкой, а стрелка роняет его до потолка.
+    $потолок = max(500, (int) (ceil($проц / 100) * 100));
+    $шаг = $проц % 10 === 0 ? 10 : ($проц % 5 === 0 ? 5 : 1);
+    $деньги = static fn (int $x): string => number_format($x, 0, '', "\u{a0}") . ' ₽';
+
+    return '<section class="bonus-calculator-widget variant-v' . $rng->int(1, 4) . '">' . "\n"
+        . '  <div class="calculator-header">' . "\n"
+        . '    <h3 class="calculator-title">' . htmlspecialchars($шапка, ENT_NOQUOTES, 'UTF-8')
+        . '</h3>' . "\n"
+        . '    <p class="calculator-subtitle">' . (string) $rng->pick($подписи) . '</p>' . "\n"
+        . '  </div>' . "\n"
+        . '  <div class="calculator-inputs">' . "\n"
+        . '    <div class="calculator-input-group">' . "\n"
+        . '      <label class="calculator-label" for="depositAmount">Сумма депозита (₽):</label>' . "\n"
+        . '      <input type="number" id="depositAmount" value="' . $депозит
+        . '" min="100" step="100" class="calculator-input">' . "\n"
+        . '    </div>' . "\n"
+        . '    <div class="calculator-input-group">' . "\n"
+        . '      <label class="calculator-label" for="bonusPercent">Процент бонуса (%):</label>' . "\n"
+        . '      <input type="number" id="bonusPercent" value="' . $проц
+        . '" min="0" max="' . $потолок . '" step="' . $шаг . '" class="calculator-input">' . "\n"
+        . '    </div>' . "\n"
+        . '  </div>' . "\n"
+        . '  <div class="calculator-result">' . "\n"
+        . '    <div class="result-row">' . "\n"
+        . '      <span class="result-label">Бонус:</span>' . "\n"
+        . '      <span id="bonusAmount" class="result-value">' . $деньги($бонус) . '</span>' . "\n"
+        . '    </div>' . "\n"
+        . '    <div class="result-row result-total">' . "\n"
+        . '      <span class="result-label">Итого на счету:</span>' . "\n"
+        . '      <span id="totalAmount" class="result-value">' . $деньги($депозит + $бонус)
+        . '</span>' . "\n"
+        . '    </div>' . "\n"
+        . '  </div>' . "\n"
+        . '  <button type="button" id="calcBonusBtn" class="calculator-button">'
+        . htmlspecialchars((string) $rng->pick($кнопки), ENT_NOQUOTES, 'UTF-8') . '</button>' . "\n"
+        . '  <script>' . "\n"
+        . '  (function () {' . "\n"
+        . "    var d = document.getElementById('depositAmount');" . "\n"
+        . "    var p = document.getElementById('bonusPercent');" . "\n"
+        . "    var b = document.getElementById('bonusAmount');" . "\n"
+        . "    var t = document.getElementById('totalAmount');" . "\n"
+        . "    var k = document.getElementById('calcBonusBtn');" . "\n"
+        . '    if (!d || !p || !b || !t) { return; }' . "\n"
+        . '    function money(v) {' . "\n"
+        . "      return Math.round(v).toLocaleString('ru-RU') + ' \u{20BD}';" . "\n"
+        . '    }' . "\n"
+        . '    function calc() {' . "\n"
+        . '      var dep = Math.max(0, parseFloat(d.value) || 0);' . "\n"
+        . '      var pct = Math.max(0, parseFloat(p.value) || 0);' . "\n"
+        . '      var bon = dep * pct / 100;' . "\n"
+        . '      b.textContent = money(bon);' . "\n"
+        . '      t.textContent = money(dep + bon);' . "\n"
+        . '    }' . "\n"
+        . "    if (k) { k.addEventListener('click', calc); }" . "\n"
+        . "    d.addEventListener('input', calc);" . "\n"
+        . "    p.addEventListener('input', calc);" . "\n"
+        . '  })();' . "\n"
+        . '  </script>' . "\n"
+        . '</section>';
+}
+
 /** Смежность разделов: с какой страницы куда ведут ссылки блока. */
 const V5_SEO_SMEZH = [
     'main'        => ['bonus', 'registracia', 'zerkalo', 'slots', 'vhod', 'app', 'news', 'obzor', 'info', 'promo', 'partnery'],
@@ -6938,7 +7056,7 @@ function v5BlokPerelinkovki(string $тип, array $заголовки, int $си
  * добавление мебели попадает в его бюджет синонимов и сдвигает саму прозу.
  */
 const V5_MEBEL = ['related-sections', 'yandex-index-only', 'promo-timer-widget',
-                  'cta-block', 'spot-cta-block'];
+                  'cta-block', 'spot-cta-block', 'bonus-calculator-widget'];
 
 /**
  * Отрезает мебель ровно теми байтами, какими она лежит, вместе с отступом.
