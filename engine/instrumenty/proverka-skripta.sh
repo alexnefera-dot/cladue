@@ -15,6 +15,10 @@ $блоки = [
     "podderzhka"  => static fn (int $с): string => v5BlokPodderzhki($с),
     "tajmer"      => static fn (int $с): string => v5BlokTajmera($с % 2 ? "main" : "bonus", $с),
     "kalkulyator" => static fn (int $с): string => v5BlokKalkulyatora("bonus", $с, 15 + $с % 300),
+    "faq2"        => static function (int $с): string {
+        $занятые = [];
+        return v5BlokFaqDva(V5_TYPES[$с % count(V5_TYPES)], $с, $занятые);
+    },
 ];
 foreach ($блоки as $имя => $как) {
     for ($i = 0; $i < 40; $i++) {
