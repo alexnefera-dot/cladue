@@ -110,7 +110,11 @@ $плоско = static function (string $html): string {
     // иначе «…не твои.» превращается в «…не твои. .» и ломает счёт
     // предложений у других правил.
     $html = (string) preg_replace(
-        '~([^\s.!?:;])\s*</(?:h[1-6]|p|li|td|th|dt|dd|figcaption|blockquote|section|article|div|header|footer)\s*>~i',
+        // `>` в классе исключён: у вложенных закрытий («…сам(а).</p></div>»)
+        // перед `</div>` стоит `>` от `</p>`, и первая версия считала его
+        // текстом — в тексте появлялись « . . », а они делят фразы там, где
+        // деления нет. Прогон по корпусу поймал это раньше, чем я.
+        '~([^\s.!?:;>])\s*</(?:h[1-6]|p|li|td|th|dt|dd|figcaption|blockquote|section|article|div|header|footer)\s*>~i',
         '$1.', $html);
     $html = (string) preg_replace('~<[^>]+>~', ' ', $html);
     return trim((string) preg_replace('~\s+~u', ' ', html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
