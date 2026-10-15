@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "индекс-поддомены"
+APP_BUILD = "кнопка-проверки"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1802,6 +1802,45 @@ def index():
 @app.route("/api/version")
 def api_version():
     return jsonify({"build": APP_BUILD})
+
+
+@app.route("/api/check", methods=["POST"])
+def api_check():
+    """Быстрая проверка доступа: крошечный запрос к XML и к Live с ключом пользователя."""
+    data = request.get_json(force=True, silent=True) or {}
+    user = (data.get("user") or "").strip()
+    key = (data.get("key") or "").strip()
+    if not user or not key:
+        return jsonify({"error": "Укажите User ID и API key из кабинета xmlstock."}), 400
+
+    engine = data.get("engine") or "yandex"
+    family = "google" if str(engine).startswith("google") else "yandex"
+    query = (data.get("query") or "").strip() or "проверка связи"
+    base = {"user": user, "key": key, "lr": (data.get("lr") or "").strip(),
+            "domain": (data.get("domain") or "").strip(), "device": (data.get("device") or "").strip(),
+            "delay": 0.0, "timeout": 20, "retries": 1, "top_n": 5}
+
+    # Что проверяем: свой URL (если выбран) — только его; иначе XML + Live семейства.
+    custom = (data.get("endpoint") or "").strip()
+    if engine == "custom" and custom.lower().startswith(("http://", "https://")):
+        targets = [("Свой URL", custom)]
+    else:
+        targets = [("XML", ENDPOINTS[family]), ("Live", ENDPOINTS[family + "_live"])]
+
+    cancel = Event()
+    checks = []
+    for name, endpoint in targets:
+        cfg = dict(base, endpoint=endpoint, live=_is_live(endpoint))
+        t0 = time.time()
+        try:
+            results, err = fetch_one(cfg, query, cancel)
+        except Exception as e:  # noqa: BLE001
+            results, err = [], f"исключение: {e}"
+        checks.append({"name": name, "live": cfg["live"], "ok": not err,
+                       "count": len(results), "error": err,
+                       "ms": int((time.time() - t0) * 1000),
+                       "sample": results[0]["url"] if results else ""})
+    return jsonify({"query": query, "engine": family, "checks": checks})
 
 
 @app.route("/api/run", methods=["POST"])

@@ -89,6 +89,10 @@
         <div><label>API key</label><input id="key" placeholder="ваш ключ из кабинета"></div>
       </div>
       <div class="hint">Берётся в кабинете xmlstock.com → раздел API. Сохраняется только в этом браузере.</div>
+      <div class="row" style="margin-top:10px;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn-ghost" id="chk_go" type="button">🔌 Проверить доступ (XML + Live)</button>
+        <span id="chk_res" style="font-size:13px"></span>
+      </div>
     </fieldset>
     <fieldset>
       <legend>Параметры поиска</legend>
@@ -752,6 +756,26 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
 // ---- движок / свой URL ----
 $("engine").addEventListener("change", ()=> $("customWrap").classList.toggle("hidden", $("engine").value!=="custom"));
 $("engine").dispatchEvent(new Event("change"));
+
+// ---- проверка доступа (XML + Live) одной кнопкой ----
+$("chk_go").onclick = async ()=>{
+  const res=$("chk_res");
+  if(!$("user").value.trim() || !$("key").value.trim()){ res.innerHTML='<span style="color:var(--warn)">Заполните User ID и API key.</span>'; return; }
+  $("chk_go").disabled=true; res.innerHTML='<span class="muted">проверяю…</span>';
+  const payload={...shared()};
+  try{
+    const r=await fetch("/api/check",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ res.innerHTML=`<span style="color:var(--warn)">${esc(d.error||"ошибка")}</span>`; $("chk_go").disabled=false; return; }
+    res.innerHTML=(d.checks||[]).map(c=> c.ok
+      ? `<b style="color:var(--acc)">✓ ${esc(c.name)}</b> ${c.count} рез. · ${c.ms}мс`
+      : `<b style="color:var(--err)">✗ ${esc(c.name)}</b> ${esc(c.error||"ошибка")}`
+    ).join(' &nbsp;·&nbsp; ');
+    const allOk=(d.checks||[]).every(c=>c.ok);
+    if(allOk) res.innerHTML+=' &nbsp;— <b style="color:var(--acc)">доступ работает</b>';
+  }catch(e){ res.innerHTML=`<span style="color:var(--warn)">нет связи с сервером: ${esc(String(e))}</span>`; }
+  $("chk_go").disabled=false;
+};
 
 // ---- устройство: m_device на вкладке трекера зеркалит общий #device ----
 $("m_device").value = $("device").value;
