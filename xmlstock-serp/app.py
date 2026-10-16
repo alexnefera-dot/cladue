@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "кнопка-проверки"
+APP_BUILD = "вебмастер"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1841,6 +1841,101 @@ def api_check():
                        "ms": int((time.time() - t0) * 1000),
                        "sample": results[0]["url"] if results else ""})
     return jsonify({"query": query, "engine": family, "checks": checks})
+
+
+# --------------------------------------------------------------------------- #
+#  Яндекс.Вебмастер API: точные «страницы в поиске» по подтверждённым сайтам    #
+# --------------------------------------------------------------------------- #
+# В отличие от site: (оценка по любому домену), Вебмастер отдаёт реальный индекс,
+# но только по доменам, подтверждённым в аккаунте, и по OAuth-токену. Токен нигде
+# не сохраняется — используется только для запроса (как ключ xmlstock).
+_WM_API = "https://api.webmaster.yandex.net/v4"
+
+
+def _wm_get(token, path, timeout=20):
+    """GET к Webmaster API с OAuth-токеном. Возвращает (data|None, status, error, raw)."""
+    try:
+        r = requests.get(_WM_API + path, timeout=timeout,
+                         headers={"Authorization": "OAuth " + token})
+    except requests.RequestException as e:
+        return None, 0, f"сеть: {e}", ""
+    raw = (r.text or "")[:300]
+    if r.status_code != 200:
+        return None, r.status_code, f"HTTP {r.status_code}", raw
+    try:
+        return r.json(), 200, None, raw
+    except Exception:
+        return None, 200, "нераспознанный ответ", raw
+
+
+def _wm_latest_value(data):
+    """Последнее числовое value из истории (устойчиво к форме ответа)."""
+    pts = []
+    if isinstance(data, dict):
+        v = data.get("history")
+        if isinstance(v, list):
+            pts = v
+        elif isinstance(data.get("indicators"), dict):
+            for vv in data["indicators"].values():
+                if isinstance(vv, list):
+                    pts = vv
+                    break
+    elif isinstance(data, list):
+        pts = data
+    best = None
+    for pt in pts:
+        if isinstance(pt, dict) and isinstance(pt.get("value"), (int, float)):
+            best = pt
+    return int(best["value"]) if best else None
+
+
+@app.route("/api/wm/load", methods=["POST"])
+def api_wm_load():
+    data = request.get_json(force=True, silent=True) or {}
+    token = (data.get("token") or "").strip()
+    if not token:
+        return jsonify({"error": "Укажите OAuth-токен Яндекс.Вебмастера."}), 400
+
+    u, st, err, raw = _wm_get(token, "/user/")
+    if err:
+        hint = " — токен неверный или истёк" if st in (401, 403) else ""
+        return jsonify({"error": f"Не удалось получить user_id: {err}{hint}", "raw": raw}), 400
+    uid = (u or {}).get("user_id")
+    hv, st2, err2, raw2 = _wm_get(token, f"/user/{uid}/hosts/")
+    if err2:
+        return jsonify({"error": f"Не удалось получить список сайтов: {err2}", "raw": raw2}), 400
+    hosts = (hv or {}).get("hosts") or []
+
+    def one(h):
+        hid = h.get("host_id")
+        url = h.get("unicode_host_url") or h.get("ascii_host_url") or hid or ""
+        verified = bool(h.get("verified"))
+        row = {"host": url, "verified": verified, "sqi": None,
+               "in_search": None, "error": "", "raw": ""}
+        if not verified:
+            row["error"] = "не подтверждён"
+            return row
+        s, _, _, _ = _wm_get(token, f"/user/{uid}/hosts/{hid}/summary/")
+        if isinstance(s, dict):
+            row["sqi"] = s.get("sqi")
+        d, dst, derr, draw = _wm_get(token, f"/user/{uid}/hosts/{hid}/search-urls/in-search/history/")
+        if isinstance(d, dict):
+            row["in_search"] = _wm_latest_value(d)
+            if row["in_search"] is None:
+                row["error"], row["raw"] = "счётчик: нестандартный ответ", draw
+        elif derr:
+            row["error"], row["raw"] = f"счётчик: {derr}", draw
+        return row
+
+    rows = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        for r in ex.map(one, hosts[:300]):
+            rows.append(r)
+    rows.sort(key=lambda r: (r["in_search"] is None, -(r["in_search"] or 0)))
+    total = sum(r["in_search"] or 0 for r in rows)
+    return jsonify({"user_id": uid, "hosts": len(rows),
+                    "verified": sum(1 for r in rows if r["verified"]),
+                    "total_in_search": total, "rows": rows})
 
 
 @app.route("/api/run", methods=["POST"])

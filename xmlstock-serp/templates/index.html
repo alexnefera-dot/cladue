@@ -142,6 +142,7 @@
     <button class="tab" data-tab="watch">🚀 Мониторинг 48ч</button>
     <button class="tab" data-tab="launch">📊 Отчёты по запускам</button>
     <button class="tab" data-tab="whois">🕵 Проверка WHOIS</button>
+    <button class="tab" data-tab="wm">🔍 Я.Вебмастер</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -706,6 +707,37 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 9: ЯНДЕКС.ВЕБМАСТЕР ================= -->
+  <div id="panel-wm" class="hidden">
+    <div class="card">
+      <label>OAuth-токен Яндекс.Вебмастера</label>
+      <input id="wm_token" placeholder="вставьте токен (scope «Вебмастер»)">
+      <div class="hint">Точный индекс («страницы в поиске») и ИКС по вашим <b>подтверждённым</b> в Вебмастере сайтам. Токен используется только для запроса и нигде не сохраняется на сервере (в браузере — да, как ключ xmlstock).
+        Где взять токен: <code>oauth.yandex.ru</code> → создать приложение с правами «Яндекс.Вебмастер» → получить OAuth-токен. Работает только по доменам, добавленным в <code>webmaster.yandex.ru</code>.</div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn-go" id="wm_go">▶ Загрузить сайты и индекс</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="wm_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Сайтов</span><b id="wm_hosts">0</b></div>
+          <div class="ok"><span class="muted">Подтверждено</span><b id="wm_verified">0</b></div>
+          <div class="ok"><span class="muted">Всего страниц в поиске</span><b id="wm_total">0</b></div>
+        </div>
+        <button class="btn-dl hidden" id="wm_dlCsv">⬇ CSV</button>
+      </div>
+      <div class="tbl-wrap" style="margin-top:12px">
+        <table class="pos" id="wm_table">
+          <thead><tr><th>Сайт</th><th>Страниц в поиске</th><th>ИКС</th><th>Подтверждён</th><th>Примечание</th></tr></thead>
+          <tbody id="wm_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint err-text" id="wm_err" style="color:var(--warn)"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
@@ -751,6 +783,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-watch").classList.toggle("hidden", t.dataset.tab!=="watch");
   $("panel-launch").classList.toggle("hidden", t.dataset.tab!=="launch");
   $("panel-whois").classList.toggle("hidden", t.dataset.tab!=="whois");
+  $("panel-wm").classList.toggle("hidden", t.dataset.tab!=="wm");
 });
 
 // ---- движок / свой URL ----
@@ -1496,6 +1529,45 @@ async function whRefresh(){
 $("wh_stop").onclick = async ()=>{ if(whJob){ await fetch("/api/whois/cancel/"+whJob,{method:"POST"}); $("wh_statusw").textContent="останавливаю…"; } };
 $("wh_dlXlsx").onclick=()=> whJob && (location.href="/api/whois/download/"+whJob+"?fmt=xlsx");
 $("wh_dlCsv").onclick =()=> whJob && (location.href="/api/whois/download/"+whJob+"?fmt=csv");
+
+// ===================== ВКЛАДКА 9: ЯНДЕКС.ВЕБМАСТЕР =====================
+let wmRows=[];
+(function(){ try{ const t=localStorage.getItem("xmlstock_wm"); if(t) $("wm_token").value=t; }catch(e){} })();
+$("wm_token").addEventListener("input", ()=>{ try{ localStorage.setItem("xmlstock_wm",$("wm_token").value); }catch(e){} });
+
+function wmRender(d){
+  $("wm_hosts").textContent=d.hosts; $("wm_verified").textContent=d.verified;
+  $("wm_total").textContent=(d.total_in_search||0).toLocaleString("ru-RU");
+  wmRows=d.rows||[];
+  $("wm_tbody").innerHTML=wmRows.map(r=>{
+    const ins = r.in_search!=null ? `<b class="p-top">${r.in_search.toLocaleString("ru-RU")}</b>`
+              : '<span class="miss">—</span>';
+    const note = r.error ? `<span class="p-no">${esc(r.error)}</span>`+(r.raw?` <span class="muted" title="${esc(r.raw)}">(подробнее)</span>`:"") : "";
+    const vf = r.verified ? '<span class="p-top">да</span>' : '<span class="p-no">нет</span>';
+    return `<tr><td>${esc(r.host)}</td><td>${ins}</td><td>${r.sqi!=null?r.sqi:'—'}</td><td>${vf}</td><td>${note}</td></tr>`;
+  }).join("") || '<tr><td colspan="5" class="miss">В этом аккаунте Вебмастера нет сайтов. Добавьте и подтвердите домен на webmaster.yandex.ru.</td></tr>';
+}
+$("wm_go").onclick = async ()=>{
+  hideErr(); $("wm_err").textContent="";
+  if(!$("wm_token").value.trim()){ showErr("Вставьте OAuth-токен Яндекс.Вебмастера."); return; }
+  $("wm_go").disabled=true;
+  $("wm_panel").classList.remove("hidden"); $("wm_tbody").innerHTML='<tr><td colspan="5" class="muted">загружаю из Вебмастера…</td></tr>';
+  $("wm_dlCsv").classList.add("hidden");
+  try{
+    const r=await fetch("/api/wm/load",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:$("wm_token").value.trim()})});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); if(d.raw) $("wm_err").textContent="Ответ Яндекса: "+d.raw; $("wm_tbody").innerHTML=""; $("wm_go").disabled=false; return; }
+    wmRender(d);
+    if(wmRows.length) $("wm_dlCsv").classList.remove("hidden");
+  }catch(e){ showErr("Нет связи с сервером: "+e); }
+  $("wm_go").disabled=false;
+};
+$("wm_dlCsv").onclick = ()=>{
+  const head=["host","in_search","sqi","verified","note"];
+  const lines=[head.join(";")].concat(wmRows.map(r=>[r.host, r.in_search==null?"":r.in_search, r.sqi==null?"":r.sqi, r.verified?"да":"нет", (r.error||"").replace(/;/g,",")].join(";")));
+  const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="webmaster_index.csv"; a.click();
+};
 </script>
 </body>
 </html>
