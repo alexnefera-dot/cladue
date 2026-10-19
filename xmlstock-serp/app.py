@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "вебмастер"
+APP_BUILD = "индекс-live"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -226,7 +226,8 @@ def _is_retryable(error_text):
     t = error_text.lower()
     return any(
         s in t
-        for s in ("limit", "лимит", "rps", "temporar", "временно", "503", "502", "504", "busy")
+        for s in ("limit", "лимит", "rps", "temporar", "временно", "503", "502", "504",
+                  "busy", "повтор", "не удалось получить", "api 20:", "api 1:")
     )
 
 
@@ -2337,12 +2338,18 @@ def api_site_run():
 
     engine = data.get("engine") or "yandex"
     custom = (data.get("endpoint") or "").strip()
-    endpoint = custom or ENDPOINTS.get(engine)
+    family = "google" if str(engine).startswith("google") else "yandex"
+    force_live = bool(data.get("force_live"))
+    # По умолчанию site: идёт на XML (полнее и дешевле). Но XML у некоторых тарифов
+    # xmlstock работает по расписанию (напр. только ночью) — тогда включают Live.
+    if custom:
+        endpoint = custom
+    elif force_live:
+        endpoint = ENDPOINTS[family + "_live"]
+    else:
+        endpoint = ENDPOINTS[family]
     if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
         return jsonify({"error": "Некорректный URL эндпоинта."}), 400
-    # site: полнее и дешевле на XML — если выбран Live (без своего URL), берём XML.
-    if not custom and _is_live(endpoint):
-        endpoint = ENDPOINTS["google"] if str(engine).startswith("google") else ENDPOINTS["yandex"]
 
     op = data.get("operator") or "site:"
     if op not in ("site:", "host:"):
@@ -2382,7 +2389,7 @@ def api_site_run():
 
     Thread(target=run_site, args=(job_id, cfg, domains), daemon=True).start()
     return jsonify({"job_id": job_id, "total": len(domains),
-                    "operator": op, "max_urls": cfg["max_urls"]})
+                    "operator": op, "max_urls": cfg["max_urls"], "live": cfg["live"]})
 
 
 @app.route("/api/site/status/<job_id>")
