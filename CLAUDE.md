@@ -374,6 +374,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
+  THE LAUNCHER OPENS THE BROWSER ITSELF, and since 1.41.2 it actually does: the one-liner it used to be
+  («подожди секунду и зови open») fired a BLIND `sleep 1`, so on a machine where the browser is ALREADY
+  running the URL reached it instantly — before `php -S` had taken the port — and the tab died on
+  «не удалось подключиться», which from the user's side looked like «панель не открывается сама».
+  `Support\Browser` now builds a background command that WAITS for the port (`waitCommand()`: the same
+  `PHP_BINARY` the panel runs on, `fsockopen` every 0.3 s up to 60 times — no curl/nc, which are not
+  everywhere) and only then calls the opener: `open` on macOS, `xdg-open || x-www-browser ||
+  sensible-browser || gio open` on Linux, and on Windows `start ""` — the empty title pair is mandatory,
+  because cmd reads `start http://…` as a WINDOW TITLE and opens nothing (that branch was broken for as
+  long as it existed). `Browser::open()` returns the console line instead of failing silently, and says
+  so outright when `exec` is disabled in php.ini («открыть сам не могу»). `--no-open` still skips it.
+  The launcher `require_once`s the class directly: the autoloader lives in the request-handler branch
+  further down the same file and has not run yet at that point. Covered by `tests/BrowserTest.php`
+  (`testCommandPerSystem` — the per-OS shapes incl. the Windows quoting; `testWaitsForTheServerBeforeOpening`
+  — the waiter does nothing for 0.9 s with no server and fires as soon as a real `php -S` takes the port).
   `public/panel.html` has three tabs (`.tabsec[data-tab=main|config|stats]`, remembered in
   `localStorage['ys-tab']`): «Главная» (queries, run/stage, progress, log, results table), «Настройки»
   (keys + all filter/visit conditions) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`

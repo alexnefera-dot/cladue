@@ -8,7 +8,8 @@ declare(strict_types=1);
  *
  *   php bin/panel.php [--port=8777] [--host=127.0.0.1] [--no-open]
  *
- * Открывает http://127.0.0.1:8777 в браузере. Один и тот же файл выступает и запускающим
+ * Сразу после запуска САМ открывает http://127.0.0.1:8777 в браузере по умолчанию (--no-open
+ * отключает). Один и тот же файл выступает и запускающим
  * скриптом, и обработчиком запросов встроенного сервера PHP (php -S).
  * Интерфейс доступен только с этого компьютера (127.0.0.1).
  */
@@ -33,6 +34,7 @@ if (PHP_SAPI !== 'cli-server') {
             $open = false;
         } elseif ($arg === '--help' || $arg === '-h') {
             fwrite(STDOUT, "php bin/panel.php [--port=8777] [--host=127.0.0.1] [--no-open]\n");
+            fwrite(STDOUT, "Панель открывается в браузере сама; --no-open — не открывать.\n");
             exit(0);
         }
     }
@@ -75,13 +77,12 @@ if (PHP_SAPI !== 'cli-server') {
     fwrite(STDOUT, "yandex-sites — веб-интерфейс запущен. Версия $ver$verDate." . PHP_EOL);
     // Папка проекта — та, из которой запущена панель: сюда нужно cd перед php bin/setup.php --update и т. п.
     fwrite(STDOUT, "Папка проекта: $projectDir" . PHP_EOL);
-    fwrite(STDOUT, "Откройте в браузере: $url" . PHP_EOL);
+    // Открываем браузер САМИ: фоновый процесс ждёт, пока сервер займёт порт, и только потом зовёт
+    // браузер — слепая пауза не годилась, при уже запущенном браузере вкладка успевала открыться
+    // раньше сервера. Автозагрузчик ниже, в ветке обработчика, сюда ещё не добрался — подключаем файл.
+    require_once $root . '/src/Support/Browser.php';
+    fwrite(STDOUT, ($open ? \YandexSites\Support\Browser::open($url, $bindHost, $port) : "Откройте в браузере: $url") . PHP_EOL);
     fwrite(STDOUT, "Остановить: Ctrl+C" . PHP_EOL . PHP_EOL);
-
-    if ($open) {
-        $opener = PHP_OS_FAMILY === 'Darwin' ? 'open' : (PHP_OS_FAMILY === 'Windows' ? 'start' : 'xdg-open');
-        @exec(sprintf('(sleep 1; %s %s) >/dev/null 2>&1 &', $opener, escapeshellarg($url)));
-    }
 
     $cmd = sprintf(
         '%s -S %s:%d -t %s %s',
