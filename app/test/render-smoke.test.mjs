@@ -217,25 +217,18 @@ const UPKEEP = {
   ],
 };
 
-test('содержание имущества: сгруппировано по вещи и посчитано в месяц', () => {
-  const html = loadFin().secSpending(UPKEEP).replace(/ /g, ' ');   // fmt разделяет разряды неразрывным пробелом
-  assert.ok(html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА'), 'группы содержания нет');
-  assert.ok(html.includes('160 / мес') && html.includes('1 920 / год'), '1200/год + 60/мес = 160 €/мес не посчитались');
-  assert.ok(html.includes('data-ruleadd="21"'), 'регламент нельзя добавить к позиции');
-  assert.ok(html.includes('ОСТАЛЬНОЕ') && html.includes('Netflix'), 'обязательства без вещи потерялись');
+test('обязательства — свой список, без групп по позициям портфеля', () => {
+  const html = loadFin().secSpending(UPKEEP).replace(/\u00a0/g, ' ');
+  assert.ok(!html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА') && !html.includes('ОСТАЛЬНОЕ'),
+    'группировка по вещам портфеля вернулась');
+  for (const o of UPKEEP.obligations)
+    assert.ok(html.includes(`obligations:${o.id}:name:text`), `обязательство «${o.name}» пропало из списка`);
+  assert.ok(html.includes('всего затрат за год'), 'итог по обязательствам потерялся');
 });
 
 test('содержание живёт только в расходах, в строке портфеля его нет', () => {
   const html = loadFin().secPortfolio(UPKEEP, UPKEEP.summary);
   assert.ok(!html.includes('🔧'), 'метка содержания вернулась в строку портфеля');
-});
-
-test('содержание не пропадает, когда позицию из портфеля удалили', () => {
-  const orphan = { ...UPKEEP, propNames: [{ id: 7, name: 'BMW X5' }],
-    obligations: [{ id: 9, item_id: 999, property_id: 7, name: 'BMW X5: ТО', amount: 50, currency: '€', period: 'monthly', next_date: null, remind_days: 7, kind: 'liability' }] };
-  const html = loadFin().secSpending(orphan);
-  assert.ok(html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА'), 'группа исчезла вместе с позицией');
-  assert.ok(html.includes('BMW X5') && html.includes('вещи нет в портфеле'), 'вещь не подписана');
 });
 
 test('история капитала: две линии и «заработано»', () => {
@@ -407,13 +400,12 @@ test('расходы и доходы — два блока, оба свёрну�
     { id: 3, direction: 'income', name: 'Зарплата', amount: 5000, currency: '€', month: '2026-09' },
   ];
   const html = loadFin().renderBudget(items, [{ symbol: 'EURUSD', price: 1.08 }]).replace(/\u00a0/g, ' ');
-  const folds = [...html.matchAll(/<details class="foldsec" data-fold="(\w+)"([^>]*)>/g)];
-  assert.equal(folds.length, 2, 'расходы и доходы должны быть разными блоками');
-  assert.deepEqual(folds.map(f => f[1]), ['exp', 'inc'], 'блоки не те');
-  for (const f of folds) assert.ok(!f[2].includes('open'), 'блок раскрыт по умолчанию — экран снова длинный');
-  const heads = [...html.matchAll(/<summary>[\s\S]*?<\/summary>/g)].map(h => h[0]);
-  assert.ok(heads[0].includes('1 300 €') && heads[0].includes('2 статей'), 'в свёрнутых расходах не видно итога');
-  assert.ok(heads[1].includes('5 000 €'), 'в свёрнутых доходах не видно итога');
+  const secs = [...html.matchAll(/<div class="sec">([\s\S]*?)<\/div>\s*<div class="pr">|<div class="sec">([\s\S]*?)<\/div>/g)]
+    .map(m => (m[1] || m[2] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  assert.equal(secs.length, 2, 'расходы и доходы должны быть разными блоками');
+  assert.ok(secs[0].startsWith('Расходы') && secs[1].startsWith('Доходы'), 'блоки не те');
+  assert.ok(secs[0].includes('1 300 €') && secs[0].includes('2 статей'), 'в заголовке расходов нет итога');
+  assert.ok(secs[1].includes('5 000 €'), 'в заголовке доходов нет итога');
   assert.ok(html.includes('баланс') && html.includes('+3 700 €'), 'баланс должен быть виден всегда');
 });
 

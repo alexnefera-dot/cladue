@@ -1068,16 +1068,6 @@ function secAccounts(d) {
 }
 
 // Расходы (фикс сумма/мес) + доход по месяцам с источниками, сводка по кварталам, годовой = сумма кварталов.
-// Сворачиваемый блок: состояние живёт в localStorage, по умолчанию закрыт — экран длинный,
-// и разворачивать всё сразу незачем. В заголовке остаются итоги, чтобы закрытый блок не молчал.
-const finOpen = key => { try { return localStorage['fold_' + key] === '1'; } catch (e) { return false; } };
-function foldSec(key, title, summary, body) {
-  return `<details class="foldsec" data-fold="${key}"${finOpen(key) ? ' open' : ''}>
-    <summary><span class="sec" style="margin:0">${title}</span><span class="meta">${summary}</span></summary>
-    <div class="card">${body}</div>
-  </details>`;
-}
-
 function renderBudget(items, rates) {
   items = Array.isArray(items) ? items : [];
   const rate = (Array.isArray(rates) ? rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
@@ -1121,16 +1111,18 @@ function renderBudget(items, rates) {
     <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b>
       <span class="meta">· в год: расход ${m(expMonth * 12)} · доход факт ${m(incYear)} · прогноз ${m(incForecast)}</span></span>
   </div>
-  ${foldSec('exp', 'Расходы', `${m(expMonth)} / мес · ${m(expMonth * 12)} / год · ${exp.length} статей`, `
+  <div class="sec">Расходы <span class="pr">${m(expMonth)} / мес · ${m(expMonth * 12)} / год · ${exp.length} статей</span></div>
+  <div class="card">
     ${exp.map(expRow).join('') || '<div class="empty">добавь статьи расходов ↓</div>'}
     <div class="task finadd">
       <input id="bud_exp_name" placeholder="статья расхода">
       <input id="bud_exp_amt" placeholder="сумма/мес" style="width:90px">
       ${curSel('bud_exp_cur')}
       <span class="pill btn ok" data-budadd="expense">＋</span>
-    </div>`)}
-  ${foldSec('inc', 'Доходы', `${m(incMonth)} / мес · факт ${m(incYear)} · прогноз года ${m(incForecast)}`
-    + (noMonth.length ? ` · ${m(noMonth.reduce((s2, i) => s2 + eur(i), 0))} без месяца` : ''), `
+    </div>
+  </div>
+  <div class="sec">Доходы <span class="pr">${m(incMonth)} / мес · факт ${m(incYear)} · прогноз года ${m(incForecast)}${noMonth.length ? ` · ${m(noMonth.reduce((s2, i) => s2 + eur(i), 0))} без месяца` : ''}</span></div>
+  <div class="card">
     ${noMonth.length ? `<div class="meta down" style="margin-bottom:4px">${m(noMonth.reduce((s2, i) => s2 + eur(i), 0))} без месяца — в помесячный расчёт не идут</div>` : ''}
     ${qKeys.length ? `<div class="btnrow" style="margin:2px 0 6px">${qKeys.slice().reverse().map(q => `<span class="pill ok">${q}: ${m(byQ[q])}</span>`).join('')}</div>` : ''}
     ${monthKeys.length ? monthKeys.map(mo => `
@@ -1148,7 +1140,8 @@ function renderBudget(items, rates) {
       <input id="bud_inc_amt" placeholder="сумма" style="width:80px">
       ${curSel('bud_inc_cur')}
       <span class="pill btn ok" data-budadd="income">＋</span>
-    </div>`)}`;
+    </div>
+  </div>`;
 }
 
 function renderTx(tx, budget) {
@@ -1304,19 +1297,9 @@ function secPlans(d) {
 // Расходы на содержание: обязательства и подписки. Регламенты имущества (у них есть item_id)
 // идут первой группой по объектам — сама вещь живёт позицией в пассивах, а её объёмы здесь.
 function secSpending(d) {
-  // Имя вещи: позиция портфеля, если регламент к ней привязан, иначе объект имущества.
-  // Группа не должна пропадать оттого, что позицию удалили — расходы-то остались.
-  const names = {};
-  const mapNames = ns => (ns || []).forEach(n => { names[n.id] = n.name; mapNames(n.children); });
-  mapNames(d.targetPortfolio || []);
-  const propNames = {};
-  (d.propNames || []).forEach(p => propNames[p.id] = p.name);
-  const groupOf = o => o.item_id != null && names[o.item_id] ? `i${o.item_id}`
-    : o.property_id != null && propNames[o.property_id] ? `p${o.property_id}` : null;
-  const groupName = k => k[0] === 'i' ? names[+k.slice(1)] : propNames[+k.slice(1)];
+  // Обязательства живут сами по себе: раньше они группировались по позициям портфеля,
+  // и одна и та же вещь называлась в двух местах по-разному. Связь убрана — здесь свой список.
   const all = d.obligations || [];
-  const upkeep = all.filter(o => groupOf(o));
-  const rest = all.filter(o => !groupOf(o));
   const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
   const toEur = o => (o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0));
   const perMonth = o => o.period === 'monthly' ? toEur(o) : o.period === 'yearly' ? toEur(o) / 12 : 0;
@@ -1341,14 +1324,11 @@ function secSpending(d) {
         : `<span class="ed meta" data-obldt="${o.id}" data-obltime="" title="дата и время — клик">+дата</span>`}
       <span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>
     </div>`;
-  const byItem = {};
-  upkeep.forEach(o => (byItem[groupOf(o)] ??= []).push(o));
-  const upMonth = upkeep.reduce((a, o) => a + perMonth(o), 0);
   const bp = { monthly: 0, yearly: 0, once: 0 };
   all.forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
   const yr = bp.monthly * 12 + bp.yearly + bp.once;
   return `
-  <div class="sec">Обязательства, подписки и содержание имущества · «✓» = оплачено</div>
+  <div class="sec">Обязательства и подписки · «✓» = оплачено</div>
   <div class="card">
     <div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
       <span class="meta">в мес: <b class="num">${finHide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
@@ -1356,26 +1336,8 @@ function secSpending(d) {
       <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
       <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
     </div>
-    ${Object.keys(byItem).length ? `<div class="meta" style="margin:6px 0 2px">🔧 СОДЕРЖАНИЕ ИМУЩЕСТВА · ${fmt(upMonth)} / мес · ${fmt(upMonth * 12)} / год
-      <span class="meta">· сами вещи — позициями в пассивах портфеля</span></div>
-    ${Object.entries(byItem).map(([key, rules]) => {
-      const mo = rules.reduce((a, o) => a + perMonth(o), 0);
-      const itemId = key[0] === 'i' ? key.slice(1) : '';   // добавить регламент можно только к позиции портфеля
-      return `<div class="upkeep">
-        <div class="kv upkhead"><span><b>${fesc(groupName(key))}</b>${itemId ? '' : '<span class="meta"> · вещи нет в портфеле</span>'}</span>
-          <span class="meta">${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год</span></div>
-        ${rules.map(oblRow).join('')}
-        ${itemId ? `<div class="task finadd">
-          <input data-rulename="${itemId}" placeholder="ТО, страховка, счётчики…">
-          <input data-ruleamount="${itemId}" placeholder="€" style="width:60px">
-          <select data-ruleperiod="${itemId}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
-          <input data-ruledate="${itemId}" type="date" title="дата" style="width:150px">
-          <span class="pill btn ok" data-ruleadd="${itemId}">＋</span>
-        </div>` : ''}
-      </div>`;
-    }).join('')}` : ''}
-    ${rest.length ? `<div class="meta" style="margin:10px 0 2px">ОСТАЛЬНОЕ</div>` : ''}
-    ${rest.map(oblRow).join('')}
+    ${all.map(oblRow).join('') || '<div class="empty">обязательств нет</div>'}
+
     <div class="task finadd">
       <select id="obKind"><option value="liability">пассив</option><option value="subscription">подписка</option></select>
       <input id="obName" placeholder="название (кредит, аренда, разовая крупная трата…)">
@@ -1384,7 +1346,7 @@ function secSpending(d) {
       <input id="obDate" type="date" title="след. дата" style="width:150px">
       <span class="pill btn ok" id="obAdd">＋</span>
     </div>
-    <div class="empty">Регламент вещи заводится в её группе выше. Крупная плановая трата = «разово» с датой: попадёт в календарь и в радар задач.</div>
+    <div class="empty">Крупная плановая трата = «разово» с датой: попадёт в календарь и в радар задач.</div>
   </div>`;
 }
 
@@ -1443,6 +1405,49 @@ function secFire(d, s) {
   </div>`;
 }
 
+// Сворачивание блоков: заголовок .sec берёт под себя всё до следующего заголовка.
+// Делаем это по готовой разметке, а не в шаблонах — тогда правило само распространяется
+// на любой новый блок, и ни один не остаётся «несворачиваемым».
+const FOLD_OPEN_BY_DEFAULT = ['портфель'];   // с чего экран открывается; остальное свёрнуто
+const foldKey = title => title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').slice(0, 32);
+function finFoldSections(all) {
+  const root = document.getElementById('screen-fin');
+  if (!root || !root.children || !root.querySelectorAll) return;   // нет живого DOM — нечего сворачивать
+  const kids = [...root.children];
+  let cur = null;
+  kids.forEach(el => {
+    if (el.classList.contains('sec')) {
+      const title = (el.textContent || '').trim();
+      const key = foldKey(title);
+      const def = FOLD_OPEN_BY_DEFAULT.some(w => title.toLowerCase().startsWith(w));
+      let open = def;
+      try { const v = localStorage['fold_' + key]; if (v != null) open = v === '1'; } catch (e) { /* приватный режим */ }
+      if (all != null) open = all;
+      el.classList.add('secfold');
+      el.dataset.fold = key;
+      el.dataset.open = open ? '1' : '0';
+      cur = document.createElement('div');
+      cur.className = 'foldbody';
+      if (!open) cur.hidden = true;
+      el.after(cur);
+      return;
+    }
+    if (cur) cur.appendChild(el);
+  });
+  if (all != null) {
+    try { kids.filter(el => el.dataset && el.dataset.fold).forEach(el => localStorage['fold_' + el.dataset.fold] = all ? '1' : '0'); }
+    catch (e) { /* приватный режим */ }
+  }
+  root.querySelectorAll('.secfold').forEach(el => el.addEventListener('click', () => {
+    const body = el.nextElementSibling;
+    if (!body || !body.classList.contains('foldbody')) return;
+    const open = body.hidden;
+    body.hidden = !open;
+    el.dataset.open = open ? '1' : '0';
+    try { localStorage['fold_' + el.dataset.fold] = open ? '1' : '0'; } catch (e) { /* приватный режим */ }
+  }));
+}
+
 function renderFin() {
   const d = finData, s = d.summary;
   const hide = finHide;
@@ -1469,6 +1474,7 @@ function renderFin() {
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
     ${d.undo ? `<span class="pill btn" id="finUndo" title="вернуть как было: ${fesc(d.undo.label)} · ${fesc(String(d.undo.at || '').slice(5, 16))}">↶ отменить ${fesc(d.undo.label)}</span>` : ''}
+    <span class="pill btn" id="finFoldAll" title="свернуть или развернуть все блоки">⇵ блоки</span>
     <span class="pill btn" id="finEye" style="margin-left:auto" title="${hide ? 'показать значения' : 'скрыть значения'}">${hide ? '<s>👁</s> показать' : '👁 скрыть'}</span>
     <span class="meta">${d.rates[0]?.updated_at ? 'обн. ' + d.rates[0].updated_at.slice(0, 16).replace('T', ' ') : 'курсы не загружались'}</span>
   </div>
@@ -1511,6 +1517,7 @@ function renderFin() {
     + (show('plans') ? secPlans(d) : '')
     + (show('fire') ? (hidden('fire') ? veiled('FIRE · Макро', 'fire') : secFire(d, s)) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
+  finFoldSections();
   bindFin();
 }
 
@@ -2109,18 +2116,6 @@ function bindFin() {
         due_date: /^\d{4}-\d{2}-\d{2}$/.test($('fcDue').value) ? $('fcDue').value : null }) });
     window.loadFin();
   });
-  // содержание имущества: регламент вешается на позицию портфеля
-  document.querySelectorAll('[data-ruleadd]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const id = el.dataset.ruleadd;
-      const q = sel => document.querySelector(`[data-rule${sel}="${id}"]`).value.trim();
-      const name = q('name');
-      if (!name) return;
-      await fetch(`/api/fin/items/${id}/rules`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, amount: parseNum(q('amount')) ?? 0, period: q('period'),
-          next_date: /^\d{4}-\d{2}-\d{2}$/.test(q('date')) ? q('date') : null }) });
-      window.loadFin();
-    }));
   // FIRE и макро
   document.querySelectorAll('[data-fireset]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', async v => { await finApi.fire({ [el.dataset.fireset]: v }); })));
@@ -2134,6 +2129,12 @@ function bindFin() {
       if (confirm('Удалить запись из истории тезисов?')) { await finApi.macroDel(+el.dataset.mcdel); window.loadFin(); }
     }));
   // прочее
+  $('finFoldAll')?.addEventListener('click', () => {
+    // если открыт хоть один блок — закрываем всё, иначе раскрываем
+    const anyOpen = [...document.querySelectorAll('#screen-fin .foldbody')].some(b => !b.hidden);
+    renderFin();
+    finFoldSections(!anyOpen);
+  });
   $('finUndo')?.addEventListener('click', async () => {
     const r = await finApi.undo();
     if (r.error) alert(r.error);

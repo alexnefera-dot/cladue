@@ -475,14 +475,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Семейное вне капитала: отбито сильнее, чтобы не читалось как часть итога */
 .porttable tr.parthead.partoff td{background:var(--bg);border-top:2px solid var(--line2)}
 .porttable tr.parthead.partoff .pname{color:var(--muted)}
-/* Сворачиваемый блок: заголовок с итогами виден всегда, тело раскрывается кликом */
-.foldsec{margin-bottom:8px}
-.foldsec>summary{display:flex;align-items:baseline;gap:10px;cursor:pointer;list-style:none;padding:2px 0}
-.foldsec>summary::-webkit-details-marker{display:none}
-.foldsec>summary::before{content:'▸';color:var(--muted);font-size:11px;width:12px}
-.foldsec[open]>summary::before{content:'▾'}
-.foldsec>summary:hover .sec{color:var(--green-dim)}
-.foldsec .card{margin-top:4px}
+/* Свёрнутый блок прячет данные целиком; в заголовке остаются только итоги */
+.sec.secfold{cursor:pointer;user-select:none}
+.sec.secfold::before{content:'▸ ';color:var(--muted)}
+.sec.secfold[data-open="1"]::before{content:'▾ '}
+.sec.secfold:hover{color:var(--green-dim)}
 .finbal{padding:6px 2px;margin-bottom:4px;font-size:13px}
 /* Цели накопления: прогресс и журнал взносов */
 .savegoal{padding:8px 0;border-bottom:1px solid var(--bg2)}
