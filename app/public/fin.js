@@ -12,7 +12,7 @@ let showMonefy = false;
 // Из-за этого правки бэкенда молча не применялись, и цифры «слетали» на перезаходе.
 // NEED_BUILD — дата последней правки native/Pipboy/*.swift: старее → показываем предупреждение.
 // ПРАВИШЬ SWIFT — ОБНОВИ ЭТУ ДАТУ.
-const NEED_BUILD = '2026-08-20';
+const NEED_BUILD = '2026-10-11';
 let finBuild = null;   // { platform, buildDate, … } из /api/version
 
 const finApi = {
@@ -844,6 +844,7 @@ function secDigest(tree) {
           <td class="r num">${fmt(sum)} €</td><td class="r meta">100%</td>
           <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
           + rows.map(n => { const v = shownOf(n), own = edited(n); return `<tr><td class="dgname">${fesc(n.name)}
+              <span class="rowbtn del" data-fdig="${n.id}:1" title="убрать из свода — снять 🎓 с позиции">✕</span>
               ${n.asset_type ? `<span class="meta">${fesc(n.asset_type)}</span>` : ''}
               ${isGrow(n) ? `<span class="meta" title="⚡ ${fesc(n.rate_symbol)} · в своде идёт цена входа${n.buy_value == null ? ' (не задана — взята текущая)' : ''}; сейчас ${fmt(n.eur || 0)} €">вход</span>` : ''}</td>
             <td class="r num">
@@ -1889,7 +1890,16 @@ function bindFin() {
   document.querySelectorAll('[data-fdig]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, on] = el.dataset.fdig.split(':');
-      await finApi.patch('tgt', +id, { digest: on === '1' ? 0 : 1 });
+      const want = on === '1' ? 0 : 1;
+      const r = await finApi.patch('tgt', +id, { digest: want });
+      if (r && !r.ok) { alert(`Не сохранилось (${r.status}).`); return; }
+      // Сборка, не знающая колонку digest, молча отбросит поле и ответит 200 — кнопка выглядела
+      // бы сломанной: «шапочка» не снимается и не ставится. Проверяем, что флаг реально лёг.
+      const find = (ns, i) => (ns || []).reduce((f, n) => f || (n.id === i ? n : find(n.children, i)), null);
+      const node = find((await finApi.list()).targetPortfolio, +id);
+      if (node && (node.digest ? 1 : 0) !== want)
+        alert(`Отметка «в сведение капитала» не ${want ? 'поставилась' : 'снялась'}: приложение собрано`
+          + ' до этой правки бэкенда — пересобери в Xcode (⌘R), после этого запишется.');
       window.loadFin();
     }));
   // блок верхнего уровня переезжает между частями: активы ⇄ пассивы
