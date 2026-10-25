@@ -312,6 +312,16 @@ def стена_ключевиков(text):
             and len(ЛАТИНИЦА.findall(text)) > len(КИРИЛЛИЦА.findall(text)))
 
 
+# Страница блокировки хостинга вместо страницы сайта: выкачка получила экран Cloudflare
+# («You are unable to access %domain_name%», «Why have I been blocked?», «Cloudflare Ray
+# ID»). Слов на ней около сотни, поэтому порог заглушки в 60 слов её не ловит, а текста
+# сайта там нет вовсе. Само слово «Cloudflare» маркером не годится: о нём пишут в разделах
+# про обход блокировок — 706 страниц в уже отданном. Эти же фразы встречаются на одной
+# отданной странице, и она как раз настоящая блокировка.
+БЛОК_ХОСТИНГА = re.compile(r"You are unable to access|Why have I been blocked\?"
+                           r"|Cloudflare Ray ID|Attention Required|cf-error", re.I)
+
+
 # Скобка, приклеенная к предыдущему слову: «антидетект Dolphin{anty} с чистыми Canvas» —
 # генератор не подставил вторую половину названия. В коде и в пути перед скобкой всегда
 # разделитель (`/{id}/`, `.{provider}.`, `${state}`), поэтому склейка со словом — всегда
@@ -762,7 +772,9 @@ def check_site(n, tpl, key, pages, F):
         if d["utf8_ok"]:
             F.add(key, "ERROR", "A6", "%s: %s" % (loc, d["utf8_ok"]))
         # B1 объём
-        if d["nwords"] < tpl["min_words"]:
+        if БЛОК_ХОСТИНГА.search(d["raw"]):
+            F.add(key, "ERROR", "B1", "%s: заглушка хостинга вместо страницы (экран блокировки)" % loc)
+        elif d["nwords"] < tpl["min_words"]:
             lvl = "ERROR" if d["nwords"] < 60 else "WARN"
             F.add(key, lvl, "B1", "%s: %d слов (минимум %d)%s" % (
                 loc, d["nwords"], tpl["min_words"],

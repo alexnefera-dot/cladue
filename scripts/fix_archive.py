@@ -184,6 +184,11 @@ def fix_brand_one(raw, brand):
         (r"\b%s[a-z]*\.com\b" % b, "%domain_name%", "сайт → %domain_name%"),
         (r"\+\d[\d\s]{3,}%s\b" % b, "по номеру из личного кабинета", "телефон с брендом"),
         (r"\b%s([A-Z]{3,})\b" % b, r"%brand_name_en%\1", "промокод → %brand_name_en%"),
+        # Название с цифрой впереди: «1xBet», «1×Bet», «1xStavka». Регулярка начинается
+        # с заглавной буквы и цифру не захватывает, поэтому без этого правила на месте
+        # названия оставалось висеть «1×%brand_name_en%». Пробела тут быть не должно:
+        # «3 × Bet» — это множитель, а не название.
+        (r"\b\d+[x×]%s\b" % b, "%brand_name_en%", "название с цифрой → %brand_name_en%"),
         (r"\b%s\s+(Casino|App|Club|Bet|Play|Online)\b" % b, r"%brand_name_en% \1", "латинская связка → %brand_name_en%"),
         (r"\b%s\b" % b, "%brand_name_ru%", "бренд → %brand_name_ru%"),
     ]
