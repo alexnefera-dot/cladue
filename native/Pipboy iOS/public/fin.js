@@ -5,8 +5,8 @@ let finSection = 'all';     // подвкладка раздела
 const finIso = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);   // локальная дата
 let finTxMonth = finIso(new Date()).slice(0, 7);
 let showMonefy = false;
-let finHide = true;        // каждый заход начинается со скрытых значений — открываются только глазками
-let finShown = new Set();  // точечно раскрытые разделы (до общего скрытия/перезагрузки)
+// Экран открывается свёрнутым: видны только заголовки блоков. Значения внутри не гасятся —
+// данные прячет сам блок, а не замена чисел прочерками.
 
 // Фронт на Маке обновляется сам (git pull при запуске), а Swift — только пересборкой в Xcode.
 // Из-за этого правки бэкенда молча не применялись, и цифры «слетали» на перезаходе.
@@ -1343,16 +1343,16 @@ function secSpending(d) {
   <div class="sec">Обязательства и подписки · «✓» = оплачено</div>
   <div class="card">
     <div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
-      <span class="meta">в мес: <b class="num">${finHide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
-      <span class="meta">в год: <b class="num">${finHide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
-      <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
-      <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
+      <span class="meta">в мес: <b class="num">${fmt(bp.monthly)} €</b></span>
+      <span class="meta">в год: <b class="num">${fmt(bp.yearly)} €</b></span>
+      <span class="meta">разовые: <b class="num">${fmt(bp.once)} €</b></span>
+      <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${fmt(yr)} €</b></span>
     </div>
     ${OB_CATS.map(([key, label]) => {
       const list = byCat[key] || [];
       if (!list.length) return '';
       const mo = list.reduce((a, o) => a + perMonth(o), 0);
-      return `<div class="meta obcat">${label} <span class="num">${finHide ? '—' : `${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год`}</span></div>`
+      return `<div class="meta obcat">${label} <span class="num">${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год</span></div>`
         + list.map(oblRow).join('');
     }).join('') || '<div class="empty">обязательств нет</div>'}
 
@@ -1423,81 +1423,81 @@ function secFire(d, s) {
   </div>`;
 }
 
-// Свёрнутый блок не исчезает: он остаётся на месте под размытием, чтобы была видна форма
-// данных, и открывается кнопкой «показать» — так же, как скрытые значения в портфеле.
-// Разметку не трогаем, собираем по готовой: правило само накрывает любой новый блок.
-const FOLD_OPEN_BY_DEFAULT = ['портфель'];   // с чего экран открывается; остальное под размытием
+// Все блоки устроены одинаково: заголовок виден всегда, содержимое свёрнуто.
+// Раскрывает кнопка «показать» у блока, кнопка в шапке — сразу все. Разметку не трогаем,
+// собираем по готовой: правило само накрывает любой новый блок.
+const FOLD_OPEN_BY_DEFAULT = [];   // по умолчанию свёрнуто всё: на экране только заголовки
 const foldKey = title => title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').slice(0, 32);
+let finFolds = [];                  // собранные блоки текущей отрисовки
+
+function foldPaint(sec) {
+  sec.body.hidden = !sec.open;
+  const stub = sec.wrap.querySelector('.foldstub');
+  if (stub) stub.remove();
+  // числа из заголовка прячем вместе с блоком: иначе свёрнутый всё равно всё рассказывает
+  sec.el.querySelectorAll('.pr').forEach(x => { x.hidden = !sec.open; });
+  const hide = sec.el.querySelector('.foldhide');
+  if (hide) hide.remove();
+  if (sec.open) {
+    const h = document.createElement('span');
+    h.className = 'foldhide';
+    h.textContent = '× скрыть';
+    h.addEventListener('click', () => foldSet(sec, false));
+    sec.el.appendChild(h);
+  } else {
+    const box = document.createElement('div');
+    box.className = 'card foldstub';
+    box.innerHTML = `<div class="task" style="border:0">
+      <span class="t muted">свёрнуто</span>
+      <span class="pill btn ok"><s>👁</s> показать</span></div>`;
+    box.addEventListener('click', () => foldSet(sec, true));
+    sec.wrap.appendChild(box);
+  }
+}
+function foldSet(sec, open) {
+  sec.open = open;
+  try { localStorage['fold_' + sec.key] = open ? '1' : '0'; } catch (e) { /* приватный режим */ }
+  foldPaint(sec);
+}
 function finFoldSections(all) {
   const root = document.getElementById('screen-fin');
   if (!root || !root.children || !root.querySelectorAll) return;   // нет живого DOM — нечего сворачивать
-  const secs = [];
-  let wrap = null, body = null;
+  // повторный вызов без перерисовки только переключает состояние: иначе обёртки вложились бы друг в друга
+  if (all != null && finFolds.length) { finFolds.forEach(sec => foldSet(sec, all)); return; }
+  finFolds = [];
+  let body = null;
   [...root.children].forEach(el => {
     if (el.classList.contains('sec')) {
       const title = (el.textContent || '').trim();
       const key = foldKey(title);
-      const def = FOLD_OPEN_BY_DEFAULT.some(w => title.toLowerCase().startsWith(w));
-      let open = def;
+      let open = FOLD_OPEN_BY_DEFAULT.some(w => title.toLowerCase().startsWith(w));
       try { const v = localStorage['fold_' + key]; if (v != null) open = v === '1'; } catch (e) { /* приватный режим */ }
       if (all != null) open = all;
       el.dataset.fold = key;
-      wrap = document.createElement('div');
+      const wrap = document.createElement('div');
       wrap.className = 'foldwrap';
       body = document.createElement('div');
       body.className = 'foldbody';
       wrap.appendChild(body);
       el.after(wrap);
-      secs.push({ el, wrap, body, key, title, open });
+      finFolds.push({ el, wrap, body, key, open });
       return;
     }
     if (body) body.appendChild(el);
   });
-
-  const paint = sec => {
-    sec.body.hidden = !sec.open;
-    const old = sec.wrap.querySelector('.foldstub');
-    if (old) old.remove();
-    // числа из заголовка тоже прячем: иначе свёрнутый блок всё равно всё рассказывает
-    sec.el.querySelectorAll('.pr').forEach(x => { x.hidden = !sec.open; });
-    if (!sec.open) {
-      const stub = document.createElement('div');
-      stub.className = 'card foldstub';
-      stub.innerHTML = `<div class="task" style="border:0">
-        <span class="t muted">свёрнуто — значения скрыты</span>
-        <span class="pill btn ok"><s>👁</s> показать</span></div>`;
-      stub.addEventListener('click', () => set(sec, true));
-      sec.wrap.appendChild(stub);
-    }
-    const hide = sec.el.querySelector('.foldhide');
-    if (hide) hide.remove();
-    if (sec.open) {
-      const h = document.createElement('span');
-      h.className = 'foldhide';
-      h.textContent = '× скрыть';
-      h.addEventListener('click', () => set(sec, false));
-      sec.el.appendChild(h);
-    }
-  };
-  const set = (sec, open) => {
-    sec.open = open;
-    try { localStorage['fold_' + sec.key] = open ? '1' : '0'; } catch (e) { /* приватный режим */ }
-    paint(sec);
-  };
-  secs.forEach(sec => { if (all != null) set(sec, all); else paint(sec); });
+  finFolds.forEach(sec => { if (all != null) foldSet(sec, all); else foldPaint(sec); });
 }
 
 function renderFin() {
   const d = finData, s = d.summary;
-  const hide = finHide;
-  const hidden = () => hide;   // шапка гаснет вместе с блоками — одним жестом
+
   // Итог по счетам считаем из того же массива, что рисует строки: сводка с бэкенда была
   // вторым источником правды и могла разойтись со списком после правки баланса.
   // Капитал считаем из самого дерева, а не из сводки: заморозка и семейное в него не входят,
   // и полагаться на второй источник правды мы уже обжигались.
   const capBy = capitalSplit(d.targetPortfolio || d.portfolio, s.rate);
   const accSum = accountsSum(d.accounts, s.rate);
-  const accStr = hidden('acc') ? '—' : (accSum.parts || '—');
+  const accStr = accSum.parts || '—';
   // сборка старее последней правки Swift: бэкенд ещё со старым поведением — правки будут слетать
   const stale = finBuild && String(finBuild.buildDate || '').slice(0, 10) < NEED_BUILD;
   const head = `
@@ -1512,7 +1512,7 @@ function renderFin() {
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
     ${d.undo ? `<span class="pill btn" id="finUndo" title="вернуть как было: ${fesc(d.undo.label)} · ${fesc(String(d.undo.at || '').slice(5, 16))}">↶ отменить ${fesc(d.undo.label)}</span>` : ''}
-    <span class="pill btn" id="finEye" style="margin-left:auto" title="${hide ? 'показать значения' : 'скрыть значения'}">${hide ? '<s>👁</s> показать' : '👁 скрыть'}</span>
+    <span class="pill btn" id="finEye" style="margin-left:auto" title="раскрыть или свернуть все блоки">👁 все блоки</span>
     <span class="meta">${d.rates[0]?.updated_at ? 'обн. ' + d.rates[0].updated_at.slice(0, 16).replace('T', ' ') : 'курсы не загружались'}</span>
   </div>
   <div class="fingrid">
@@ -1520,15 +1520,14 @@ function renderFin() {
       <div class="bignum" style="font-size:16px">${accStr}</div>
       <div class="meta">${d.accounts.length} счетов</div></div>
     <div class="card"><div class="meta">КАПИТАЛ</div>
-      <div class="bignum">${hidden('port') ? '—' : `${fmtE(capBy.capital)} <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.capital * (s.rate || 1.08))} $</span>`}</div>
-      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху'
-        : (capBy.outside > 0 || capBy.debts > 0) ? `вне капитала ${fmt(capBy.outside)} €${capBy.debts ? ` · долги −${fmt(capBy.debts)} €` : ''} · всего ${fmt(capBy.all)} €`
+      <div class="bignum">${`${fmtE(capBy.capital)} <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.capital * (s.rate || 1.08))} $</span>`}</div>
+      <div class="meta">${(capBy.outside > 0 || capBy.debts > 0) ? `вне капитала ${fmt(capBy.outside)} €${capBy.debts ? ` · долги −${fmt(capBy.debts)} €` : ''} · всего ${fmt(capBy.all)} €`
         : (s.growth ? `прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : '')}</div></div>
     ${(() => {
       const tot = capBy.capital, pe = tot > 0 ? Math.round(capBy.eur / tot * 100) : 0;   // €-часть капитала; $-часть = остаток
       return `<div class="card"><div class="meta">ПОЗИЦИИ · USD / EUR</div>
-      <div class="bignum">${hidden('port') ? '—' : `${fmt(capBy.usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.eur)} €</span>`}</div>
-      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% капитала`}</div></div>`;
+      <div class="bignum">${`${fmt(capBy.usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.eur)} €</span>`}</div>
+      <div class="meta">${`$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% капитала`}</div></div>`;
     })()}
   </div>
   <div class="viewtabs">
@@ -1620,11 +1619,10 @@ function bindFin() {
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
   // Глаз — единственный способ скрыть: он и гасит числа в шапке, и сворачивает все блоки.
   // Двух механизмов на одно действие быть не должно, иначе блок прячется дважды.
+  // Верхняя кнопка — та же операция, что у блока, но сразу по всем: открыт хоть один — закрываем всё.
   $('finEye')?.addEventListener('click', () => {
-    finHide = !finHide;
-    finShown.clear();
-    renderFin();
-    finFoldSections(!finHide);
+    const anyOpen = [...document.querySelectorAll('#screen-fin .foldbody')].some(b => !b.hidden);
+    finFoldSections(!anyOpen);
   });
   document.querySelectorAll('[data-pfold]').forEach(el =>
     el.addEventListener('click', e => {
