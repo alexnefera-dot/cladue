@@ -475,11 +475,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Семейное вне капитала: отбито сильнее, чтобы не читалось как часть итога */
 .porttable tr.parthead.partoff td{background:var(--bg);border-top:2px solid var(--line2)}
 .porttable tr.parthead.partoff .pname{color:var(--muted)}
-/* Свёрнутый блок прячет данные целиком; в заголовке остаются только итоги */
-.sec.secfold{cursor:pointer;user-select:none}
-.sec.secfold::before{content:'▸ ';color:var(--muted)}
-.sec.secfold[data-open="1"]::before{content:'▾ '}
-.sec.secfold:hover{color:var(--green-dim)}
+/* Свёрнутый блок остаётся на месте под размытием: видна форма данных, но не сами числа.
+   Открывается кнопкой «показать» — тем же жестом, что и скрытые значения портфеля. */
+.foldwrap{position:relative}
+.foldbody.veil{filter:blur(6px);opacity:.5;pointer-events:none;user-select:none;
+  max-height:150px;overflow:hidden}
+.veilbtn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.veilbtn .pill{box-shadow:var(--shadow-md);background:var(--panel)}
+.sec .foldhide{font:10px var(--mono);color:var(--muted);margin-left:10px;cursor:pointer;
+  text-transform:none;letter-spacing:0;opacity:0;transition:opacity .12s}
+.sec:hover .foldhide{opacity:1}
+.sec .foldhide:hover{color:var(--red)}
 .finbal{padding:6px 2px;margin-bottom:4px;font-size:13px}
 /* Цели накопления: прогресс и журнал взносов */
 .savegoal{padding:8px 0;border-bottom:1px solid var(--bg2)}

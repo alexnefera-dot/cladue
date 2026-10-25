@@ -1405,17 +1405,17 @@ function secFire(d, s) {
   </div>`;
 }
 
-// Сворачивание блоков: заголовок .sec берёт под себя всё до следующего заголовка.
-// Делаем это по готовой разметке, а не в шаблонах — тогда правило само распространяется
-// на любой новый блок, и ни один не остаётся «несворачиваемым».
-const FOLD_OPEN_BY_DEFAULT = ['портфель'];   // с чего экран открывается; остальное свёрнуто
+// Свёрнутый блок не исчезает: он остаётся на месте под размытием, чтобы была видна форма
+// данных, и открывается кнопкой «показать» — так же, как скрытые значения в портфеле.
+// Разметку не трогаем, собираем по готовой: правило само накрывает любой новый блок.
+const FOLD_OPEN_BY_DEFAULT = ['портфель'];   // с чего экран открывается; остальное под размытием
 const foldKey = title => title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').slice(0, 32);
 function finFoldSections(all) {
   const root = document.getElementById('screen-fin');
   if (!root || !root.children || !root.querySelectorAll) return;   // нет живого DOM — нечего сворачивать
-  const kids = [...root.children];
-  let cur = null;
-  kids.forEach(el => {
+  const secs = [];
+  let wrap = null, body = null;
+  [...root.children].forEach(el => {
     if (el.classList.contains('sec')) {
       const title = (el.textContent || '').trim();
       const key = foldKey(title);
@@ -1423,29 +1423,46 @@ function finFoldSections(all) {
       let open = def;
       try { const v = localStorage['fold_' + key]; if (v != null) open = v === '1'; } catch (e) { /* приватный режим */ }
       if (all != null) open = all;
-      el.classList.add('secfold');
       el.dataset.fold = key;
-      el.dataset.open = open ? '1' : '0';
-      cur = document.createElement('div');
-      cur.className = 'foldbody';
-      if (!open) cur.hidden = true;
-      el.after(cur);
+      wrap = document.createElement('div');
+      wrap.className = 'foldwrap';
+      body = document.createElement('div');
+      body.className = 'foldbody';
+      wrap.appendChild(body);
+      el.after(wrap);
+      secs.push({ el, wrap, body, key, title, open });
       return;
     }
-    if (cur) cur.appendChild(el);
+    if (body) body.appendChild(el);
   });
-  if (all != null) {
-    try { kids.filter(el => el.dataset && el.dataset.fold).forEach(el => localStorage['fold_' + el.dataset.fold] = all ? '1' : '0'); }
-    catch (e) { /* приватный режим */ }
-  }
-  root.querySelectorAll('.secfold').forEach(el => el.addEventListener('click', () => {
-    const body = el.nextElementSibling;
-    if (!body || !body.classList.contains('foldbody')) return;
-    const open = body.hidden;
-    body.hidden = !open;
-    el.dataset.open = open ? '1' : '0';
-    try { localStorage['fold_' + el.dataset.fold] = open ? '1' : '0'; } catch (e) { /* приватный режим */ }
-  }));
+
+  const paint = sec => {
+    sec.body.className = 'foldbody' + (sec.open ? '' : ' veil');
+    const old = sec.wrap.querySelector('.veilbtn');
+    if (old) old.remove();
+    if (!sec.open) {
+      const btn = document.createElement('div');
+      btn.className = 'veilbtn';
+      btn.innerHTML = `<span class="pill btn ok"><s>👁</s> показать</span>`;
+      btn.addEventListener('click', () => set(sec, true));
+      sec.wrap.appendChild(btn);
+    }
+    const hide = sec.el.querySelector('.foldhide');
+    if (hide) hide.remove();
+    if (sec.open) {
+      const h = document.createElement('span');
+      h.className = 'foldhide';
+      h.textContent = '× скрыть';
+      h.addEventListener('click', () => set(sec, false));
+      sec.el.appendChild(h);
+    }
+  };
+  const set = (sec, open) => {
+    sec.open = open;
+    try { localStorage['fold_' + sec.key] = open ? '1' : '0'; } catch (e) { /* приватный режим */ }
+    paint(sec);
+  };
+  secs.forEach(sec => { if (all != null) set(sec, all); else paint(sec); });
 }
 
 function renderFin() {
