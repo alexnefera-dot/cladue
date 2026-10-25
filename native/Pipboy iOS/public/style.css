@@ -478,10 +478,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Свёрнутый блок остаётся на месте под размытием: видна форма данных, но не сами числа.
    Открывается кнопкой «показать» — тем же жестом, что и скрытые значения портфеля. */
 .foldwrap{position:relative}
-.foldbody.veil{filter:blur(6px);opacity:.5;pointer-events:none;user-select:none;
-  max-height:150px;overflow:hidden}
-.veilbtn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.veilbtn .pill{box-shadow:var(--shadow-md);background:var(--panel)}
+.foldstub{cursor:pointer}
+.foldstub .pill{margin-left:auto}
+.obcat{margin:10px 0 2px;display:flex;gap:10px;align-items:baseline}
+.obcat:first-child{margin-top:2px}
 .sec .foldhide{font:10px var(--mono);color:var(--muted);margin-left:10px;cursor:pointer;
   text-transform:none;letter-spacing:0;opacity:0;transition:opacity .12s}
 .sec:hover .foldhide{opacity:1}

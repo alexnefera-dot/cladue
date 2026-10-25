@@ -219,10 +219,11 @@ const UPKEEP = {
 
 test('обязательства — свой список, без групп по позициям портфеля', () => {
   const html = loadFin().secSpending(UPKEEP).replace(/\u00a0/g, ' ');
-  assert.ok(!html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА') && !html.includes('ОСТАЛЬНОЕ'),
-    'группировка по вещам портфеля вернулась');
+  assert.ok(!html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА'), 'группировка по вещам портфеля вернулась');
   for (const o of UPKEEP.obligations)
     assert.ok(html.includes(`obligations:${o.id}:name:text`), `обязательство «${o.name}» пропало из списка`);
+  assert.ok(html.includes('Подписки') && html.includes('Регулярные платежи'),
+    'обязательства должны делиться по типам платежа');
   assert.ok(html.includes('всего затрат за год'), 'итог по обязательствам потерялся');
 });
 
@@ -400,13 +401,15 @@ test('расходы и доходы — два блока, оба свёрну�
     { id: 3, direction: 'income', name: 'Зарплата', amount: 5000, currency: '€', month: '2026-09' },
   ];
   const html = loadFin().renderBudget(items, [{ symbol: 'EURUSD', price: 1.08 }]).replace(/\u00a0/g, ' ');
-  const secs = [...html.matchAll(/<div class="sec">([\s\S]*?)<\/div>\s*<div class="pr">|<div class="sec">([\s\S]*?)<\/div>/g)]
-    .map(m => (m[1] || m[2] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-  assert.equal(secs.length, 2, 'расходы и доходы должны быть разными блоками');
-  assert.ok(secs[0].startsWith('Расходы') && secs[1].startsWith('Доходы'), 'блоки не те');
-  assert.ok(secs[0].includes('1 300 €') && secs[0].includes('2 статей'), 'в заголовке расходов нет итога');
-  assert.ok(secs[1].includes('5 000 €'), 'в заголовке доходов нет итога');
-  assert.ok(html.includes('баланс') && html.includes('+3 700 €'), 'баланс должен быть виден всегда');
+  const secs = [...html.matchAll(/<div class="sec">([\s\S]*?)<\/div>/g)]
+    .map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  assert.equal(secs.length, 3, 'баланс, расходы и доходы — три отдельных блока');
+  assert.ok(secs[0].startsWith('Баланс') && secs[1].startsWith('Расходы') && secs[2].startsWith('Доходы'), 'блоки не те');
+  assert.ok(secs[1].includes('1 300 €') && secs[1].includes('2 статей'), 'в заголовке расходов нет итога');
+  assert.ok(secs[2].includes('5 000 €'), 'в заголовке доходов нет итога');
+  // числа заголовка живут в .pr — свёртка прячет именно их
+  for (const sec of [secs[0], secs[1], secs[2]]) assert.ok(sec.length, 'пустой заголовок');
+  assert.equal((html.match(/<span class="pr">/g) || []).length, 3, 'итоги в заголовках должны быть в .pr, иначе их не скрыть');
 });
 
 test('цели накопления: прогресс, сумма от дохода и отметка за месяц', () => {

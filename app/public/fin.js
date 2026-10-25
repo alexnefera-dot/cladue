@@ -1106,10 +1106,12 @@ function renderBudget(items, rates) {
   const bal = incMonth - expMonth;
 
   return `
-  <div class="kv finbal">
-    <span class="meta">в месяц (средн.)</span>
-    <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b>
-      <span class="meta">· в год: расход ${m(expMonth * 12)} · доход факт ${m(incYear)} · прогноз ${m(incForecast)}</span></span>
+  <div class="sec">Баланс месяца <span class="pr">${bal >= 0 ? '+' : ''}${m(bal)}</span></div>
+  <div class="card">
+    <div class="kv"><span class="meta">в месяц (средн.)</span>
+      <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b></span></div>
+    <div class="kv"><span class="meta">в год</span>
+      <span class="meta">расход ${m(expMonth * 12)} · доход факт ${m(incYear)} · прогноз ${m(incForecast)}</span></div>
   </div>
   <div class="sec">Расходы <span class="pr">${m(expMonth)} / мес · ${m(expMonth * 12)} / год · ${exp.length} статей</span></div>
   <div class="card">
@@ -1327,6 +1329,16 @@ function secSpending(d) {
   const bp = { monthly: 0, yearly: 0, once: 0 };
   all.forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
   const yr = bp.monthly * 12 + bp.yearly + bp.once;
+  // Свои категории — по типу платежа, а не по позициям портфеля: подписка, регулярный
+  // платёж и разовая трата живут по разным правилам, и смешивать их в списке бессмысленно.
+  const OB_CATS = [
+    ['sub', '◈ Подписки', o => o.kind === 'subscription'],
+    ['once', '⚡ Разовые траты', o => o.period === 'once'],
+    ['reg', '↻ Регулярные платежи', () => true],
+  ];
+  const catOf = o => (OB_CATS.find(([, , test]) => test(o)) || OB_CATS[2])[0];
+  const byCat = {};
+  all.forEach(o => (byCat[catOf(o)] ??= []).push(o));
   return `
   <div class="sec">Обязательства и подписки · «✓» = оплачено</div>
   <div class="card">
@@ -1336,7 +1348,13 @@ function secSpending(d) {
       <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
       <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
     </div>
-    ${all.map(oblRow).join('') || '<div class="empty">обязательств нет</div>'}
+    ${OB_CATS.map(([key, label]) => {
+      const list = byCat[key] || [];
+      if (!list.length) return '';
+      const mo = list.reduce((a, o) => a + perMonth(o), 0);
+      return `<div class="meta obcat">${label} <span class="num">${finHide ? '—' : `${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год`}</span></div>`
+        + list.map(oblRow).join('');
+    }).join('') || '<div class="empty">обязательств нет</div>'}
 
     <div class="task finadd">
       <select id="obKind"><option value="liability">пассив</option><option value="subscription">подписка</option></select>
@@ -1437,15 +1455,19 @@ function finFoldSections(all) {
   });
 
   const paint = sec => {
-    sec.body.className = 'foldbody' + (sec.open ? '' : ' veil');
-    const old = sec.wrap.querySelector('.veilbtn');
+    sec.body.hidden = !sec.open;
+    const old = sec.wrap.querySelector('.foldstub');
     if (old) old.remove();
+    // числа из заголовка тоже прячем: иначе свёрнутый блок всё равно всё рассказывает
+    sec.el.querySelectorAll('.pr').forEach(x => { x.hidden = !sec.open; });
     if (!sec.open) {
-      const btn = document.createElement('div');
-      btn.className = 'veilbtn';
-      btn.innerHTML = `<span class="pill btn ok"><s>👁</s> показать</span>`;
-      btn.addEventListener('click', () => set(sec, true));
-      sec.wrap.appendChild(btn);
+      const stub = document.createElement('div');
+      stub.className = 'card foldstub';
+      stub.innerHTML = `<div class="task" style="border:0">
+        <span class="t muted">свёрнуто — значения скрыты</span>
+        <span class="pill btn ok"><s>👁</s> показать</span></div>`;
+      stub.addEventListener('click', () => set(sec, true));
+      sec.wrap.appendChild(stub);
     }
     const hide = sec.el.querySelector('.foldhide');
     if (hide) hide.remove();
@@ -1468,8 +1490,7 @@ function finFoldSections(all) {
 function renderFin() {
   const d = finData, s = d.summary;
   const hide = finHide;
-  // точечное раскрытие: кнопка в свёрнутой карточке открывает только её раздел
-  const hidden = key => hide && !finShown.has(key);
+  const hidden = () => hide;   // шапка гаснет вместе с блоками — одним жестом
   // Итог по счетам считаем из того же массива, что рисует строки: сводка с бэкенда была
   // вторым источником правды и могла разойтись со списком после правки баланса.
   // Капитал считаем из самого дерева, а не из сводки: заморозка и семейное в него не входят,
@@ -1491,7 +1512,6 @@ function renderFin() {
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
     ${d.undo ? `<span class="pill btn" id="finUndo" title="вернуть как было: ${fesc(d.undo.label)} · ${fesc(String(d.undo.at || '').slice(5, 16))}">↶ отменить ${fesc(d.undo.label)}</span>` : ''}
-    <span class="pill btn" id="finFoldAll" title="свернуть или развернуть все блоки">⇵ блоки</span>
     <span class="pill btn" id="finEye" style="margin-left:auto" title="${hide ? 'показать значения' : 'скрыть значения'}">${hide ? '<s>👁</s> показать' : '👁 скрыть'}</span>
     <span class="meta">${d.rates[0]?.updated_at ? 'обн. ' + d.rates[0].updated_at.slice(0, 16).replace('T', ' ') : 'курсы не загружались'}</span>
   </div>
@@ -1516,23 +1536,15 @@ function renderFin() {
       .map(([k, l]) => `<span class="pill btn ${finSection === k ? 'ok' : ''}" data-fsec="${k}">${l}</span>`).join(' ')}
   </div>`;
 
-  // в скрытом режиме портфель и счета свёрнуты целиком; кнопка открывает только свой раздел
-  const veiled = (name, key) => `
-  <div class="sec">${name}</div>
-  <div class="card"><div class="task" style="border:0">
-    <span class="t muted">свёрнуто — значения скрыты</span>
-    <span class="pill btn ok" data-fshow="${key}"><s>👁</s> показать ${name.toLowerCase()}</span>
-  </div></div>`;
-
   const show = k => finSection === 'all' || finSection === k;
   document.getElementById('screen-fin').innerHTML = head
-    + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
+    + (show('port') ? secPortfolio(d, s) : '')
     + (show('port') ? secIncome(d, s) : '')
-    + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
+    + (show('acc') ? secAccounts(d) : '')
     + (show('flow') ? renderBudget(d.budgetItems, d.rates) + secSpending(d) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
-    + (show('fire') ? (hidden('fire') ? veiled('FIRE · Макро', 'fire') : secFire(d, s)) : '')
+    + (show('fire') ? secFire(d, s) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   finFoldSections();
   bindFin();
@@ -1606,13 +1618,14 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
+  // Глаз — единственный способ скрыть: он и гасит числа в шапке, и сворачивает все блоки.
+  // Двух механизмов на одно действие быть не должно, иначе блок прячется дважды.
   $('finEye')?.addEventListener('click', () => {
     finHide = !finHide;
-    finShown.clear();   // верхний глаз управляет всем сразу; на диск выбор не пишем
+    finShown.clear();
     renderFin();
+    finFoldSections(!finHide);
   });
-  document.querySelectorAll('[data-fshow]').forEach(el =>
-    el.addEventListener('click', () => { finShown.add(el.dataset.fshow); renderFin(); }));
   document.querySelectorAll('[data-pfold]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
@@ -2146,12 +2159,6 @@ function bindFin() {
       if (confirm('Удалить запись из истории тезисов?')) { await finApi.macroDel(+el.dataset.mcdel); window.loadFin(); }
     }));
   // прочее
-  $('finFoldAll')?.addEventListener('click', () => {
-    // если открыт хоть один блок — закрываем всё, иначе раскрываем
-    const anyOpen = [...document.querySelectorAll('#screen-fin .foldbody')].some(b => !b.hidden);
-    renderFin();
-    finFoldSections(!anyOpen);
-  });
   $('finUndo')?.addEventListener('click', async () => {
     const r = await finApi.undo();
     if (r.error) alert(r.error);
