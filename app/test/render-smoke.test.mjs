@@ -225,9 +225,9 @@ test('содержание имущества: сгруппировано по �
   assert.ok(html.includes('ОСТАЛЬНОЕ') && html.includes('Netflix'), 'обязательства без вещи потерялись');
 });
 
-test('содержание видно в строке позиции портфеля', () => {
+test('содержание живёт только в расходах, в строке портфеля его нет', () => {
   const html = loadFin().secPortfolio(UPKEEP, UPKEEP.summary);
-  assert.match(html, /🔧 160 €\/мес/, 'в строке вещи нет метки содержания');
+  assert.ok(!html.includes('🔧'), 'метка содержания вернулась в строку портфеля');
 });
 
 test('содержание не пропадает, когда позицию из портфеля удалили', () => {
@@ -398,6 +398,23 @@ test('история: подпункт вычитается из пункта и
   assert.equal(totals.length, 2, 'группа и общий итог должны быть 8 000 + 5 000');
   assert.ok(html.includes('data-hsub="2"'), 'у пункта нет кнопки добавить подпункт');
   assert.ok(html.includes('data-hlvl="2"'), 'подпункт не помечен уровнем для перетаскивания');
+});
+
+test('расходы и доходы — два блока, оба свёрнуты, итоги видны в заголовке', () => {
+  const items = [
+    { id: 1, direction: 'expense', name: 'Аренда', amount: 900, currency: '€' },
+    { id: 2, direction: 'expense', name: 'Еда', amount: 400, currency: '€' },
+    { id: 3, direction: 'income', name: 'Зарплата', amount: 5000, currency: '€', month: '2026-09' },
+  ];
+  const html = loadFin().renderBudget(items, [{ symbol: 'EURUSD', price: 1.08 }]).replace(/\u00a0/g, ' ');
+  const folds = [...html.matchAll(/<details class="foldsec" data-fold="(\w+)"([^>]*)>/g)];
+  assert.equal(folds.length, 2, 'расходы и доходы должны быть разными блоками');
+  assert.deepEqual(folds.map(f => f[1]), ['exp', 'inc'], 'блоки не те');
+  for (const f of folds) assert.ok(!f[2].includes('open'), 'блок раскрыт по умолчанию — экран снова длинный');
+  const heads = [...html.matchAll(/<summary>[\s\S]*?<\/summary>/g)].map(h => h[0]);
+  assert.ok(heads[0].includes('1 300 €') && heads[0].includes('2 статей'), 'в свёрнутых расходах не видно итога');
+  assert.ok(heads[1].includes('5 000 €'), 'в свёрнутых доходах не видно итога');
+  assert.ok(html.includes('баланс') && html.includes('+3 700 €'), 'баланс должен быть виден всегда');
 });
 
 test('цели накопления: прогресс, сумма от дохода и отметка за месяц', () => {

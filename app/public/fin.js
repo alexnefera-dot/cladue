@@ -177,7 +177,6 @@ function portRows(it, depth, ctx) {
       ${editable && it.region ? `<span class="pill p2" data-fregion="${it.id}" title="регион инвестиции — клик">${fesc(it.region)}</span>` : ''}
       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
-      ${ctx?.upkeep?.[it.id] ? `<span class="pill p2" title="содержание вещи — правится в разделе «Расходы»">🔧 ${fmt(ctx.upkeep[it.id])} €/мес</span>` : ''}
     </td>
     ${cells}
     <td class="r" style="width:96px;white-space:nowrap">
@@ -191,7 +190,7 @@ function portRows(it, depth, ctx) {
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, upkeep: ctx?.upkeep, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -556,14 +555,6 @@ function secPortfolio(d, s) {
     mapIds(froz, '', 'frozen'); mapIds(fams, '', 'debt');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
-    // содержание вещи (обязательства с item_id) — €/мес рядом с позицией; сами суммы правятся в Расходах
-    rctx.upkeep = {};
-    (d.obligations || []).forEach(o => {
-      if (o.item_id == null) return;
-      const e = o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0);
-      const mo = o.period === 'monthly' ? e : o.period === 'yearly' ? e / 12 : 0;
-      if (mo > 0) rctx.upkeep[o.item_id] = (rctx.upkeep[o.item_id] || 0) + mo;
-    });
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
     // чистая дельта транзакций в € — узлу и всем его предкам (пути = префиксы), чтобы «Сейчас»
@@ -1077,6 +1068,16 @@ function secAccounts(d) {
 }
 
 // Расходы (фикс сумма/мес) + доход по месяцам с источниками, сводка по кварталам, годовой = сумма кварталов.
+// Сворачиваемый блок: состояние живёт в localStorage, по умолчанию закрыт — экран длинный,
+// и разворачивать всё сразу незачем. В заголовке остаются итоги, чтобы закрытый блок не молчал.
+const finOpen = key => { try { return localStorage['fold_' + key] === '1'; } catch (e) { return false; } };
+function foldSec(key, title, summary, body) {
+  return `<details class="foldsec" data-fold="${key}"${finOpen(key) ? ' open' : ''}>
+    <summary><span class="sec" style="margin:0">${title}</span><span class="meta">${summary}</span></summary>
+    <div class="card">${body}</div>
+  </details>`;
+}
+
 function renderBudget(items, rates) {
   items = Array.isArray(items) ? items : [];
   const rate = (Array.isArray(rates) ? rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
@@ -1115,28 +1116,22 @@ function renderBudget(items, rates) {
   const bal = incMonth - expMonth;
 
   return `
-  <div class="sec">Расходы и доходы</div>
-  <div class="card">
-    <div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span class="meta">в месяц (средн.)</span>
-      <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b></span>
-    </div>
-    <div class="kv" style="padding:4px 0;border-bottom:1px solid var(--line)">
-      <span class="meta">в год</span>
-      <span class="meta">расход <b class="down">${m(expMonth * 12)}</b> · доход факт <b class="up">${m(incYear)}</b> · прогноз <b class="up">${m(incForecast)}</b></span>
-    </div>
-
-    <div class="meta" style="margin:8px 0 2px">РАСХОДЫ · ${m(expMonth)} / мес · ${m(expMonth * 12)} / год</div>
+  <div class="kv finbal">
+    <span class="meta">в месяц (средн.)</span>
+    <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b>
+      <span class="meta">· в год: расход ${m(expMonth * 12)} · доход факт ${m(incYear)} · прогноз ${m(incForecast)}</span></span>
+  </div>
+  ${foldSec('exp', 'Расходы', `${m(expMonth)} / мес · ${m(expMonth * 12)} / год · ${exp.length} статей`, `
     ${exp.map(expRow).join('') || '<div class="empty">добавь статьи расходов ↓</div>'}
     <div class="task finadd">
       <input id="bud_exp_name" placeholder="статья расхода">
       <input id="bud_exp_amt" placeholder="сумма/мес" style="width:90px">
       ${curSel('bud_exp_cur')}
       <span class="pill btn ok" data-budadd="expense">＋</span>
-    </div>
-
-    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · ${m(incMonth)}/мес${lastQ ? ` (${lastQ}: ${m(byQ[lastQ])} за ${qMonths[lastQ].size} мес.)` : ''} · прогноз года ${m(incForecast)}
-      ${noMonth.length ? `<span class="down">· ${m(noMonth.reduce((s, i) => s + eur(i), 0))} без месяца — в помесячный расчёт не идут</span>` : ''}</div>
+    </div>`)}
+  ${foldSec('inc', 'Доходы', `${m(incMonth)} / мес · факт ${m(incYear)} · прогноз года ${m(incForecast)}`
+    + (noMonth.length ? ` · ${m(noMonth.reduce((s2, i) => s2 + eur(i), 0))} без месяца` : ''), `
+    ${noMonth.length ? `<div class="meta down" style="margin-bottom:4px">${m(noMonth.reduce((s2, i) => s2 + eur(i), 0))} без месяца — в помесячный расчёт не идут</div>` : ''}
     ${qKeys.length ? `<div class="btnrow" style="margin:2px 0 6px">${qKeys.slice().reverse().map(q => `<span class="pill ok">${q}: ${m(byQ[q])}</span>`).join('')}</div>` : ''}
     ${monthKeys.length ? monthKeys.map(mo => `
       <div class="kv" style="margin-top:6px;font-weight:700"><span>${fesc(mo)} <span class="meta" style="font-weight:400">${qOf(mo)}</span></span><span class="num up">${m(monthSum(mo))}</span></div>
@@ -1153,8 +1148,7 @@ function renderBudget(items, rates) {
       <input id="bud_inc_amt" placeholder="сумма" style="width:80px">
       ${curSel('bud_inc_cur')}
       <span class="pill btn ok" data-budadd="income">＋</span>
-    </div>
-  </div>`;
+    </div>`)}`;
 }
 
 function renderTx(tx, budget) {
@@ -1806,6 +1800,10 @@ function bindFin() {
       const [id, cur] = el.dataset.hcurtog.split(':');
       await finApi.patch('hist', +id, { currency: cur === '€' ? '$' : '€' });
       window.loadFin();
+    }));
+  document.querySelectorAll('#screen-fin [data-fold]').forEach(el =>
+    el.addEventListener('toggle', () => {
+      try { localStorage['fold_' + el.dataset.fold] = el.open ? '1' : '0'; } catch (e) { /* приватный режим */ }
     }));
   document.querySelectorAll('[data-saveput]').forEach(el =>
     el.addEventListener('click', async () => {
