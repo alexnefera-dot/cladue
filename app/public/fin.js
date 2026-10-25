@@ -880,7 +880,11 @@ function secHistory(rows, rate) {
   // Подпункт — часть пункта, которая уже занята: он вычитается из пункта, а значит и из группы.
   const subSum = it => kidsOf(it.id).reduce((a, r) => a + eurOf(r), 0);
   const itemEff = it => eurOf(it) - subSum(it);
-  const sumOf = g => kidsOf(g.id).reduce((a, it) => a + itemEff(it), 0);
+  // У группы может быть своя сумма — она в ходу, пока внутри пусто. Появились пункты —
+  // считаем по ним, как у разделов портфеля: иначе одно и то же лежало бы в двух местах.
+  const sumOf = g => kidsOf(g.id).length
+    ? kidsOf(g.id).reduce((a, it) => a + itemEff(it), 0)
+    : eurOf(g);
   // Исключённые группы поднимаются наверх и отчёркиваются — этого достаточно, чтобы
   // не подписывать каждую строку словами «не в итоге».
   const total = groups.filter(g => !g.excluded).reduce((a, g) => a + sumOf(g), 0);
@@ -911,7 +915,9 @@ function secHistory(rows, rate) {
             <span class="rowbtn${g.excluded ? ' on' : ''}" data-hoff="${g.id}:${g.excluded ? 1 : 0}"
               title="${g.excluded ? 'вернуть группу в итог' : 'не считать эту группу в итоге'}">⊘</span>
             <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
-          <td class="r num">${fmt(sumOf(g))} €</td></tr>`
+          ${its.length
+            ? `<td class="r num">${fmt(sumOf(g))} €</td>`
+            : amountCell(g)}</tr>`
           + its.map(it => {
             const subs = kidsOf(it.id);
             const taken = subSum(it);

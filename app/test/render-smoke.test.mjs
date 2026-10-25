@@ -370,6 +370,19 @@ test('история: свои группы и пункты, исключённ�
   assert.ok(ctx.secHistory([], 1.08).includes('групп пока нет'), 'пустой блок ничего не объясняет');
 });
 
+test('история: своя сумма группы в ходу, пока внутри пусто', () => {
+  const ctx = loadFin();
+  const html = ctx.secHistory([
+    { id: 1, parent_id: null, name: 'Просто сумма', amount: 5000, currency: '€', ord: 1 },
+    { id: 2, parent_id: null, name: 'С пунктами', amount: 999, currency: '€', ord: 2 },
+    { id: 3, parent_id: 2, name: 'Пункт', amount: 1200, currency: '€' },
+  ], 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('data-fe="hist:1:amount:num"'), 'сумму пустой группы нельзя ни увидеть, ни поправить');
+  assert.ok(html.includes('>5 000<'), 'введённая сумма группы потерялась');
+  assert.ok(html.includes('1 200 €') && !html.includes('999'), 'у группы с пунктами считаем по пунктам');
+  assert.ok(html.includes('6 200 €'), 'итог: 5 000 своей суммой + 1 200 по пунктам');
+});
+
 test('история: подпункт вычитается из пункта и из группы', () => {
   const ctx = loadFin();
   const html = ctx.secHistory([
