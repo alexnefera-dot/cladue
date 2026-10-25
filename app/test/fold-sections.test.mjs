@@ -84,6 +84,20 @@ test('свёртка: по умолчанию свёрнуты все блоки
   }
 });
 
+test('свёртка: память прошлых версий не оставляет экран развёрнутым', () => {
+  // так выглядело хранилище, когда «показать» уже нажимали в прежних версиях
+  const old = { 'fold_портфель-блоки': '1', 'fold_счета': '1', 'fold_расходы': '1' };
+  const s = screen(old);
+  s.ctx.finFoldSections();
+  assert.equal(s.state().filter(r => !r.folded).length, 0, 'старый выбор перебил новый дефолт');
+  assert.deepEqual(Object.keys(old), ['fold_schema'], 'мусор прошлых версий остался в памяти');
+
+  // после чистки выбор снова запоминается
+  s.press(1);
+  assert.equal(old['fold_' + s.state()[1].title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').slice(0, 32)], '1',
+    'новый выбор не сохранился');
+});
+
 test('свёртка: кнопка блока открывает только его', () => {
   const s = screen();
   s.ctx.finFoldSections();

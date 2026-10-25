@@ -1430,6 +1430,16 @@ const FOLD_OPEN_BY_DEFAULT = [];   // по умолчанию свёрнуто �
 const foldKey = title => title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').slice(0, 32);
 let finFolds = [];                  // собранные блоки текущей отрисовки
 
+// Прошлые версии свёртки успели записать «открыто» почти всем блокам, и сохранённый выбор
+// перебивал новый дефолт — экран открывался развёрнутым. Разово чистим эту память.
+(() => {
+  try {
+    if (localStorage.fold_schema === '2') return;
+    Object.keys(localStorage).filter(k => k.startsWith('fold_')).forEach(k => delete localStorage[k]);
+    localStorage.fold_schema = '2';
+  } catch (e) { /* приватный режим */ }
+})();
+
 function foldPaint(sec) {
   sec.body.hidden = !sec.open;
   const stub = sec.wrap.querySelector('.foldstub');
