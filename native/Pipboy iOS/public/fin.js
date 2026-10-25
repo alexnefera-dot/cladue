@@ -868,20 +868,25 @@ function secHistory(rows, rate) {
   const groups = byParent.root || [];
   const kidsOf = id => byParent[id] || [];
   const eurOf = r => (r.currency === '$' ? (r.amount || 0) / (rate || 1.08) : (r.amount || 0));
-  // Подпункт — часть пункта, которая уже занята: он вычитается из пункта, а значит и из группы.
-  const subSum = it => kidsOf(it.id).reduce((a, r) => a + eurOf(r), 0);
-  const itemEff = it => eurOf(it) - subSum(it);
-  // У группы может быть своя сумма — она в ходу, пока внутри пусто. Появились пункты —
-  // считаем по ним, как у разделов портфеля: иначе одно и то же лежало бы в двух местах.
-  const sumOf = g => kidsOf(g.id).length
-    ? kidsOf(g.id).reduce((a, it) => a + itemEff(it), 0)
-    : eurOf(g);
-  // Исключённые группы поднимаются наверх и отчёркиваются — этого достаточно, чтобы
-  // не подписывать каждую строку словами «не в итоге».
-  const total = groups.filter(g => !g.excluded).reduce((a, g) => a + sumOf(g), 0);
+  // Правило одно на всех уровнях: своя сумма минус суммы вложенных — это остаток.
+  // Раздел задаёт, сколько нужно; пункты внутри его закрывают; остаток говорит, сколько ещё.
+  const rest = n => eurOf(n) - kidsOf(n.id).reduce((a, k) => a + eurOf(k), 0);
+  // У раздела остаток показываем всегда: пустой раздел и есть «нужно целиком».
+  // У пункта — только когда он разбит на части, иначе это просто сумма.
+  const restCell = (n, always) => {
+    if (!always && !kidsOf(n.id).length) return '<td></td>';
+    const r = rest(n);
+    const cls = Math.abs(r) < 0.5 ? 'ok-dev' : r > 0 ? 'dev-under' : 'dev-over';
+    const txt = Math.abs(r) < 0.5 ? '✓ закрыто'
+      : r > 0 ? `ещё ${fmt(r)} €` : `перебор ${fmt(-r)} €`;
+    return `<td class="r num"><span class="${cls}">${txt}</span></td>`;
+  };
   const off = groups.filter(g => g.excluded);
   const ordered = [...off, ...groups.filter(g => !g.excluded)];
-  const addRow = (pid, ph) => `<tr class="histadd"><td colspan="2">
+  const counted = groups.filter(g => !g.excluded);
+  const totalNeed = counted.reduce((a, g) => a + eurOf(g), 0);
+  const totalRest = counted.reduce((a, g) => a + rest(g), 0);
+  const addRow = (pid, ph) => `<tr class="histadd"><td colspan="3">
     <span class="task finadd" style="border:0;padding:0">
       <input data-hname="${pid}" placeholder="${ph}" style="flex:1">
       <input data-hamt="${pid}" placeholder="сумма" style="width:100px">
@@ -894,40 +899,40 @@ function secHistory(rows, rate) {
     <span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
     <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td>`;
   return `
-  <div class="sec">История · свои группы, пункты и подпункты · строки перетаскиваются</div>
+  <div class="sec">История · раздел задаёт сумму, пункты её закрывают</div>
   <div class="card">
     <table class="fintable digtable histtable">
-      <tr><th>Пункт</th><th class="r" style="width:170px">Сумма</th></tr>
+      <tr><th>Раздел и пункты</th>
+        <th class="r" style="width:150px">Сумма</th>
+        <th class="r" style="width:150px" title="сумма раздела минус то, что внесли">Остаток</th></tr>
       ${ordered.map((g, i) => {
         const its = kidsOf(g.id);
         const firstCounted = off.length && i === off.length;   // черта между исключёнными и остальными
         return `<tr class="digeo${g.excluded ? ' hoff' : ''}${firstCounted ? ' hcut' : ''}" ${dnd(g, 0)}><td>
-            <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'группа'}</span>
+            <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'раздел'}</span>
             <span class="rowbtn${g.excluded ? ' on' : ''}" data-hoff="${g.id}:${g.excluded ? 1 : 0}"
-              title="${g.excluded ? 'вернуть группу в итог' : 'не считать эту группу в итоге'}">⊘</span>
-            <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
-          ${its.length
-            ? `<td class="r num">${fmt(sumOf(g))} €</td>`
-            : amountCell(g)}</tr>`
+              title="${g.excluded ? 'вернуть раздел в итог' : 'не считать этот раздел в итоге'}">⊘</span>
+            <span class="rowbtn del" data-hdel="${g.id}" title="удалить раздел со всеми пунктами">✕</span></td>
+          ${amountCell(g)}${restCell(g, true)}</tr>`
           + its.map(it => {
             const subs = kidsOf(it.id);
-            const taken = subSum(it);
             return `<tr ${dnd(it, 1)}><td class="dgname">
               <span class="ed" data-fe="hist:${it.id}:name:text">${fesc(it.name) || '—'}</span>
-              <span class="rowbtn" data-hsub="${it.id}" title="добавить подпункт — его сумма вычтется отсюда">＋</span>
-              <span class="rowbtn del" data-hdel="${it.id}">✕</span>
-              ${taken ? `<span class="meta" title="занято подпунктами ${fmt(taken)} €">осталось ${fmt(itemEff(it))} €</span>` : ''}</td>
-              ${amountCell(it)}</tr>`
+              <span class="rowbtn" data-hsub="${it.id}" title="разбить пункт на части">＋</span>
+              <span class="rowbtn del" data-hdel="${it.id}">✕</span></td>
+              ${amountCell(it)}${restCell(it)}</tr>`
               + subs.map(sb => `<tr ${dnd(sb, 2)}><td class="dgsub">
                   <span class="ed" data-fe="hist:${sb.id}:name:text">${fesc(sb.name) || '—'}</span>
                   <span class="rowbtn del" data-hdel="${sb.id}">✕</span></td>
-                <td class="r num sub-out">− ${fmt(sb.amount)} ${fesc(sb.currency || '€')}</td></tr>`).join('');
+                ${amountCell(sb)}<td></td></tr>`).join('');
           }).join('')
-          + addRow(g.id, 'новый пункт');
-      }).join('') || '<tr><td colspan="2"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
-      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length - off.length} групп.</span></td>
-        <td class="r num">${fmt(total)} €</td></tr>` : ''}
-      ${addRow('', 'новая группа')}
+          + addRow(g.id, 'пункт — что закрывает раздел');
+      }).join('') || '<tr><td colspan="3"><div class="empty">разделов пока нет — заведи первый ниже</div></td></tr>'}
+      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${counted.length} раздел.</span></td>
+        <td class="r num">${fmt(totalNeed)} €</td>
+        <td class="r num"><span class="${Math.abs(totalRest) < 0.5 ? 'ok-dev' : totalRest > 0 ? 'dev-under' : 'dev-over'}">${
+          Math.abs(totalRest) < 0.5 ? '✓ закрыто' : totalRest > 0 ? `ещё ${fmt(totalRest)} €` : `перебор ${fmt(-totalRest)} €`}</span></td></tr>` : ''}
+      ${addRow('', 'новый раздел — сколько нужно')}
     </table>
   </div>`;
 }
@@ -1779,9 +1784,9 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-hsub]').forEach(el =>
     el.addEventListener('click', async () => {
-      const name = prompt('Подпункт (его сумма вычтется из пункта):');
+      const name = prompt('Часть пункта (её сумма закрывает пункт):');
       if (!name || !name.trim()) return;
-      const amt = parseNum(prompt('Сумма подпункта:') ?? '');
+      const amt = parseNum(prompt('Сумма части:') ?? '');
       await finApi.add('hist', { parent_id: +el.dataset.hsub, name: name.trim(), amount: amt });
       window.loadFin();
     }));

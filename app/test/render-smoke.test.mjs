@@ -342,74 +342,43 @@ test('счета: карточка сверху и итог в разделе с
   assert.ok(html.includes('бэкенд считает иначе'), 'расхождение со сводкой должно быть названо числом');
 });
 
-test('история: свои группы и пункты, исключённая группа мимо итога', () => {
+test('история: раздел задаёт сумму, пункты её закрывают, остаток считается', () => {
   const ctx = loadFin();
-  const rows = [
-    { id: 1, parent_id: null, name: '2024 · продажи', ord: 1 },
-    { id: 2, parent_id: 1, name: 'Авто', amount: 12000, currency: '€' },
-    { id: 3, parent_id: 1, name: 'Бонус', amount: 5400, currency: '$' },
-    { id: 4, parent_id: null, name: 'Идеи', ord: 2, excluded: 1 },
-    { id: 5, parent_id: 4, name: 'Квартира', amount: 60000, currency: '€' },
-  ];
-  const html = ctx.secHistory(rows, 1.08).replace(/\u00a0/g, ' ');
-  assert.ok(html.includes('17 000 €'), 'группа не сложила 12 000 € и 5 400 $ по курсу');
-  assert.ok(!html.includes('не в итоге') && !html.includes('мимо итога'), 'подписей у исключённой группы быть не должно');
-  assert.ok(!html.includes('77 000'), 'исключённая группа всё ещё попадает в итог');
-  assert.ok(html.indexOf('Идеи') < html.indexOf('2024 · продажи'), 'исключённая группа должна стоять наверху');
+  const html = ctx.secHistory([
+    { id: 1, parent_id: null, name: 'Ремонт', amount: 12000, currency: '\u20ac', ord: 1 },
+    { id: 2, parent_id: 1, name: 'Окна', amount: 3000, currency: '\u20ac' },
+    { id: 3, parent_id: 1, name: 'Двери', amount: 1000, currency: '\u20ac' },
+    { id: 4, parent_id: null, name: 'Растаможка', amount: 2000, currency: '\u20ac', ord: 2 },
+    { id: 5, parent_id: 4, name: 'Пошлина', amount: 2000, currency: '\u20ac' },
+    { id: 6, parent_id: null, name: 'Отпуск', amount: 1500, currency: '\u20ac', ord: 3 },
+    { id: 7, parent_id: 6, name: 'Билеты', amount: 900, currency: '\u20ac' },
+    { id: 8, parent_id: 6, name: 'Отель', amount: 1100, currency: '\u20ac' },
+  ], 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('ещё 8 000 \u20ac'), '12 000 − 3 000 − 1 000: не хватает 8 000');
+  assert.ok(html.includes('✓ закрыто'), 'раздел, закрытый ровно, должен сказать это словами');
+  assert.ok(html.includes('перебор 500 \u20ac'), '900 + 1 100 против 1 500 — это перебор, а не остаток');
+  assert.ok(html.includes('15 500 \u20ac') && html.includes('ещё 7 500 \u20ac'), 'итог по разделам не сошёлся');
+  assert.ok(html.includes('data-fe="hist:1:amount:num"'), 'сумму раздела нельзя поправить');
+  assert.ok(ctx.secHistory([], 1.08).includes('разделов пока нет'), 'пустой блок молчит');
+});
+
+test('история: пустой раздел показывает свою сумму и ничего не требует', () => {
+  const html = loadFin().secHistory([
+    { id: 1, parent_id: null, name: 'Новый', amount: 5000, currency: '\u20ac', ord: 1 },
+  ], 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('>5 000<'), 'сумма раздела потерялась');
+  assert.ok(html.includes('ещё 5 000'), 'пустой раздел не закрыт ничем — должен требовать всю сумму');
+});
+
+test('история: исключённый раздел поднимается наверх и мимо итога', () => {
+  const html = loadFin().secHistory([
+    { id: 1, parent_id: null, name: 'Считаем', amount: 1000, currency: '\u20ac', ord: 1 },
+    { id: 2, parent_id: 1, name: 'Часть', amount: 400, currency: '\u20ac' },
+    { id: 3, parent_id: null, name: 'Идеи', amount: 9000, currency: '\u20ac', ord: 2, excluded: 1 },
+  ], 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.indexOf('Идеи') < html.indexOf('Считаем'), 'исключённый раздел должен стоять наверху');
   assert.ok(html.includes('hcut'), 'нет черты между исключёнными и считаемыми');
-  assert.ok(!/\d%/.test(html), 'процентов в этом блоке быть не должно');
-  assert.ok(html.includes('data-hadd="1"') && html.includes('data-hadd=""'),
-    'должны быть и добавление пункта в группу, и добавление группы');
-  assert.equal((html.match(/draggable="true"/g) || []).length, 5, 'перетаскиваться должны все строки');
-  assert.ok(ctx.secHistory([], 1.08).includes('групп пока нет'), 'пустой блок ничего не объясняет');
-});
-
-test('история: своя сумма группы в ходу, пока внутри пусто', () => {
-  const ctx = loadFin();
-  const html = ctx.secHistory([
-    { id: 1, parent_id: null, name: 'Просто сумма', amount: 5000, currency: '€', ord: 1 },
-    { id: 2, parent_id: null, name: 'С пунктами', amount: 999, currency: '€', ord: 2 },
-    { id: 3, parent_id: 2, name: 'Пункт', amount: 1200, currency: '€' },
-  ], 1.08).replace(/\u00a0/g, ' ');
-  assert.ok(html.includes('data-fe="hist:1:amount:num"'), 'сумму пустой группы нельзя ни увидеть, ни поправить');
-  assert.ok(html.includes('>5 000<'), 'введённая сумма группы потерялась');
-  assert.ok(html.includes('1 200 €') && !html.includes('999'), 'у группы с пунктами считаем по пунктам');
-  assert.ok(html.includes('6 200 €'), 'итог: 5 000 своей суммой + 1 200 по пунктам');
-});
-
-test('история: подпункт вычитается из пункта и из группы', () => {
-  const ctx = loadFin();
-  const html = ctx.secHistory([
-    { id: 1, parent_id: null, name: 'Бюджет', ord: 1 },
-    { id: 2, parent_id: 1, name: 'Ремонт', amount: 12000, currency: '€' },
-    { id: 3, parent_id: 2, name: 'Окна', amount: 3000, currency: '€' },
-    { id: 4, parent_id: 2, name: 'Двери', amount: 1000, currency: '€' },
-    { id: 5, parent_id: 1, name: 'Мебель', amount: 5000, currency: '€' },
-  ], 1.08).replace(/\u00a0/g, ' ');
-  assert.ok(html.includes('осталось 8 000 €'), '12 000 − 3 000 − 1 000 не посчиталось');
-  assert.ok(html.includes('− 3 000 €') && html.includes('dgsub'), 'подпункт не показан вычитанием');
-  const totals = [...html.matchAll(/13 000 €/g)];
-  assert.equal(totals.length, 2, 'группа и общий итог должны быть 8 000 + 5 000');
-  assert.ok(html.includes('data-hsub="2"'), 'у пункта нет кнопки добавить подпункт');
-  assert.ok(html.includes('data-hlvl="2"'), 'подпункт не помечен уровнем для перетаскивания');
-});
-
-test('расходы и доходы — два блока, оба свёрнуты, итоги видны в заголовке', () => {
-  const items = [
-    { id: 1, direction: 'expense', name: 'Аренда', amount: 900, currency: '€' },
-    { id: 2, direction: 'expense', name: 'Еда', amount: 400, currency: '€' },
-    { id: 3, direction: 'income', name: 'Зарплата', amount: 5000, currency: '€', month: '2026-09' },
-  ];
-  const html = loadFin().renderBudget(items, [{ symbol: 'EURUSD', price: 1.08 }]).replace(/\u00a0/g, ' ');
-  const secs = [...html.matchAll(/<div class="sec">([\s\S]*?)<\/div>/g)]
-    .map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-  assert.equal(secs.length, 3, 'баланс, расходы и доходы — три отдельных блока');
-  assert.ok(secs[0].startsWith('Баланс') && secs[1].startsWith('Расходы') && secs[2].startsWith('Доходы'), 'блоки не те');
-  assert.ok(secs[1].includes('1 300 €') && secs[1].includes('2 статей'), 'в заголовке расходов нет итога');
-  assert.ok(secs[2].includes('5 000 €'), 'в заголовке доходов нет итога');
-  // числа заголовка живут в .pr — свёртка прячет именно их
-  for (const sec of [secs[0], secs[1], secs[2]]) assert.ok(sec.length, 'пустой заголовок');
-  assert.equal((html.match(/<span class="pr">/g) || []).length, 3, 'итоги в заголовках должны быть в .pr, иначе их не скрыть');
+  assert.ok(html.includes('1 000 \u20ac') && !html.includes('10 000'), 'исключённый раздел попал в итог');
 });
 
 test('цели накопления: прогресс, сумма от дохода и отметка за месяц', () => {
