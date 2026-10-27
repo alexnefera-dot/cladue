@@ -116,12 +116,15 @@ function portRows(it, depth, ctx) {
     // Доля — в двух рамках: внутри своего раздела (прямого родителя) и внутри своей части.
     // Вторым числом раньше стояла доля от блока верхнего уровня: уровень раздела она
     // перескакивала, и по строке нельзя было понять, процент от чего.
+    // Рамка, совпавшая с частью (единственный блок, единственный раздел в нём), дала бы два
+    // одинаковых числа подряд — это и выглядело «странным процентом». Тогда печатаем одно.
+    const ownFrame = base => base > 0 && Math.abs(base - (ctx?.total || 0)) >= 0.5;
     const sharePart = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const shareIn = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
+    const shareIn = depth > 0 && ownFrame(ctx?.parentEur) && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
     const scopeIn = `в «${fesc(ctx?.parentName || '')}»`;
     const scopePart = ctx?.partTitle ? `в части «${fesc(ctx.partTitle)}»` : 'в портфеле';
     const shareSub = sharePart == null ? '' :
-      `<span class="sub" title="доля ${shareIn != null ? scopeIn + ' / доля ' : ''}${scopePart}">${
+      `<span class="sub" title="доля ${shareIn != null ? `${scopeIn} — ${fmt(ctx.parentEur)} € / доля ` : ''}${scopePart} — ${fmt(ctx.total)} €">${
         shareIn != null ? shareIn.toFixed(1) + '% / ' : ''}${sharePart.toFixed(1)}%</span>`;
     const nowCell = it.auto
       ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
@@ -152,9 +155,9 @@ function portRows(it, depth, ctx) {
     // Доли цели — в тех же рамках и в том же порядке, что у «Сейчас»: внутри своего раздела,
     // потом внутри своей части. Кликабельна вторая: именно её, долю от части, хранит target_pct —
     // от раздела считать нельзя, его цель сама складывается из вложенных.
-    const planInPct = depth > 0 && ctx?.parentTarget > 0 && planRow != null ? planRow / ctx.parentTarget * 100 : null;
-    const pctCell = (planInPct != null ? `<span class="derived" title="доля цели ${scopeIn}">${planInPct.toFixed(1)}%</span> / ` : '')
-      + `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей ${scopePart} (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
+    const planInPct = depth > 0 && ownFrame(ctx?.parentTarget) && planRow != null ? planRow / ctx.parentTarget * 100 : null;
+    const pctCell = (planInPct != null ? `<span class="derived" title="доля цели в цели ${scopeIn} — ${fmt(ctx.parentTarget)} €">${planInPct.toFixed(1)}%</span> / ` : '')
+      + `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от суммы ${scopePart} сейчас — ${fmt(capT)} € (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
       ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
@@ -166,7 +169,7 @@ function portRows(it, depth, ctx) {
     const devCur = editable && cur === '$' ? dev * rateRow : dev;   // dev считается в €
     const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
       ? '<span class="up">✓ в цели</span>'
-      : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
+      : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp" title="на столько пунктов доля ${scopePart} расходится с целевой">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span>${mv.toName ? ` ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}»` : mv.spend ? ' <span class="muted">без подписи</span>' : ''} <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
