@@ -118,9 +118,9 @@ function portRows(it, depth, ctx) {
     // перескакивала, и по строке нельзя было понять, процент от чего.
     // Рамка, совпавшая с частью (единственный блок, единственный раздел в нём), дала бы два
     // одинаковых числа подряд — это и выглядело «странным процентом». Тогда печатаем одно.
-    const ownFrame = base => base > 0 && Math.abs(base - (ctx?.total || 0)) >= 0.5;
+    const ownFrame = (base, whole) => base > 0 && Math.abs(base - (whole || 0)) >= 0.5;
     const sharePart = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const shareIn = depth > 0 && ownFrame(ctx?.parentEur) && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
+    const shareIn = depth > 0 && ownFrame(ctx?.parentEur, ctx?.total) && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
     const scopeIn = `в «${fesc(ctx?.parentName || '')}»`;
     const scopePart = ctx?.partTitle ? `в части «${fesc(ctx.partTitle)}»` : 'в портфеле';
     const shareSub = sharePart == null ? '' :
@@ -145,19 +145,25 @@ function portRows(it, depth, ctx) {
     // Цель: одно поле задано, второе выведено. Клик по любому из них закрепляет именно его.
     const capT = ctx?.total || 0;
     const planRow = it.planEur;   // ровно то, что задано здесь либо сложено из вложенных
-    const planPctShown = planRow != null && capT > 0 ? planRow / capT * 100 : null;
+    const kidsGoals = (it.children || []).some(c => c.planEur != null);   // цель сложена из вложенных
     // цель хранится в валюте позиции; выведенная из процента приходит в € — возвращаем в валюту строки
     const rateRow = ctx?.rate || 1.08;
     // заданную суммой показываем как введена — без круга через евро и обратно
-    const planSumShown = it.planPin === 'eur' && !(it.children || []).some(c => c.planEur != null)
+    const planSumShown = it.planPin === 'eur' && !kidsGoals
       ? it.target_value
       : planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
-    // Доли цели — в тех же рамках и в том же порядке, что у «Сейчас»: внутри своего раздела,
-    // потом внутри своей части. Кликабельна вторая: именно её, долю от части, хранит target_pct —
-    // от раздела считать нельзя, его цель сама складывается из вложенных.
-    const planInPct = depth > 0 && ownFrame(ctx?.parentTarget) && planRow != null ? planRow / ctx.parentTarget * 100 : null;
-    const pctCell = (planInPct != null ? `<span class="derived" title="доля цели в цели ${scopeIn} — ${fmt(ctx.parentTarget)} €">${planInPct.toFixed(1)}%</span> / ` : '')
-      + `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от суммы ${scopePart} сейчас — ${fmt(capT)} € (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
+    // Доли цели — в суммах целей: своего раздела и своей части. Каждая сходится в 100%,
+    // поэтому читается как целевая структура. Прежде обе считались от суммы части СЕЙЧАС:
+    // если целей набрано больше, чем лежит, проценты давали в сумме больше 100.
+    const planInPct = depth > 0 && ownFrame(ctx?.parentTarget, ctx?.planTotal) && planRow != null
+      ? planRow / ctx.parentTarget * 100 : null;
+    const planPartPct = planRow != null && ctx?.planTotal > 0 ? planRow / ctx.planTotal * 100 : null;
+    // Вписать долю можно там, где цель своя: у узла с целями внутри она их сумма, и запись
+    // была бы молча проигнорирована.
+    const pctEdit = kidsGoals
+      ? `<span class="derived" title="цель складывается из вложенных — правь доли внутри">${planPartPct != null ? planPartPct.toFixed(1) + '%' : '—'}</span>`
+      : `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fgoalpct="${it.id}:${(ctx?.planWithout?.(it.id) ?? 0).toFixed(2)}:${capT.toFixed(2)}:${rateRow}:${cur}" title="доля в сумме целей ${scopePart} — ${fmt(ctx?.planTotal || 0)} € · клик — вписать долю, цель пересчитается суммой${it.planPin === 'pct' ? ` · пока закреплена долей ${fmt(it.target_pct)}% от суммы части сейчас` : ''}">${planPartPct != null ? planPartPct.toFixed(1) + '%' : '—'}</span>`;
+    const pctCell = (planInPct != null ? `<span class="derived" title="доля в цели ${scopeIn} — ${fmt(ctx.parentTarget)} €">${planInPct.toFixed(1)}%</span> / ` : '') + pctEdit;
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
       ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
@@ -200,7 +206,11 @@ function portRows(it, depth, ctx) {
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, partTitle: ctx?.partTitle, parentEur: it.eur, parentName: it.name, parentTarget: it.planEur, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    // Контекст части передаём целиком и меняем только то, что меняется с уровнем: раньше поля
+    // перечислялись руками, и новое (как planWithout) молча не доезжало до вложенных строк.
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { ...ctx, tgt: target,
+      parentEur: it.eur, parentName: it.name, parentTarget: it.planEur,
+      path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -305,19 +315,23 @@ function portCard(it, depth, ctx) {
     const scopePart = ctx?.partTitle ? `в части «${fesc(ctx.partTitle)}»` : 'в портфеле';
     const nowIn = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
     const nowPart = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const planIn = depth > 0 && ctx?.parentTarget > 0 && it.planEur > 0 ? it.planEur / ctx.parentTarget * 100 : null;
+    const planIn = depth > 0 && ctx?.parentTarget > 0 && Math.abs(ctx.parentTarget - (ctx.planTotal || 0)) >= 0.5
+      && it.planEur > 0 ? it.planEur / ctx.parentTarget * 100 : null;
     const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
     // «Сейчас» показано крупным числом как есть; «стало» = плюс переносы
     const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
     const becameStr = net === 0 ? ''
       : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
-    const gap = planRow != null ? ((it.eur || 0) + net) - planRow : null;   // стало − цель, в €
     const capT = ctx?.total || 0;
     const planRow = it.planEur;
-    const pPct = planRow != null && capT > 0 ? planRow / capT * 100 : null;
+    const gap = planRow != null ? ((it.eur || 0) + net) - planRow : null;   // стало − цель, в €
     const pEur = planRow;
-    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
+    // доля цели — в сумме целей части, как в таблице; вписанная переводится в сумму
+    const pctBox = (it.children || []).some(c => c.planEur != null)
+      ? `<span title="цель складывается из вложенных">${planPct != null ? planPct.toFixed(1) : '—'}%</span>`
+      : `<span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fgoalpct="${it.id}:${(ctx?.planWithout?.(it.id) ?? 0).toFixed(2)}:${capT.toFixed(2)}:${ctx?.rate || 1.08}:${cur}" title="доля в сумме целей ${scopePart} — ${fmt(ctx?.planTotal || 0)} € (клик — вписать)">${planPct != null ? planPct.toFixed(1) : '—'}%</span>`;
+    const planStr = `<span class="meta">цель: ${pctBox} / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
     const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в цели</span>'
       : gap > 0 ? `<span class="dev-over">перевес ${fmtE(gap)}</span>` : `<span class="dev-under">недобор ${fmtE(-gap)}</span>`;
     const links = [
@@ -326,8 +340,8 @@ function portCard(it, depth, ctx) {
     ].join(' ');
     const shareStr = (nowPart == null ? '' : `<span class="meta" title="доля суммы ${nowIn != null ? scopeIn + ' / доля ' : ''}${scopePart}">доля ${
         nowIn != null ? `<b>${nowIn.toFixed(1)}%</b> / ` : ''}${nowPart.toFixed(1)}%</span>`)
-      + (planPct == null ? '' : `<span class="meta" title="доля цели ${planIn != null ? scopeIn + ' / доля цели ' : ''}${scopePart}">цель ${
-        planIn != null ? `<b>${planIn.toFixed(1)}%</b> / ` : ''}${planPct.toFixed(1)}%</span>`);
+      // долю цели в части показывает сама строка «цель:» ниже — здесь только рамка раздела
+      + (planIn == null ? '' : `<span class="meta" title="доля цели в цели ${scopeIn} — ${fmt(ctx.parentTarget)} €">в цели ${scopeIn} <b>${planIn.toFixed(1)}%</b></span>`);
     meta = `${becameStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
@@ -351,7 +365,9 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, partTitle: ctx?.partTitle, parentEur: it.eur, parentName: it.name, parentTarget: it.planEur, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { ...ctx, tgt: target,
+      parentEur: it.eur, parentName: it.name, parentTarget: it.planEur,
+      path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -541,12 +557,15 @@ function secPortfolio(d, s) {
       if (monRootPlan - laid > 1) catRows.push({ ty: 'не расписано', id: null, drill: false, now: 0, plan: monRootPlan - laid, hasPlan: true });
     }
   }
-  // доли считаем внутри уровня — вопрос «сколько чего ЗДЕСЬ», а не от всего портфеля
+  // доли считаем внутри уровня — вопрос «сколько чего ЗДЕСЬ», а не от всего портфеля.
+  // «Сейчас» — доля в сумме сейчас, «Цель» — доля в сумме целей: каждая колонка сходится
+  // в 100%, и п.п. показывают перекос структуры, а не то, что цели ещё не добраны.
+  // Полоски «сейчас/цель» считались так всегда — числа в списке от них расходились.
   const monTotal = catRows.reduce((a, r) => a + r.now, 0);
   const monPlanTotal = catRows.reduce((a, r) => a + (r.hasPlan ? r.plan : 0), 0);
   catRows = catRows.map(r => {
     const nowP = monTotal > 0 ? r.now / monTotal * 100 : 0;
-    const planP = monTotal > 0 ? r.plan / monTotal * 100 : 0;
+    const planP = monPlanTotal > 0 ? r.plan / monPlanTotal * 100 : 0;
     return { ...r, nowP, planP, dev: r.hasPlan ? r.now - r.plan : null, devP: r.hasPlan ? nowP - planP : null };
   }).filter(r => r.now > 0 || r.plan > 0)
     .sort((a, b) => {
@@ -613,16 +632,30 @@ function secPortfolio(d, s) {
       .filter(p => p.nodes.length)
     : [{ key: 'act', title: '', hint: '', nodes: acts, now: actTotal, plan: actPlan }];
   const partNet = ns => ns.reduce((a, n) => a + (rctx.netByPath?.['/' + (n.name || '').trim().toLowerCase()] || 0), 0);
+  const capParts = [acts.length, safes.length].filter(Boolean).length;   // из чего сложен капитал
+  // Сколько цели наберётся в части без этого узла. Нужно, чтобы вписанная доля в целевой
+  // структуре вышла точной: x / (x + остальные) = p ⇒ x = остальные × p/(1−p).
+  // Правило то же, что в setPlan: у узла с целями внутри цель — их сумма.
+  const planOf = (n, skip) => {
+    const kids = (n.children || []).map(c => planOf(c, skip));
+    if (kids.some(v => v != null)) return kids.reduce((a, v) => a + (v || 0), 0);
+    return n.id === skip ? null : (n.planOwn ?? null);
+  };
+  const planWithout = (ns, skip) => ns.reduce((a, n) => a + (planOf(n, skip) || 0), 0);
   // Рамка самого верхнего уровня — часть портфеля: доли блоков считаются от неё,
   // и её имя подставляется в подсказки, чтобы «процент от чего» читался со строки.
-  const partCtx = p => ({ ...rctx, total: p.now, planTotal: p.plan, parentEur: p.now, partTitle: p.title });
+  const partCtx = p => ({ ...rctx, total: p.now, planTotal: p.plan, parentEur: p.now, partTitle: p.title,
+    planWithout: id => planWithout(p.nodes, id) });
   // Шапка части — та же сетка колонок, что у строк: суммы стоят под своими заголовками
   const partHead = p => {
     const net = partNet(p.nodes);
     const dev = p.plan > 0 ? p.now + net - p.plan : null;
-    const share = rootTotal > 0 ? p.now / rootTotal * 100 : 0;
+    // «% капитала» имеет смысл, только когда капитал делится на две части: при одной
+    // там всегда стояло 100% — число ни о чём, а выглядело как ошибка счёта.
+    const share = !p.off && capParts > 1 && rootTotal > 0
+      ? `<span title="доля в капитале: инвестиции + резерв = ${fmt(rootTotal)} €"> · ${(p.now / rootTotal * 100).toFixed(0)}% капитала</span>` : '';
     return `<tr class="parthead${p.off ? ' partoff' : ''}"><td class="pname">${fesc(p.title)}
-        <span class="meta">${fesc(p.hint)}${p.off ? '' : ` · ${share.toFixed(0)}% капитала`}</span></td>
+        <span class="meta">${fesc(p.hint)}${share}</span></td>
       <td></td><td></td>
       <td class="r num now sep">${fmt(p.now)} €</td>
       <td class="r num became">${net === 0 ? `<span class="quiet">${fmt(p.now)}</span>` : `<span class="${net > 0 ? 'up' : 'down'}">→ ${fmt(p.now + net)}</span>`}</td>
@@ -733,9 +766,9 @@ function secPortfolio(d, s) {
       <div class="barswrap"><div class="bars">
         <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
         <div class="bhead"><span></span><span>${monCut === 'blocks' ? 'блок' : monCut === 'types' ? 'тип актива' : 'регион'}</span><span>сейчас против цели</span>
-          <span>€</span><span title="доля в показанном уровне: в сумме строк ниже, а не в капитале целиком">%</span>
-          <span>€</span><span title="доля цели в том же показанном уровне">%</span>
-          <span>€</span><span title="разница этих двух долей, в пунктах">п.п.</span></div>
+          <span>€</span><span title="доля в сумме строк ниже, а не в капитале целиком">%</span>
+          <span>€</span><span title="доля в сумме целей — как в полоске «цель»: по столбцу выходит 100%">%</span>
+          <span>€</span><span title="перекос структуры: доля сейчас минус доля в целях, в пунктах">п.п.</span></div>
         ${catRows.map((r, ri) => {
           const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
           const over = r.nowP > r.planP ? (r.nowP - r.planP) / catMaxP * 100 : 0;
@@ -1630,9 +1663,8 @@ function bindFin() {
   document.querySelectorAll('[data-fe]').forEach(el =>
     el.addEventListener('click', () => {
       const [ent, id, field, type] = el.dataset.fe.split(':');
-      // цель хранится в одном из двух полей: заполненное и есть закреплённое, второе гасим
-      const twin = ent === 'tgt' && field === 'target_pct' ? 'target_value'
-        : ent === 'tgt' && field === 'target_value' ? 'target_pct' : null;
+      // цель хранится суммой; прежняя привязка к доле от суммы части при этом гасится
+      const twin = ent === 'tgt' && field === 'target_value' ? 'target_pct' : null;
       inlineVal(el, type, async v => {
         const r = await finApi.patch(ent, +id, twin ? { [field]: v, [twin]: null } : { [field]: v });
         if (r && !r.ok) { alert(`Не сохранилось (${r.status}).`); return; }
@@ -1908,6 +1940,24 @@ function bindFin() {
     el.addEventListener('click', async () => {
       await finApi.patch('tgt', +el.dataset.dgclr, { digest_value: null, digest_base: null });
       window.loadFin();
+    }));
+  // Доля цели: вписанное — доля в сумме целей своей части. Переводим её в сумму точной
+  // формулой x = остальные × p/(1−p) и закрепляем цель суммой, чтобы показанный процент
+  // и вписанный всегда совпадали.
+  document.querySelectorAll('[data-fgoalpct]').forEach(el =>
+    el.addEventListener('click', () => {
+      const [id, others, base, rate, cur] = el.dataset.fgoalpct.split(':');
+      inlineVal(el, 'num', async v => {
+        const p = v / 100;
+        if (!(p > 0) || p >= 0.995) {
+          alert('Доля в целях — от 0 до 99%. «100%» значит «всё в одну позицию»: тогда сначала убери цели у остальных.');
+          return;
+        }
+        const rest = +others;
+        const eur = rest > 0.5 ? rest * p / (1 - p) : p * +base;   // первой цели в части делиться не с кем
+        await finApi.patch('tgt', +id, { target_pct: null,
+          target_value: Math.round((cur === '$' ? eur * +rate : eur) * 100) / 100 });
+      });
     }));
   document.querySelectorAll('[data-fdig]').forEach(el =>
     el.addEventListener('click', async () => {

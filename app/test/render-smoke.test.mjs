@@ -408,8 +408,9 @@ test('цели накопления: без дохода за месяц сум�
   assert.ok(!html.includes('это 0 €'), 'нулевая подсказка хуже, чем её отсутствие');
 });
 
-test('цель: закреплено то поле, что заполнено', () => {
+test('цель: задаётся и долей, и суммой, закреплённое помечено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
-  assert.ok(html.includes('target_pct'), 'нет поля доли');
+  assert.ok(html.includes('data-fgoalpct'), 'нет поля доли в целях');
+  assert.ok(html.includes('target_value:num'), 'нет поля суммы');
   assert.ok(html.includes('ed pinned'), 'закреплённое поле не помечено');
 });
