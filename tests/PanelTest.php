@@ -1680,6 +1680,8 @@ final class PanelTest
             Assert::same('door', $byKey['lex']['capture'], 'в бренде только дор — забран дорами');
             Assert::same(100.0, (float) $byKey['lex']['door_share']);
             Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $j['capture'], 'счёт по типам захвата');
+            // Дор стоит первым в обоих блоках — это отдельный счёт рядом с захватом.
+            Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $j['capture_leader']);
             Assert::same(2, array_sum($j['capture']), 'сумма сходится с числом блоков');
             Assert::same(70.0, (float) $j['capture_door'], 'порог отдаётся странице, чтобы подпись не расходилась с расчётом');
 
@@ -1720,6 +1722,7 @@ final class PanelTest
                 Assert::contains('Доля лидера', $rendered, 'шапка колонок на месте');
                 Assert::contains('Захват', $rendered, 'колонка «чем забран бренд» на месте');
                 Assert::contains('Чем забраны бренды', $rendered, 'счёт по типам захвата посчитан на клиенте');
+                Assert::contains('дор первым', $rendered, 'счёт «где дор стоит первым» на месте');
             }
 
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.

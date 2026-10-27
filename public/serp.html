@@ -155,6 +155,7 @@
         <select id="only">
           <option value="">все бренды</option>
           <option value="cap_door">забранные дорами</option>
+          <option value="lead_door">где дор стоит первым</option>
           <option value="cap_mixed">гибриды (и доры, и не доры)</option>
           <option value="cap_other">забранные не дорами</option>
           <option value="door">только с дорами</option>
@@ -414,6 +415,8 @@ function sortValue(b, key){
 function matchesOnly(b, only){
   const doors = (b.counts && b.counts.door)|0, own = b.own_doors|0, d = b.diff || {};
   // Три кучи, на которые делится список: забрали доры, забрали не доры, и то и другое.
+  // Дор на первом месте — доказательство, что в этом бренде дор берёт верх, а не просто стоит в хвосте.
+  if(only === 'lead_door') return !!(b.leader && b.leader.type === 'door');
   if(only === 'cap_door') return b.capture === 'door';
   if(only === 'cap_mixed') return b.capture === 'mixed';
   if(only === 'cap_other') return b.capture === 'other';
@@ -467,8 +470,15 @@ async function load(){
     cells.push(['наших доров', (j.own && j.own.doors)|0]);
     $('stats').innerHTML = cells.map(([s, b]) => `<div class="stat"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
     // ЧЕМ ЗАБРАНЫ БРЕНДЫ — главный вопрос списка: куда вообще имеет смысл лезть дором.
-    const cap = j.capture || {};
-    const capLink = (code, text) => `<a href="#" data-cap="${code}"><b>${esc(text)}</b></a>`;
+    const cap = j.capture || {}, capLead = j.capture_leader || {};
+    // «Дор первым» — второй вопрос, и он не повторяет первый: доров в выдаче много, но стоят они
+    // низко, поэтому «гибрид — 72» без этого уточнения ничего не решает.
+    const capLink = (code, text) => {
+      const l = capLead[code]|0;
+      return `<a href="#" data-cap="${code}"><b>${esc(text)}</b></a>`
+        + (l ? ` <span class="hint" title="В скольких из них ПЕРВЫЙ по видимости сайт — дор">(дор первым в ${l})</span>` : '');
+    };
+    const leadAll = (capLead.door|0) + (capLead.mixed|0) + (capLead.other|0) + (capLead.nobrand|0);
     $('captureLine').innerHTML = 'Чем забраны бренды: '
       + capLink('door', `дорами — ${cap.door|0}`) + ' · '
       + capLink('mixed', `гибрид — ${cap.mixed|0}`) + ' · '
@@ -476,6 +486,7 @@ async function load(){
       + ((cap.nobrand|0) ? ` · без бренда — <b>${cap.nobrand|0}</b>` : '')
       + `. Считается по <b>доле видимости</b> доров, а не по их числу: «дорами» — доры держат `
       + `≥ ${CAPTURE_LIMITS.door}% видимости бренда, «не дорами» — ≤ ${CAPTURE_LIMITS.other}%, между — гибрид. `
+      + (leadAll ? `Дор стоит <b>первым</b> в <a href="#" data-only="lead_door"><b>${leadAll}</b></a> брендах — это и есть доказательство, что доры там берут верх, а не стоят в хвосте. ` : '')
       + 'Нажмите на число — в списке останутся только эти бренды.';
     // Все числа выше — по РАЗНЫМ сайтам. Сумма по брендам больше ровно на повторы между брендами.
     const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};
@@ -567,10 +578,10 @@ $('dorgen').addEventListener('click', async () => {
 });
 // Числа в строке «чем забраны бренды» — это и есть фильтр: клик оставляет свою кучу.
 $('captureLine').addEventListener('click', e => {
-  const a = e.target.closest('a[data-cap]');
+  const a = e.target.closest('a[data-cap],a[data-only]');
   if(!a) return;
   e.preventDefault();
-  $('only').value = 'cap_' + a.dataset.cap;
+  $('only').value = a.dataset.only || ('cap_' + a.dataset.cap);
   render();
   $('brands').scrollIntoView({behavior:'smooth', block:'start'});
 });

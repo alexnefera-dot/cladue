@@ -85,7 +85,14 @@ final class SerpAnalysisTest
         // СЧЁТ по типам захвата: он и отвечает на «посчитали их».
         Assert::same(['door' => 1, 'mixed' => 1, 'other' => 1, 'nobrand' => 0], $analysis['capture']);
         Assert::same(3, array_sum($analysis['capture']), 'сумма сходится с числом блоков в списке');
-        Assert::same('дорами — 1, гибрид — 1, не дорами — 1', SerpAnalysis::captureText($analysis));
+
+        // ДОР ЛИ ПЕРВЫЙ — второй вопрос, и он не повторяет первый: у «лекса» дор в бренде есть, но
+        // первым стоит официальный сайт, а у «пинапа» доля доров всего 39% И при этом дор первый.
+        Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $analysis['capture_leader']);
+        Assert::same(
+            'дорами — 1 (дор первым в 1), гибрид — 1 (дор первым в 1), не дорами — 1',
+            SerpAnalysis::captureText($analysis),
+        );
 
         // Границы — в одном месте, страница и выгрузка берут их оттуда же.
         Assert::same('door', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_DOOR));
@@ -107,7 +114,10 @@ final class SerpAnalysisTest
         $analysis = SerpAnalysis::build($rows, 10);
 
         Assert::same(['door' => 1, 'mixed' => 0, 'other' => 0, 'nobrand' => 1], $analysis['capture']);
-        Assert::same('дорами — 1, гибрид — 0, не дорами — 0, без бренда — 1', SerpAnalysis::captureText($analysis));
+        Assert::same(
+            'дорами — 1 (дор первым в 1), гибрид — 0, не дорами — 0, без бренда — 1',
+            SerpAnalysis::captureText($analysis),
+        );
         Assert::same(2, count($analysis['brands']), 'блоков два: бренд и остаток');
     }
 

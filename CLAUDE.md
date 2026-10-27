@@ -1176,6 +1176,22 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   both thresholds) / `testQueriesWithoutBrandAreCountedApart` / `testBrandsCsvCarriesTheSplitAndTheLeader`
   and `PanelTest::testSerpAnalysisPageAndEndpoint` (the capture reaches `/api/serp`, the CSV downloads
   with one row per brand, and the browser-rendered page shows the column and the counts line).
+  IS THE DOOR FIRST (1.43.1) — added after reading the user's own exported CSV (165 brands of their
+  niche), which showed the three buckets are not enough on their own: 12 «дорами», 72 «гибрид»,
+  81 «не дорами», i.e. 44% of the list in the middle bucket, and the door-share histogram has no
+  valley to move the threshold to (0–70% is almost flat). What DOES split the middle is the second
+  question the data answers: doors were 42% of the sites but only 31% of the visibility (in 123 of
+  165 brands their visibility share is BELOW their site-count share — they flood positions 5–10
+  while the top is taken by thematic domains and t.me), and a door stands FIRST in only 30 brands.
+  The cross-table is clean: «не дорами» 81/0 (a door is never first there), «дорами» 9 of 12,
+  «гибрид» 21 of 72 — so the fat middle bucket is really two: doors already take the top (21) vs
+  doors only in the tail (51). `build()` therefore counts `capture_leader` next to `capture` (same
+  four keys, brands whose `leader['type'] === 'door'`), `captureText()` appends «(дор первым в N)»
+  per bucket, `/api/serp` sends it, the page prints it inside each count of `#captureLine` plus one
+  clickable total, and `#only` gained `lead_door` («где дор стоит первым», matched on
+  `b.leader.type`). Covered by the extended `testSplitsBrandsByWhoCapturesThem` (the brand with a
+  39% door share AND a door leader is the case the bucket alone would hide) and
+  `PanelTest::testSerpAnalysisPageAndEndpoint`.
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

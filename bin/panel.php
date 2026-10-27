@@ -662,6 +662,7 @@ if ($path === '/api/serp') {
         'own' => $analysis['own'],
         // Чем забраны бренды: дорами, гибрид, не дорами (+ «без бренда» отдельно).
         'capture' => $analysis['capture'],
+        'capture_leader' => $analysis['capture_leader'],
         'capture_labels' => \YandexSites\Support\SerpAnalysis::CAPTURE,
         'capture_door' => \YandexSites\Support\SerpAnalysis::CAPTURE_DOOR,
         'capture_other' => \YandexSites\Support\SerpAnalysis::CAPTURE_OTHER,

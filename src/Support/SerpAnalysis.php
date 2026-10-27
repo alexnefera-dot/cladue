@@ -285,10 +285,19 @@ final class SerpAnalysis
             $out[] = $brand;
         }
         $capture = ['door' => 0, 'mixed' => 0, 'other' => 0, 'nobrand' => 0];
+        $captureLeader = $capture;
         foreach ($out as $brand) {
             // «без бренда» — не бренд, а остаток запросов: считаем его отдельно, иначе счёт брендов
             // по типу захвата врёт на одну строку, а сумма перестаёт сходиться с числом блоков.
-            $capture[$brand['key'] === '' ? 'nobrand' : $brand['capture']]++;
+            $bucket = $brand['key'] === '' ? 'nobrand' : $brand['capture'];
+            $capture[$bucket]++;
+            // ДОР ЛИ ПЕРВЫЙ — второй вопрос, и он не повторяет первый. На реальном сборе (165 брендов)
+            // доры были 42% сайтов, но лишь 31% видимости: они заполняют хвост топа, а первое место
+            // берут тематические домены и телеграм. «Гибрид» поэтому распадается надвое — бренды, где
+            // дор уже стоит первым (доры там доказанно берут верх), и бренды, где они только в хвосте.
+            if (!empty($brand['leader']['type']) && $brand['leader']['type'] === 'door') {
+                $captureLeader[$bucket]++;
+            }
         }
         // Бренды по числу ключей: самые проработанные — сверху; «без бренда» всегда последним.
         arsort($ownAll['by_reason']);
@@ -307,6 +316,7 @@ final class SerpAnalysis
             'repeats' => ['sites' => array_sum($repeats), 'by_type' => $repeats],
             'own' => $ownAll,
             'capture' => $capture,       // брендов по тому, чем они забраны (+ отдельно «без бренда»)
+            'capture_leader' => $captureLeader, // из них те, где ПЕРВЫЙ по видимости — дор
             'sites' => count($seenHost),
             'results' => $results,
             'queries' => $queries,
@@ -368,11 +378,15 @@ final class SerpAnalysis
     public static function captureText(array $analysis): string
     {
         $c = (array) ($analysis['capture'] ?? []);
-        $parts = [
-            'дорами — ' . (int) ($c['door'] ?? 0),
-            'гибрид — ' . (int) ($c['mixed'] ?? 0),
-            'не дорами — ' . (int) ($c['other'] ?? 0),
-        ];
+        $lead = (array) ($analysis['capture_leader'] ?? []);
+        $part = static function (string $label, string $key) use ($c, $lead): string {
+            $n = (int) ($c[$key] ?? 0);
+            $l = (int) ($lead[$key] ?? 0);
+
+            // «дор первым» — самое важное уточнение: без него «гибрид — 72» ничего не решает.
+            return $label . ' — ' . $n . ($l > 0 ? ' (дор первым в ' . $l . ')' : '');
+        };
+        $parts = [$part('дорами', 'door'), $part('гибрид', 'mixed'), $part('не дорами', 'other')];
         if ((int) ($c['nobrand'] ?? 0) > 0) {
             $parts[] = 'без бренда — ' . (int) $c['nobrand'];
         }
