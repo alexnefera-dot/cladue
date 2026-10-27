@@ -56,12 +56,37 @@
   table.board tr.mine td.site{background:#0f766e22}
   .tag.add{background:#dcfce7;color:#14532d}
   .tag.gone{background:#fee2e2;color:#7f1d1d}
-  .brand{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);overflow:hidden}
-  .brand>summary{cursor:pointer;padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;list-style:none}
+  .brand{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--card);overflow:hidden}
+  /* Ряд бренда — СЕТКА с теми же колонками, что и шапка списка: так бренды сравниваются взглядом
+     по вертикали. Раньше здесь лежала дюжина плашек в одну строку, и каждый бренд приходилось
+     разбирать заново — «куча плашек, сложно анализировать». */
+  .bhead,.brand>summary{display:grid;gap:12px;align-items:center;
+    grid-template-columns:14px minmax(130px,1.3fr) 124px minmax(150px,1.5fr) 104px 150px minmax(110px,1fr)}
+  .bhead{padding:2px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .brand>summary{cursor:pointer;padding:10px 14px;list-style:none}
   .brand>summary::-webkit-details-marker{display:none}
-  .brand>summary::before{content:'▸';color:var(--muted);width:12px;display:inline-block}
+  .brand>summary::before{content:'▸';color:var(--muted)}
   .brand[open]>summary::before{content:'▾'}
-  .brand .name{font-weight:700;font-size:15px}
+  .brand .name{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell{min-width:0;font-size:13px}
+  .cell .top{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell .sub{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Доля лидера полоской: один взгляд на колонку — и видно, какие бренды кем-то заняты целиком. */
+  .bar{height:7px;border-radius:999px;background:var(--chip);overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%;background:#4338ca}
+  .bar.mine i{background:#0f766e}
+  .share{font-weight:700;font-variant-numeric:tabular-nums}
+  .us-win{color:#0f766e;font-weight:700}
+  .us-behind{color:#b45309;font-weight:600}
+  .us-none{color:var(--muted)}
+  @media (prefers-color-scheme: dark){ .us-win{color:#5eead4} .us-behind{color:#fbbf24} }
+  /* Узкий экран: колонки превращаются в строки «подпись — значение», ничего не обрезается. */
+  @media (max-width:900px){
+    .bhead{display:none}
+    .brand>summary{grid-template-columns:14px 1fr}
+    .brand>summary .cell{grid-column:2}
+    .brand>summary .cell[data-l]::before{content:attr(data-l) ': ';color:var(--muted);font-size:11px;text-transform:uppercase}
+  }
   .brand .body{padding:0 14px 14px;border-top:1px solid var(--line)}
   .qblock{margin:14px 0 0}
   .qblock .q{font-weight:600;margin:0 0 6px}
@@ -174,52 +199,96 @@ function countsHtml(counts){
     .map(t => `${typeTag(t)} <b>${counts[t]|0}</b>`).join(' · ') || '<span class="hint">нет данных</span>';
 }
 
-/** Что изменилось у бренда с прошлого сбора: «+5 / −2» с разбивкой по типам в подсказке. */
-function diffHtml(d){
-  if(!d) return '';
-  const part = (c, sign) => Object.keys(TYPES).filter(t => (c[t]|0) > 0).map(t => `${TYPES[t]} ${sign}${c[t]|0}`).join(', ');
-  const a = d.added && d.added.total|0, r = d.removed && d.removed.total|0;
-  if(!a && !r && !d.is_new) return '';
-  const title = [part(d.added||{}, '+'), part(d.removed||{}, '−')].filter(Boolean).join(' · ');
-  let html = '';
-  if(d.is_new) html += `<span class="tag add" title="этого бренда в прошлом сборе не было">новый бренд</span> `;
-  if(d.gone) html += `<span class="tag gone" title="в этом сборе бренд не собрался вовсе">пропал</span> `;
-  if(a) html += `<span class="tag add" title="${esc(title)}">+${a} сайтов</span> `;
-  if(r) html += `<span class="tag gone" title="${esc(title)}">−${r} сайтов</span>`;
-  return html;
-}
-
+/**
+ * Ряд бренда. Всё, что раньше было плашками в одну строку, разложено по колонкам: бренд — доля
+ * лидера — кто забирает — мы — объём — остальное. Разбивка по типам сайтов уехала внутрь бренда
+ * («Итого по бренду»), в списке от неё было больше шума, чем пользы.
+ */
 function brandHtml(b){
-  const d = diffHtml(b.diff);
   return `<details class="brand" data-key="${esc(b.key)}">
     <summary>
-      <span class="name">${esc(b.label)}</span>
-      <span class="hint">ключей ${b.query_count|0} · сайтов ${b.sites|0} · строк ${b.rows|0}</span>
-      ${countsHtml(b.counts||{})}
-      ${leaderTag(b)}
-      ${(b.own_doors|0) > 0 ? `<span class="tag our" title="Доры, опознанные как НАШИ. Причина у каждого своя — раскройте бренд и наведите на метку «наш»">наших доров ${b.own_doors|0}</span>` : ''}
-      ${(b.fresh_sites|0) > 0 ? `<span class="tag fresh" title="Сайтов, у которых страница в выдаче моложе двух суток. Много свежих — нишу занимают новыми запусками, а не возрастом">свежих ${b.fresh_sites|0}</span>` : ''}
-      ${(b.crossed|0) > 0 ? `<span class="tag" title="сайтов, которые встретились больше чем в одном ключе этого бренда">пересечений ${b.crossed|0}</span>` : ''}
-      ${(b.networked|0) > 0 ? `<span class="tag" title="сайтов, которые держатся сразу на нескольких брендах — это сетка">на нескольких брендах ${b.networked|0}</span>` : ''}
-      ${d}
+      ${cell('Бренд', `<span class="name">${esc(b.label)}</span>`, plural(b.query_count|0, ['ключ','ключа','ключей']))}
+      ${shareCell(b)}
+      ${takerCell(b)}
+      ${usCell(b)}
+      ${cell('Объём', plural(b.sites|0, ['сайт','сайта','сайтов']), `доров ${(b.counts && b.counts.door)|0} · строк ${b.rows|0}`)}
+      ${extrasCell(b)}
     </summary>
     <div class="body"><div class="loading">Загружаю выдачу…</div></div>
   </details>`;
 }
 
-/**
- * Кто забрал бренд — метка в заголовке. Доля видимости считается по весам позиций: «первый на всех
- * ключах» и «десятый на всех ключах» наконец перестают выглядеть одинаково.
- */
-function leaderTag(b){
+/** Склонение числительного: «1 ключ», «2 ключа», «5 ключей» — иначе таблица читается как черновик. */
+function plural(n, forms){
+  n = Math.abs(n|0);
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10 === 1 && mod100 !== 11) return `${n} ${forms[0]}`;
+  if(mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} ${forms[1]}`;
+  return `${n} ${forms[2]}`;
+}
+
+/** Короткий ярлык типа — для ряда бренда, где длинное «доры (поддомены)» занимает полколонки. */
+const TYPES_SHORT = {door:'дор', theme:'тематический', social:'соцсеть', known:'известный', other:'прочий'};
+function typeTagShort(t){ return `<span class="tag ${esc(t)}">${esc(TYPES_SHORT[t] || TYPES[t] || t)}</span>`; }
+
+/** Шапка списка брендов — подписи к колонкам ряда (на узком экране подписи переезжают в сами ячейки). */
+function headRow(){
+  return `<div class="bhead">
+    <span></span>
+    <span>Бренд</span>
+    <span title="Какую долю видимости бренда забрал первый сайт. Близко к 100% — бренд держит кто-то один">Доля лидера</span>
+    <span title="Сайт с наибольшей долей видимости по всем ключам бренда">Забирает</span>
+    <span title="Наша доля и лучшая позиция в этом бренде">Мы</span>
+    <span>Объём</span>
+    <span title="Свежие сайты в топе, сетка, пересечения и изменения с прошлого сбора">Ещё</span>
+  </div>`;
+}
+
+/** Одна ячейка ряда: крупное значение сверху, пояснение мелким снизу. */
+function cell(label, top, sub, cls){
+  return `<div class="cell ${cls || ''}" data-l="${esc(label)}">
+    <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+
+/** Колонка «Доля лидера»: число плюс полоска — по ней бренды и сравниваются взглядом. */
+function shareCell(b){
   const l = b.leader;
-  if(!l) return '';
-  const our = +b.our_share || 0;
-  const weOwn = !!l.own;
-  const gap = weOwn ? '' : (our > 0 ? ` · наш лучший ${our}%` : ' · наших в бренде нет');
-  const cls = weOwn ? 'our' : 'win';
-  const title = `Доля видимости по всем ключам бренда: вес позиции × число ключей. Проценты приблизительные — они для сравнения сайтов между собой, а не оценка трафика${weOwn ? '. Бренд забирает НАШ сайт' : ''}`;
-  return `<span class="tag ${cls}" title="${esc(title)}">забирает ${esc(l.host)} ${l.share}%${gap}</span>`;
+  if(!l) return cell('Доля лидера', '<span class="hint">—</span>', '');
+  const mine = l.own ? ' mine' : '';
+  return cell('Доля лидера',
+    `<span class="share">${l.share}%</span>`,
+    `<div class="bar${mine}"><i style="width:${Math.max(2, Math.min(100, +l.share || 0))}%"></i></div>`);
+}
+
+/** Колонка «Забирает»: кто первый по видимости и чей он. */
+function takerCell(b){
+  const l = b.leader;
+  if(!l) return cell('Забирает', '<span class="hint">—</span>', '');
+  const who = l.own ? '<span class="tag our">наш</span>' : typeTagShort(l.type);
+  return cell('Забирает', `<b>${esc(l.host)}</b>`, `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`);
+}
+
+/** Колонка «Мы»: забираем, отстаём или нас нет — это и есть ответ, с чем работать. */
+function usCell(b){
+  const l = b.leader, our = +b.our_share || 0, best = b.our_best;
+  if(l && l.own) return cell('Мы', '<span class="us-win">забираем</span>', `${our}% · ${best ? best.best|0 : 1}-я`);
+  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>`, `${best ? best.best|0 : 0}-я позиция`);
+  return cell('Мы', '<span class="us-none">нас нет</span>', (b.counts && b.counts.door|0) > 0 ? 'доры чужие' : '');
+}
+
+/** Колонка «Ещё»: всё мелкое — одной строкой, а не россыпью плашек. */
+function extrasCell(b){
+  const d = b.diff || {}, add = (d.added && d.added.total)|0, rem = (d.removed && d.removed.total)|0;
+  const bits = [];
+  if((b.fresh_sites|0) > 0) bits.push(`<span class="tag fresh" title="Сайтов, у которых страница в выдаче моложе двух суток — нишу берут свежими запусками">свежих ${b.fresh_sites|0}</span>`);
+  if(d.is_new) bits.push('<span class="tag add">новый бренд</span>');
+  else if(d.gone) bits.push('<span class="tag gone">пропал</span>');
+  else if(add || rem) bits.push(`<span class="hint" title="Появилось и пропало сайтов с прошлого сбора">+${add} / −${rem}</span>`);
+  const sub = [];
+  if((b.networked|0) > 0) sub.push(`сетка ${b.networked|0}`);
+  if((b.crossed|0) > 0) sub.push(`пересечений ${b.crossed|0}`);
+  if((b.own_doors|0) > 0) sub.push(`наших доров ${b.own_doors|0}`);
+  return cell('Ещё', bits.join(' ') || '<span class="hint">—</span>', esc(sub.join(' · ')));
 }
 
 /** Таблица «кто забирает бренд»: сайты по доле видимости, сверху победитель. */
@@ -236,7 +305,7 @@ function boardHtml(brand){
       <td class="num">${r.keys|0} из ${keys}</td>
       <td class="num">${r.best|0}</td>
       <td class="num">${r.top3|0}</td>
-      <td>${typeTag(r.type)}</td>
+      <td>${typeTagShort(r.type)}</td>
       <td class="num">${r.fresh_label ? `<span class="${(r.fresh_days !== null && r.fresh_days <= 2) ? 'tag fresh' : 'hint'}">${esc(r.fresh_label)}</span>` : '<span class="hint">—</span>'}</td>
     </tr>`;
   }).join('');
@@ -257,14 +326,16 @@ function queriesHtml(brand){
       const why = (h.brands|0) > 1 ? `держится на ${h.brands} брендах` : ((h.keys|0) > 1 ? `встретился в ${h.keys} ключах бренда` : '');
       const link = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.host)}</a>` : esc(r.host);
       // У дора отдельно помечаем, наш он или чужой — по этому и смотрят на сетку.
+      // «Наш» — заметной меткой, «чужой» — просто словом: в каждой строке плашка «чужой» была
+      // лишним пятном, а смысл тот же.
       const ours = r.type === 'door'
         ? (h.own ? ` <span class="tag our" title="Наш дор. Причина: ${esc(h.own_reason || 'не указана')}">наш</span>`
-                 : ` <span class="tag" title="дор не опознан как наш">чужой</span>`)
+                 : ` <span class="hint" title="дор не опознан как наш">чужой</span>`)
         : '';
       return `<tr class="${cls}">
         <td class="pos">${r.position|0}</td>
         <td class="site"${why ? ` title="${esc(why)}"` : ''}>${link}</td>
-        <td>${typeTag(r.type)}${ours}</td>
+        <td>${typeTagShort(r.type)}${ours}</td>
         <td class="ttl">${esc(r.title).slice(0,120)}</td>
         <td class="num">${r.fresh_label ? `<span class="${(r.fresh !== null && (Date.now()/1000 - r.fresh) <= 2*86400) ? 'tag fresh' : 'hint'}">${esc(r.fresh_label)}</span>` : '<span class="hint">—</span>'}</td>
         <td class="ttl">${r.reason && r.reason !== 'selected' ? esc(r.reason) : ''}</td>
@@ -335,7 +406,7 @@ function render(){
     return sortDesc ? -cmp : cmp;
   });
   $('shownCount').textContent = shown.length === brands.length ? `брендов ${brands.length}` : `показано ${shown.length} из ${brands.length}`;
-  $('brands').innerHTML = shown.map(brandHtml).join('');
+  $('brands').innerHTML = shown.length ? headRow() + shown.map(brandHtml).join('') : '';
   $('status').textContent = shown.length ? '' : (brands.length ? 'Под фильтр ничего не попало' : 'Брендов не найдено');
   document.querySelectorAll('.brand').forEach(el => {
     el.addEventListener('toggle', () => { if(el.open) loadBrand(el, el.dataset.key); });

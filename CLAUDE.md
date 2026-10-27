@@ -1116,6 +1116,29 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   each query's table, sorts «по доле лидера / по нашей доле / по свежим сайтам» and filters «мы есть,
   но бренд забрал не мы» / «только со свежими». `/api/serp` sends `board` TRIMMED TO 5 in the brand
   list (hundreds of hosts × hundreds of brands would bloat it) and in full for one opened brand.
+  READABILITY (1.42.1) — «куча плашек на бренде, сложно анализировать». Everything above had been
+  bolted onto the brand summary as one more chip, and a row ended up carrying a dozen of them in a
+  single flex line: five type chips, the leader, our share, fresh, crossed, networked and the diff.
+  A chip row cannot be compared DOWN the list, which is the only way a list of hundreds of brands is
+  ever read. The summary is now a GRID with the same columns as a `.bhead` header printed above the
+  list — бренд · доля лидера · забирает · мы · объём · ещё — so the eye runs down one column:
+  `brandHtml()` composes `cell(label, top, sub)` blocks, `shareCell()` draws the share as a number
+  plus a BAR (indigo, teal when the leader is ours — a monopolised brand is then visible without
+  reading), `takerCell()` names the winner with a short type tag, `usCell()` says «забираем» (green) /
+  «5.8%» (amber) / «нас нет» (grey), and `extrasCell()` folds fresh/сетка/пересечения/«+3 / −1» into
+  one quiet line. The per-type breakdown moved OUT of the list into the opened brand («Итого по
+  бренду»), where it already was. Под 900px the grid collapses and each cell prints its own label
+  from `data-l`. Two details that make it read as finished: `plural()` (1 ключ / 2 ключа / 5 ключей —
+  «4 сайтов» looked like a draft) and `TYPES_SHORT`/`typeTagShort()` for in-table use, because
+  «доры (поддомены)» on every row of every table ate a third of the width; the long names stay in the
+  legend. In the per-query tables «наш» stays a tag and «чужой» became plain muted text — same
+  information, one less coloured blob per row.
+  THE PAGE IS RENDERED CLIENT-SIDE AND NOTHING EXECUTED ITS CODE: «отдалась по HTTP» passes just as
+  well for a page that dies on a JS error, which is exactly what happened mid-change (a cleanup
+  removed `brandHtml` and the list silently stayed empty). `PanelTest::testSerpAnalysisPageAndEndpoint`
+  now opens `/serp` with the real `PlaywrightDriver` (skipped when Playwright is absent) and asserts
+  the rendered HTML carries `class="brand"`, the leader's host and the column header — verified to
+  FAIL when `brandHtml` is renamed. Keep that check when touching the page.
   Covered by `tests/FreshnessTest.php`, `HtmlResponseParserTest::testReadsFreshnessLabelOfTheResult`
   (the fixture's first organic result carries «8 ч назад», the others none),
   `SerpAnalysisTest::testShowsWhoTakesTheBrand` (first-on-three-keys beats ninth-on-three-keys by far,

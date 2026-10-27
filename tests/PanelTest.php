@@ -1668,6 +1668,33 @@ final class PanelTest
             Assert::same($leader['host'], $byKey['vulkan']['our_best']['host'], 'он же наш лучший');
             Assert::true(count($byKey['vulkan']['board']) <= 5, 'в списке брендов доска только верхушкой');
 
+            // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
+            // по HTTP» проходит и у страницы, которая падает в браузере с ошибкой JS. Открываем её
+            // настоящим браузером (тем же, которым ходим по сайтам) и смотрим, что ряды брендов
+            // действительно собрались и в них есть лидер.
+            $browser = new \YandexSites\Visit\PlaywrightDriver();
+            if (($browser->probe()['ok'] ?? false)) {
+                $out = $dir . '/serp-rendered.html';
+                $job = new \YandexSites\Visit\VisitJob(
+                    id: 'serp',
+                    siteKey: 'serp',
+                    variant: 1,
+                    url: $base . '/serp',
+                    referer: '',
+                    userAgent: 'Mozilla/5.0 (test)',
+                    proxyUrl: null,
+                    proxyLabel: 'direct',
+                    htmlFile: $out,
+                    screenshotFile: null,
+                );
+                $res = $browser->visit([$job], ['timeout' => 30, 'wait_ms' => 2500, 'concurrency' => 1]);
+                Assert::true($res['serp']['ok'] ?? false, 'страница открылась: ' . (string) ($res['serp']['error'] ?? ''));
+                $rendered = (string) @file_get_contents($out);
+                Assert::contains('class="brand"', $rendered, 'ряды брендов собрались на клиенте');
+                Assert::contains('kush.grid-x.ru', $rendered, 'в ряду виден тот, кто забирает бренд');
+                Assert::contains('Доля лидера', $rendered, 'шапка колонок на месте');
+            }
+
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
             $b = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true);
             Assert::true($b['ok'] ?? false, json_encode($b, JSON_UNESCAPED_UNICODE));
