@@ -50,6 +50,25 @@ final class SerpAnalysis
     /** Вес позиции за пределами первой десятки. */
     public const CTR_TAIL = 0.01;
 
+    /**
+     * ЧЕМ ЗАБРАН БРЕНД: дорами, не дорами или и теми и другими (гибрид).
+     *
+     * Считается по ДОЛЕ ВИДИМОСТИ, а не по числу сайтов: десять доров ниже десятого места и один
+     * официальный сайт на первом — это бренд, забранный НЕ дорами, хотя доров в списке больше.
+     * Границы намеренно широкие: в середине лежит ровно то, что имеет смысл называть гибридом.
+     */
+    public const CAPTURE_DOOR = 70.0;
+
+    /** Ниже этой доли доров бренд считается забранным НЕ дорами. */
+    public const CAPTURE_OTHER = 30.0;
+
+    /** Подписи типов захвата (ключ `capture` бренда). */
+    public const CAPTURE = [
+        'door' => 'забран дорами',
+        'mixed' => 'гибрид',
+        'other' => 'забран не дорами',
+    ];
+
     public const TYPES = [
         'door' => 'доры (поддомены)',
         'theme' => 'тематические домены',
@@ -206,8 +225,12 @@ final class SerpAnalysis
             // «присутствует на всех ключах десятым» и «держит первое место» наконец перестают
             // выглядеть одинаково, а по доле лидера сразу видно, насколько бренд вообще занят.
             $visTotal = 0.0;
+            $doorVis = 0.0;
             foreach ($brand['hosts'] as $info) {
                 $visTotal += (float) $info['vis'];
+                if ($info['type'] === 'door') {
+                    $doorVis += (float) $info['vis'];
+                }
             }
             $freshSites = 0;
             foreach ($brand['hosts'] as $host => $info) {
@@ -242,6 +265,11 @@ final class SerpAnalysis
             $brand['our_share'] = $ourBest !== null ? $ourBest['share'] : 0.0;
             $brand['fresh_sites'] = $freshSites;
             $brand['own_doors'] = $ownDoors;
+            // ЧЕМ ЗАБРАН БРЕНД. Доля видимости доров, а не их число: именно по ней бренды делятся на
+            // «массово доры», «не доры» и гибриды, и именно это решает, лезть ли в бренд дором вообще.
+            $brand['door_share'] = $visTotal > 0 ? round(100 * $doorVis / $visTotal, 1) : 0.0;
+            $brand['capture'] = self::captureOf($brand['door_share']);
+            $brand['capture_label'] = self::CAPTURE[$brand['capture']];
             $queries += count($brand['queries']);
             $rowsCount = 0;
             foreach ($brand['queries'] as $list) {
@@ -255,6 +283,12 @@ final class SerpAnalysis
             $brand['crossed'] = count(array_filter($brand['hosts'], static fn (array $h): bool => $h['keys'] > 1));
             $brand['networked'] = count(array_filter($brand['hosts'], static fn (array $h): bool => $h['brands'] > 1));
             $out[] = $brand;
+        }
+        $capture = ['door' => 0, 'mixed' => 0, 'other' => 0, 'nobrand' => 0];
+        foreach ($out as $brand) {
+            // «без бренда» — не бренд, а остаток запросов: считаем его отдельно, иначе счёт брендов
+            // по типу захвата врёт на одну строку, а сумма перестаёт сходиться с числом блоков.
+            $capture[$brand['key'] === '' ? 'nobrand' : $brand['capture']]++;
         }
         // Бренды по числу ключей: самые проработанные — сверху; «без бренда» всегда последним.
         arsort($ownAll['by_reason']);
@@ -272,6 +306,7 @@ final class SerpAnalysis
             'totals_sum' => $totalsSum,   // сумма по брендам: больше на величину повторов между брендами
             'repeats' => ['sites' => array_sum($repeats), 'by_type' => $repeats],
             'own' => $ownAll,
+            'capture' => $capture,       // брендов по тому, чем они забраны (+ отдельно «без бренда»)
             'sites' => count($seenHost),
             'results' => $results,
             'queries' => $queries,
@@ -310,6 +345,115 @@ final class SerpAnalysis
         }
 
         return $out;
+    }
+
+    /**
+     * Тип захвата по доле видимости доров. Отдельный метод, чтобы границы были в ОДНОМ месте:
+     * по ним считается и страница, и строка журнала, и выгрузка в CSV.
+     */
+    public static function captureOf(float $doorShare): string
+    {
+        if ($doorShare >= self::CAPTURE_DOOR) {
+            return 'door';
+        }
+
+        return $doorShare <= self::CAPTURE_OTHER ? 'other' : 'mixed';
+    }
+
+    /**
+     * Строка для журнала задания: сколько брендов забрано дорами, сколько гибридов, сколько не дорами.
+     *
+     * @param array<string, mixed> $analysis
+     */
+    public static function captureText(array $analysis): string
+    {
+        $c = (array) ($analysis['capture'] ?? []);
+        $parts = [
+            'дорами — ' . (int) ($c['door'] ?? 0),
+            'гибрид — ' . (int) ($c['mixed'] ?? 0),
+            'не дорами — ' . (int) ($c['other'] ?? 0),
+        ];
+        if ((int) ($c['nobrand'] ?? 0) > 0) {
+            $parts[] = 'без бренда — ' . (int) $c['nobrand'];
+        }
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * ВЫГРУЗКА РАЗБОРА: одна строка на бренд со всеми числами — чтобы делить бренды самому
+     * (в Excel, в скрипте, да хоть глазами), а не только фильтрами страницы.
+     *
+     * Строк выдачи здесь нет намеренно: их десятки тысяч, а решение принимается по бренду. Кто
+     * именно забрал бренд — в колонке «Лидер», остальные сайты видно на самой странице.
+     *
+     * @param array<string, mixed> $analysis
+     */
+    public static function brandsCsv(array $analysis, string $delimiter = ';', bool $bom = true): string
+    {
+        $head = ['Бренд', 'Ключ', 'Чем забран', 'Доля доров %', 'Доров сайтов', 'Всего сайтов',
+            'Ключей', 'Строк выдачи', 'Лидер', 'Доля лидера %', 'Тип лидера', 'Лидер наш',
+            'Ключей у лидера', 'Лучшая позиция лидера', 'Наша доля %', 'Наш лучший сайт',
+            'Наша лучшая позиция', 'Наших доров', 'Свежих сайтов', 'На нескольких брендах',
+            'Пересечений внутри бренда'];
+        foreach (self::TYPES as $label) {
+            $head[] = $label;
+        }
+        $head[] = 'Появилось с прошлого сбора';
+        $head[] = 'Пропало с прошлого сбора';
+        $out = fopen('php://temp', 'r+');
+        if ($out === false) {
+            return '';
+        }
+        if ($bom) {
+            fwrite($out, "\xEF\xBB\xBF"); // иначе Excel открывает кириллицу кракозябрами
+        }
+        fputcsv($out, $head, $delimiter, '"', '');
+        foreach ((array) ($analysis['brands'] ?? []) as $brand) {
+            $leader = $brand['leader'] ?? null;
+            $our = $brand['our_best'] ?? null;
+            $diff = (array) ($brand['diff'] ?? []);
+            $row = [
+                (string) $brand['label'],
+                (string) $brand['key'],
+                self::CAPTURE[(string) ($brand['capture'] ?? 'other')] ?? '',
+                self::num((float) ($brand['door_share'] ?? 0)),
+                (int) (($brand['counts']['door'] ?? 0)),
+                (int) ($brand['sites'] ?? 0),
+                (int) ($brand['query_count'] ?? 0),
+                (int) ($brand['rows'] ?? 0),
+                $leader !== null ? (string) $leader['host'] : '',
+                $leader !== null ? self::num((float) $leader['share']) : '',
+                $leader !== null ? (self::TYPES[(string) $leader['type']] ?? '') : '',
+                $leader !== null ? (!empty($leader['own']) ? 'да' : 'нет') : '',
+                $leader !== null ? (int) $leader['keys'] : '',
+                $leader !== null ? (int) $leader['best'] : '',
+                self::num((float) ($brand['our_share'] ?? 0)),
+                $our !== null ? (string) $our['host'] : '',
+                $our !== null ? (int) $our['best'] : '',
+                (int) ($brand['own_doors'] ?? 0),
+                (int) ($brand['fresh_sites'] ?? 0),
+                (int) ($brand['networked'] ?? 0),
+                (int) ($brand['crossed'] ?? 0),
+            ];
+            foreach (array_keys(self::TYPES) as $type) {
+                $row[] = (int) (($brand['counts'][$type] ?? 0));
+            }
+            $row[] = (int) ($diff['added']['total'] ?? 0);
+            $row[] = (int) ($diff['removed']['total'] ?? 0);
+            fputcsv($out, $row, $delimiter, '"', '');
+        }
+        rewind($out);
+        $csv = (string) stream_get_contents($out);
+        fclose($out);
+
+        return $csv;
+    }
+
+    /** Число для CSV: запятая как разделитель дроби — иначе Excel с русской локалью видит текст. */
+    private static function num(float $value): string
+    {
+        return number_format($value, 1, ',', '');
     }
 
     /**

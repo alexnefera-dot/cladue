@@ -36,6 +36,107 @@ final class SerpAnalysisTest
         Assert::same('other', SerpAnalysis::classify(''), 'пустой хост');
     }
 
+    public function testSplitsBrandsByWhoCapturesThem(): void
+    {
+        // Запрос пользователя: «разделив бренды на те где захват массово доры а где не доры,
+        // посчитали их и где гибриды». Делим по ДОЛЕ ВИДИМОСТИ доров, а не по их числу: десять доров
+        // в хвосте топа ничего не держат, а один дор на первом месте забирает треть бренда.
+        $rows = [];
+        // Бренд «вулкан»: весь топ — доры одной сетки.
+        foreach (['вулкан казино', 'вулкан зеркало'] as $q) {
+            $rows[] = $this->row($q, 1, 'a.netone.ru');
+            $rows[] = $this->row($q, 2, 'b.nettwo.ru');
+            $rows[] = $this->row($q, 3, 'c.netthree.ru');
+        }
+        // Бренд «лекс»: официальный сайт и обзорники сверху, дор один и девятым.
+        foreach (['лекс казино', 'лекс зеркало'] as $q) {
+            $rows[] = $this->row($q, 1, 'lex-casino.ru', 'Лекс казино — официальный сайт');
+            $rows[] = $this->row($q, 2, 'obzor-kazino.ru', 'Обзор казино Лекс');
+            $rows[] = $this->row($q, 3, 'vk.com');
+            $rows[] = $this->row($q, 9, 'door.netfour.ru');
+        }
+        // Бренд «пинап»: дор забрал первое место, остальное держат не доры — это и есть гибрид.
+        $rows[] = $this->row('пин ап казино', 1, 'd.netfive.ru');
+        $rows[] = $this->row('пин ап казино', 2, 'pinup-official.ru', 'Пин ап казино');
+        $rows[] = $this->row('пин ап казино', 3, 'obzor-kazino.ru', 'Обзор казино');
+        $rows[] = $this->row('пин ап казино', 4, 'youtube.com');
+
+        $analysis = SerpAnalysis::build($rows, 10);
+        $byKey = [];
+        foreach ($analysis['brands'] as $brand) {
+            $byKey[$brand['key']] = $brand;
+        }
+
+        Assert::same('door', $byKey['vulkan']['capture'], 'весь топ доры — бренд забран дорами');
+        Assert::same(100.0, $byKey['vulkan']['door_share'], 'других сайтов в бренде нет');
+        Assert::same('забран дорами', $byKey['vulkan']['capture_label']);
+
+        Assert::same('other', $byKey['lex']['capture'], 'дор девятым — бренд держат не доры');
+        Assert::true($byKey['lex']['door_share'] < 10.0, 'доля доров: ' . $byKey['lex']['door_share']);
+        Assert::same(1, $byKey['lex']['counts']['door'], 'дор в бренде есть — но он ничего не держит');
+
+        Assert::same('mixed', $byKey['pinup']['capture'], 'дор первый, остальное чужое — гибрид');
+        Assert::true(
+            $byKey['pinup']['door_share'] > SerpAnalysis::CAPTURE_OTHER
+            && $byKey['pinup']['door_share'] < SerpAnalysis::CAPTURE_DOOR,
+            'доля доров между порогами: ' . $byKey['pinup']['door_share'],
+        );
+
+        // СЧЁТ по типам захвата: он и отвечает на «посчитали их».
+        Assert::same(['door' => 1, 'mixed' => 1, 'other' => 1, 'nobrand' => 0], $analysis['capture']);
+        Assert::same(3, array_sum($analysis['capture']), 'сумма сходится с числом блоков в списке');
+        Assert::same('дорами — 1, гибрид — 1, не дорами — 1', SerpAnalysis::captureText($analysis));
+
+        // Границы — в одном месте, страница и выгрузка берут их оттуда же.
+        Assert::same('door', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_DOOR));
+        Assert::same('mixed', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_DOOR - 0.1));
+        Assert::same('mixed', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_OTHER + 0.1));
+        Assert::same('other', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_OTHER));
+    }
+
+    public function testQueriesWithoutBrandAreCountedApart(): void
+    {
+        // «без бренда» — остаток запросов, а не бренд: в счёте по типам захвата он стоит отдельно,
+        // иначе счёт брендов врёт на одну строку и не сходится с тем, что показано в списке.
+        $rows = [
+            $this->row('вулкан казино', 1, 'a.netone.ru'),
+            $this->row('пластиковые окна москва', 1, 'okna-msk.ru'),
+            $this->row('пластиковые окна москва', 2, 'okna-dom.ru'),
+        ];
+
+        $analysis = SerpAnalysis::build($rows, 10);
+
+        Assert::same(['door' => 1, 'mixed' => 0, 'other' => 0, 'nobrand' => 1], $analysis['capture']);
+        Assert::same('дорами — 1, гибрид — 0, не дорами — 0, без бренда — 1', SerpAnalysis::captureText($analysis));
+        Assert::same(2, count($analysis['brands']), 'блоков два: бренд и остаток');
+    }
+
+    public function testBrandsCsvCarriesTheSplitAndTheLeader(): void
+    {
+        // Выгрузка нужна, чтобы делить бренды самому (в Excel или скриптом), а не только фильтрами
+        // страницы: одна строка на бренд, числа те же, что на экране.
+        $rows = [
+            $this->row('вулкан казино', 1, 'kush.ourbase.ru'),
+            $this->row('вулкан казино', 2, 'other.netone.ru'),
+            $this->row('вулкан зеркало', 1, 'kush.ourbase.ru'),
+        ];
+        $analysis = SerpAnalysis::build($rows, 10, new OwnSites(['ourbase.ru']));
+        $csv = SerpAnalysis::brandsCsv($analysis, ';', false);
+        $lines = array_values(array_filter(explode("
+", str_replace("
+", "
+", $csv))));
+
+        Assert::same(2, count($lines), 'шапка и одна строка на бренд');
+        Assert::contains('Чем забран', $lines[0], 'в шапке есть колонка захвата');
+        Assert::contains('Доля доров %', $lines[0]);
+        Assert::contains('забран дорами', $lines[1], 'тип захвата подписан словами, а не кодом');
+        Assert::contains('kush.ourbase.ru', $lines[1], 'лидер назван');
+        // Десятичная запятая: с точкой Excel с русской локалью видит в колонке текст, а не число.
+        Assert::contains('100,0', $lines[1], 'доля доров — числом с запятой');
+        Assert::contains(';да;', $lines[1], 'лидер наш — по списку запусков');
+    }
+
     public function testShowsWhoTakesTheBrand(): void
     {
         // Главный вопрос пользователя к разбору: «кто в бренде победитель и забирает трафик по всем

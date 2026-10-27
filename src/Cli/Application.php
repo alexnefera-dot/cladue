@@ -34,7 +34,7 @@ use YandexSites\Visit\PlaywrightDriver;
  */
 final class Application
 {
-    public const VERSION = '1.42.1';
+    public const VERSION = '1.43.0';
 
     /**
      * Дата кода этой версии (ГГГГ-ММ-ДД). Панель показывает её в шапке, setup.php --update печатает после

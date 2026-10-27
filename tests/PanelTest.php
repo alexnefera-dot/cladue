@@ -1668,6 +1668,31 @@ final class PanelTest
             Assert::same($leader['host'], $byKey['vulkan']['our_best']['host'], 'он же наш лучший');
             Assert::true(count($byKey['vulkan']['board']) <= 5, 'в списке брендов доска только верхушкой');
 
+            // ЧЕМ ЗАБРАН БРЕНД: у «вулкана» дор держит первые места, но соцсеть и СМИ рядом — гибрид;
+            // у «лекса» в выдаче только дор — забран дорами. Счёт по типам захвата доезжает до страницы.
+            Assert::same('mixed', $byKey['vulkan']['capture'], 'доля доров: ' . $byKey['vulkan']['door_share']);
+            Assert::same('гибрид', $byKey['vulkan']['capture_label']);
+            Assert::true(
+                $byKey['vulkan']['door_share'] > \YandexSites\Support\SerpAnalysis::CAPTURE_OTHER
+                && $byKey['vulkan']['door_share'] < \YandexSites\Support\SerpAnalysis::CAPTURE_DOOR,
+                'доля доров между порогами: ' . $byKey['vulkan']['door_share'],
+            );
+            Assert::same('door', $byKey['lex']['capture'], 'в бренде только дор — забран дорами');
+            Assert::same(100.0, (float) $byKey['lex']['door_share']);
+            Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $j['capture'], 'счёт по типам захвата');
+            Assert::same(2, array_sum($j['capture']), 'сумма сходится с числом блоков');
+            Assert::same(70.0, (float) $j['capture_door'], 'порог отдаётся странице, чтобы подпись не расходилась с расчётом');
+
+            // ВЫГРУЗКА РАЗБОРА: одна строка на бренд — чтобы делить бренды самому, а не только фильтрами.
+            $csv = (string) $this->http('GET', $base . '/download?file=serp', null, $csvCode);
+            Assert::same(200, $csvCode, 'разбор выгружается в CSV');
+            Assert::contains('Чем забран', $csv, 'колонка захвата в шапке');
+            Assert::contains('гибрид', $csv, 'тип захвата словами');
+            Assert::contains('забран дорами', $csv);
+            Assert::contains('kush.grid-x.ru', $csv, 'лидер назван');
+            $csvLines = array_values(array_filter(explode("\n", str_replace("\r\n", "\n", $csv))));
+            Assert::same(3, count($csvLines), 'шапка и по строке на каждый бренд');
+
             // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
             // по HTTP» проходит и у страницы, которая падает в браузере с ошибкой JS. Открываем её
             // настоящим браузером (тем же, которым ходим по сайтам) и смотрим, что ряды брендов
@@ -1693,6 +1718,8 @@ final class PanelTest
                 Assert::contains('class="brand"', $rendered, 'ряды брендов собрались на клиенте');
                 Assert::contains('kush.grid-x.ru', $rendered, 'в ряду виден тот, кто забирает бренд');
                 Assert::contains('Доля лидера', $rendered, 'шапка колонок на месте');
+                Assert::contains('Захват', $rendered, 'колонка «чем забран бренд» на месте');
+                Assert::contains('Чем забраны бренды', $rendered, 'счёт по типам захвата посчитан на клиенте');
             }
 
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.

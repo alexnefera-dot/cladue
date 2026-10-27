@@ -1146,6 +1146,36 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testFreshnessSurvivesTheRoundTripThroughResultsCsv`, and `PanelTest::testSerpAnalysisPageAndEndpoint`
   (the leader reaches the API, the list's board is capped at 5) + `testRunJobProducesResults` (the log
   line).
+  WHAT TAKES THE BRAND — DOORS OR NOT (1.43.0) — «разделив бренды на те где захват массово доры а где
+  не доры, посчитали их и где гибриды». Split BY VISIBILITY SHARE, never by the number of doors: ten
+  doors below the tenth place hold nothing, one door at #1 takes a third of the brand, and counting
+  sites made those two look the same. `build()` sums the `vis` of the `door`-type hosts into the
+  brand's `door_share` (% of the brand's visibility) and `captureOf()` maps it to `capture`:
+  `door` ≥ `CAPTURE_DOOR` (70), `other` ≤ `CAPTURE_OTHER` (30), `mixed` («гибрид») between — one place
+  for the thresholds, so the page, the CSV and the job log cannot disagree. `capture_label` comes from
+  `SerpAnalysis::CAPTURE`. The analysis gains `capture` = `{door, mixed, other, nobrand}` over the
+  BLOCKS, with «без бренда» counted apart: it is a leftover-queries bucket, not a brand, and inside the
+  counts it would make «брендов N» wrong by one — the four numbers add up to the number of blocks shown.
+  `captureText()` renders it for the collect log («Чем забраны бренды (по доле видимости доров, порог
+  70%/30%): дорами — 23, гибрид — 11, не дорами — 6»), written by `bin/run-job.php` next to the
+  `leaders()` line. Page: a «Захват» column (second, right after the brand — it is the primary split)
+  with a tag «дорами»/«гибрид»/«не дорами» and «91.3% · доров 6 из 7» under it, the three counts as a
+  CLICKABLE line under the stats (`#captureLine` → sets `#only`), filters `cap_door`/`cap_mixed`/
+  `cap_other` and the sort «по доле доров». The grid grew to EIGHT columns
+  (`14px … 118px 112px … 96px 112px …`) and «Объём» gave up its «доров N» sub-line to the new column.
+  EXPORT (the user's «а как тебе сгрузить последний анализ?»): `SerpAnalysis::brandsCsv()` writes ONE
+  ROW PER BRAND — capture, door share, leader with its type/share/keys, our share and best site, own
+  doors, fresh sites, networked/crossed, the per-type counts and the diff totals — behind the button
+  «Скачать разбор (CSV)» (`/download?file=serp`, built on the fly from `results.csv` like the page,
+  `top` passed through from the page's select). No SERP rows in it: tens of thousands of lines, while
+  the decision is made per brand. Numbers use a DECIMAL COMMA (`num()` → `number_format(…, ',', '')`)
+  and the file carries a BOM — otherwise Excel with a Russian locale reads the column as text and the
+  Cyrillic as mojibake; `fputcsv(…, ';', '"', '')` matches `ReportWriter`/`CollectHistory` (PHP 8.4
+  deprecates the default escape). Covered by
+  `SerpAnalysisTest::testSplitsBrandsByWhoCapturesThem` (three brands, one of each type, the counts and
+  both thresholds) / `testQueriesWithoutBrandAreCountedApart` / `testBrandsCsvCarriesTheSplitAndTheLeader`
+  and `PanelTest::testSerpAnalysisPageAndEndpoint` (the capture reaches `/api/serp`, the CSV downloads
+  with one row per brand, and the browser-rendered page shows the column and the counts line).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

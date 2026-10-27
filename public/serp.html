@@ -47,6 +47,8 @@
     .tag.social{background:#42191c;color:#ffb0b0} .tag.known{background:#3d2f10;color:#ffd98a}
     .tag.other{background:#2a323d;color:#c7cedb}
   }
+  .tag.mix{background:#fef3c7;color:#713f12}
+  @media (prefers-color-scheme: dark){ .tag.mix{background:#3d2f10;color:#ffd98a} }
   .tag.our{background:#0f766e;color:#fff}
   .tag.win{background:#4338ca;color:#fff}
   .tag.fresh{background:#fde68a;color:#713f12}
@@ -61,7 +63,7 @@
      по вертикали. Раньше здесь лежала дюжина плашек в одну строку, и каждый бренд приходилось
      разбирать заново — «куча плашек, сложно анализировать». */
   .bhead,.brand>summary{display:grid;gap:12px;align-items:center;
-    grid-template-columns:14px minmax(130px,1.3fr) 124px minmax(150px,1.5fr) 104px 150px minmax(110px,1fr)}
+    grid-template-columns:14px minmax(120px,1.2fr) 118px 112px minmax(140px,1.4fr) 96px 112px minmax(100px,1fr)}
   .bhead{padding:2px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
   .brand>summary{cursor:pointer;padding:10px 14px;list-style:none}
   .brand>summary::-webkit-details-marker{display:none}
@@ -118,6 +120,7 @@
   <div class="card">
     <div class="btns" style="margin-bottom:12px">
       <button class="btn-primary" id="reload">Обновить разбор</button>
+      <a class="btn-ghost" id="serpCsv" href="/download?file=serp" title="Одна строка на бренд: чем забран, доля доров, лидер, наша доля, свежие — чтобы делить бренды самому в Excel">Скачать разбор (CSV)</a>
       <label class="hint" style="display:flex;align-items:center;gap:6px">топ
         <select id="top">
           <option value="10" selected>10</option>
@@ -136,6 +139,7 @@
           <option value="own_doors">по нашим дорам</option>
           <option value="sites">по числу сайтов</option>
           <option value="query_count">по числу ключей</option>
+          <option value="door_share">по доле доров (чем забран бренд)</option>
           <option value="lead_share">по доле лидера (кто монополизировал бренд)</option>
           <option value="our_share">по нашей доле</option>
           <option value="fresh_sites">по свежим сайтам в топе</option>
@@ -150,6 +154,9 @@
       <label class="hint" style="display:flex;align-items:center;gap:6px">показывать
         <select id="only">
           <option value="">все бренды</option>
+          <option value="cap_door">забранные дорами</option>
+          <option value="cap_mixed">гибриды (и доры, и не доры)</option>
+          <option value="cap_other">забранные не дорами</option>
           <option value="door">только с дорами</option>
           <option value="own">только с нашими дорами</option>
           <option value="noown">с дорами, но без наших</option>
@@ -175,6 +182,7 @@
       <span class="tag door">доры</span><span class="tag theme">тематические</span>
       <span class="tag social">соцсети</span><span class="tag known">известные</span><span class="tag other">прочие</span>
     </div>
+    <div class="hint" id="captureLine" style="margin-top:10px"></div>
     <div class="hint" id="repeatLine" style="margin-top:10px"></div>
     <div class="hint" id="ownLine" style="margin-top:4px"></div>
     <div class="hint" id="diffLine" style="margin-top:4px"></div>
@@ -188,6 +196,7 @@
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 let TYPES = {};          // код типа → подпись (приходит с сервера)
+let CAPTURE_LIMITS = {door:70, other:30}; // границы типов захвата — приходят с сервера
 let brands = [];         // список брендов последнего разбора
 const loaded = {};       // ключ бренда → его выдача (подгружается при раскрытии)
 
@@ -208,10 +217,11 @@ function brandHtml(b){
   return `<details class="brand" data-key="${esc(b.key)}">
     <summary>
       ${cell('Бренд', `<span class="name">${esc(b.label)}</span>`, plural(b.query_count|0, ['ключ','ключа','ключей']))}
+      ${captureCell(b)}
       ${shareCell(b)}
       ${takerCell(b)}
       ${usCell(b)}
-      ${cell('Объём', plural(b.sites|0, ['сайт','сайта','сайтов']), `доров ${(b.counts && b.counts.door)|0} · строк ${b.rows|0}`)}
+      ${cell('Объём', plural(b.sites|0, ['сайт','сайта','сайтов']), `строк ${b.rows|0}`)}
       ${extrasCell(b)}
     </summary>
     <div class="body"><div class="loading">Загружаю выдачу…</div></div>
@@ -236,6 +246,7 @@ function headRow(){
   return `<div class="bhead">
     <span></span>
     <span>Бренд</span>
+    <span title="Чем забран бренд: доры держат ≥ 70% видимости — «дорами», ≤ 30% — «не дорами», между — гибрид">Захват</span>
     <span title="Какую долю видимости бренда забрал первый сайт. Близко к 100% — бренд держит кто-то один">Доля лидера</span>
     <span title="Сайт с наибольшей долей видимости по всем ключам бренда">Забирает</span>
     <span title="Наша доля и лучшая позиция в этом бренде">Мы</span>
@@ -248,6 +259,24 @@ function headRow(){
 function cell(label, top, sub, cls){
   return `<div class="cell ${cls || ''}" data-l="${esc(label)}">
     <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+
+/** Короткие подписи типов захвата: в колонке «забран дорами» не помещается, а смысл тот же. */
+const CAPTURE_SHORT = {door:'дорами', mixed:'гибрид', other:'не дорами'};
+const CAPTURE_TAG = {door:'door', mixed:'mix', other:'other'};
+
+/**
+ * Колонка «Захват» — чем забран бренд. Делит список на три кучи, по которым он и читается:
+ * бренды, где выдачу держат доры; бренды, где их почти нет; и гибриды посередине.
+ * Считается по ДОЛЕ ВИДИМОСТИ доров, а не по их числу — десять доров в хвосте топа ничего не держат.
+ */
+function captureCell(b){
+  const c = b.capture || 'other', share = +b.door_share || 0, doors = (b.counts && b.counts.door)|0;
+  const title = `Доры забирают ${share}% видимости бренда (${doors} из ${b.sites|0} сайтов). `
+    + `Порог: ≥ ${CAPTURE_LIMITS.door}% — «дорами», ≤ ${CAPTURE_LIMITS.other}% — «не дорами»`;
+  return cell('Захват',
+    `<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>`,
+    `${share}% · доров ${doors} из ${b.sites|0}`);
 }
 
 /** Колонка «Доля лидера»: число плюс полоска — по ней бренды и сравниваются взглядом. */
@@ -375,6 +404,7 @@ function sortValue(b, key){
   if(key === 'label') return String(b.label || '').toLowerCase();
   if(key === 'changed'){ const d = b.diff || {}; return ((d.added&&d.added.total)|0) + ((d.removed&&d.removed.total)|0); }
   if(key === 'lead_share') return b.leader ? (+b.leader.share || 0) : 0;
+  if(key === 'door_share') return +b.door_share || 0;
   if(key === 'our_share') return +b.our_share || 0;
   if(key in (b.counts || {})) return b.counts[key]|0;
   return b[key]|0;
@@ -383,6 +413,10 @@ function sortValue(b, key){
 /** Оставить только интересные бренды: с дорами, с нашими, с сеткой, изменившиеся. */
 function matchesOnly(b, only){
   const doors = (b.counts && b.counts.door)|0, own = b.own_doors|0, d = b.diff || {};
+  // Три кучи, на которые делится список: забрали доры, забрали не доры, и то и другое.
+  if(only === 'cap_door') return b.capture === 'door';
+  if(only === 'cap_mixed') return b.capture === 'mixed';
+  if(only === 'cap_other') return b.capture === 'other';
   if(only === 'door') return doors > 0;
   if(only === 'own') return own > 0;
   if(only === 'noown') return doors > 0 && own === 0;
@@ -422,13 +456,27 @@ async function load(){
     const j = await r.json();
     if(!j.ok){ $('status').innerHTML = `<span class="err">${esc(j.error || 'Ошибка')}</span>`; return; }
     TYPES = j.types || {};
+    CAPTURE_LIMITS = {door: +j.capture_door || 70, other: +j.capture_other || 30};
     brands = j.brands || [];
+    // Выгрузка должна описывать ТО ЖЕ, что на экране: глубина топа уходит в ссылку.
+    $('serpCsv').href = '/download?file=serp&top=' + encodeURIComponent($('top').value);
     $('version').textContent = j.version ? 'версия ' + j.version : '';
     const cells = [['брендов', brands.length], ['запросов', j.queries|0], ['строк выдачи', j.results|0],
       ['разных сайтов', j.sites|0]];
     for(const t of Object.keys(TYPES)) cells.push([TYPES[t], (j.totals||{})[t]|0]);
     cells.push(['наших доров', (j.own && j.own.doors)|0]);
     $('stats').innerHTML = cells.map(([s, b]) => `<div class="stat"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
+    // ЧЕМ ЗАБРАНЫ БРЕНДЫ — главный вопрос списка: куда вообще имеет смысл лезть дором.
+    const cap = j.capture || {};
+    const capLink = (code, text) => `<a href="#" data-cap="${code}"><b>${esc(text)}</b></a>`;
+    $('captureLine').innerHTML = 'Чем забраны бренды: '
+      + capLink('door', `дорами — ${cap.door|0}`) + ' · '
+      + capLink('mixed', `гибрид — ${cap.mixed|0}`) + ' · '
+      + capLink('other', `не дорами — ${cap.other|0}`)
+      + ((cap.nobrand|0) ? ` · без бренда — <b>${cap.nobrand|0}</b>` : '')
+      + `. Считается по <b>доле видимости</b> доров, а не по их числу: «дорами» — доры держат `
+      + `≥ ${CAPTURE_LIMITS.door}% видимости бренда, «не дорами» — ≤ ${CAPTURE_LIMITS.other}%, между — гибрид. `
+      + 'Нажмите на число — в списке останутся только эти бренды.';
     // Все числа выше — по РАЗНЫМ сайтам. Сумма по брендам больше ровно на повторы между брендами.
     const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};
     const repDoors = (rep.by_type && rep.by_type.door)|0;
@@ -516,6 +564,15 @@ $('dorgen').addEventListener('click', async () => {
     alert('Не удалось выгрузить: ' + (e.message || e));
     btn.disabled = false; btn.textContent = 'Обновить наши домены';
   }
+});
+// Числа в строке «чем забраны бренды» — это и есть фильтр: клик оставляет свою кучу.
+$('captureLine').addEventListener('click', e => {
+  const a = e.target.closest('a[data-cap]');
+  if(!a) return;
+  e.preventDefault();
+  $('only').value = 'cap_' + a.dataset.cap;
+  render();
+  $('brands').scrollIntoView({behavior:'smooth', block:'start'});
 });
 $('reload').addEventListener('click', load);
 $('top').addEventListener('change', load);

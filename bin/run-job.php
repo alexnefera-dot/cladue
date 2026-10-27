@@ -1216,6 +1216,12 @@ while (true) {
                 'Кто забирает бренды: наши — %d, чужие — %d (из них мы в бренде есть, но не первые — %d; нас нет совсем — %d); свежие сайты (моложе %d сут.) в топах %d брендов',
                 $lead['ours'], $lead['theirs'], $lead['behind'], $lead['nobody'], Freshness::FRESH_DAYS, $lead['fresh'],
             ));
+            // Чем забраны бренды: в один бренд выдачу держат доры, в другой — официальный сайт и обзорники.
+            // Делить список руками не нужно — порог один и тот же здесь, на странице и в выгрузке CSV.
+            $logger->info(sprintf(
+                'Чем забраны бренды (по доле видимости доров, порог %d%%/%d%%): %s',
+                (int) SerpAnalysis::CAPTURE_DOOR, (int) SerpAnalysis::CAPTURE_OTHER, SerpAnalysis::captureText($serp),
+            ));
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
             }
