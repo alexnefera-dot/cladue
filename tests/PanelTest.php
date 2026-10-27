@@ -88,7 +88,10 @@ final class PanelTest
         // для сравнения со следующим сбором и посчитанную разницу.
         Assert::true(is_file(dirname($runDir) . '/' . \YandexSites\Support\SerpAnalysis::INDEX_FILE), 'слепок выдачи сохранён для сравнения');
         Assert::true(is_file($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE), 'разница с прошлым сбором посчитана');
-        Assert::contains('Разбор выдачи: брендов', (string) file_get_contents($runDir . '/run.log'));
+        $collectLog = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Разбор выдачи: брендов', $collectLog);
+        // Кто забирает бренды — ответ виден прямо в журнале сбора, без захода на /serp.
+        Assert::contains('Кто забирает бренды:', $collectLog);
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         $hosts = array_map(static fn ($s) => $s['host'], $sites['sites']);
@@ -1654,10 +1657,22 @@ final class PanelTest
             Assert::same(1, $j['own']['doors'], 'наших доров всего');
             Assert::same(1, $byKey['vulkan']['own_doors'], 'наших доров у бренда');
 
+            // КТО ЗАБИРАЕТ БРЕНД: доля видимости доезжает до страницы в списке брендов, и победитель
+            // здесь наш — он стоит первым на обоих ключах.
+            $leader = $byKey['vulkan']['leader'];
+            Assert::same('kush.grid-x.ru', $leader['host']);
+            Assert::true($leader['own'], 'победитель опознан как наш');
+            Assert::same(2, $leader['keys'], 'стоит на обоих ключах бренда');
+            Assert::same(1, $leader['best']);
+            Assert::true($leader['share'] > 50.0, 'доля видимости лидера: ' . $leader['share']);
+            Assert::same($leader['host'], $byKey['vulkan']['our_best']['host'], 'он же наш лучший');
+            Assert::true(count($byKey['vulkan']['board']) <= 5, 'в списке брендов доска только верхушкой');
+
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
             $b = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true);
             Assert::true($b['ok'] ?? false, json_encode($b, JSON_UNESCAPED_UNICODE));
             Assert::same(2, count($b['brand']['queries']), 'ключи бренда со своей выдачей');
+            Assert::true(count($b['brand']['board']) >= 2, 'в раскрытом бренде доска целиком');
             $reasons = array_column($b['brand']['queries']['вулкан казино зеркало'], 'reason');
             Assert::inArray('excluded_domain', $reasons, 'видно, что именно убрала главная');
             Assert::same(2, $b['brand']['hosts']['kush.grid-x.ru']['keys']);

@@ -48,6 +48,12 @@
     .tag.other{background:#2a323d;color:#c7cedb}
   }
   .tag.our{background:#0f766e;color:#fff}
+  .tag.win{background:#4338ca;color:#fff}
+  .tag.fresh{background:#fde68a;color:#713f12}
+  @media (prefers-color-scheme: dark){ .tag.fresh{background:#4a3a10;color:#ffd98a} }
+  table.board td.num{text-align:right;white-space:nowrap}
+  table.board tr.leader td{font-weight:600}
+  table.board tr.mine td.site{background:#0f766e22}
   .tag.add{background:#dcfce7;color:#14532d}
   .tag.gone{background:#fee2e2;color:#7f1d1d}
   .brand{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);overflow:hidden}
@@ -105,6 +111,9 @@
           <option value="own_doors">по нашим дорам</option>
           <option value="sites">по числу сайтов</option>
           <option value="query_count">по числу ключей</option>
+          <option value="lead_share">по доле лидера (кто монополизировал бренд)</option>
+          <option value="our_share">по нашей доле</option>
+          <option value="fresh_sites">по свежим сайтам в топе</option>
           <option value="crossed">по пересечениям внутри бренда</option>
           <option value="networked">по сайтам на нескольких брендах</option>
           <option value="theme">по тематическим доменам</option>
@@ -119,6 +128,8 @@
           <option value="door">только с дорами</option>
           <option value="own">только с нашими дорами</option>
           <option value="noown">с дорами, но без наших</option>
+          <option value="behind">мы есть, но бренд забрал не мы</option>
+          <option value="fresh">только со свежими сайтами в топе</option>
           <option value="net">только с сайтами на нескольких брендах</option>
           <option value="crossed">только с пересечениями внутри бренда</option>
           <option value="changed">только изменившиеся</option>
@@ -185,13 +196,53 @@ function brandHtml(b){
       <span class="name">${esc(b.label)}</span>
       <span class="hint">ключей ${b.query_count|0} · сайтов ${b.sites|0} · строк ${b.rows|0}</span>
       ${countsHtml(b.counts||{})}
+      ${leaderTag(b)}
       ${(b.own_doors|0) > 0 ? `<span class="tag our" title="Доры, опознанные как НАШИ. Причина у каждого своя — раскройте бренд и наведите на метку «наш»">наших доров ${b.own_doors|0}</span>` : ''}
+      ${(b.fresh_sites|0) > 0 ? `<span class="tag fresh" title="Сайтов, у которых страница в выдаче моложе двух суток. Много свежих — нишу занимают новыми запусками, а не возрастом">свежих ${b.fresh_sites|0}</span>` : ''}
       ${(b.crossed|0) > 0 ? `<span class="tag" title="сайтов, которые встретились больше чем в одном ключе этого бренда">пересечений ${b.crossed|0}</span>` : ''}
       ${(b.networked|0) > 0 ? `<span class="tag" title="сайтов, которые держатся сразу на нескольких брендах — это сетка">на нескольких брендах ${b.networked|0}</span>` : ''}
       ${d}
     </summary>
     <div class="body"><div class="loading">Загружаю выдачу…</div></div>
   </details>`;
+}
+
+/**
+ * Кто забрал бренд — метка в заголовке. Доля видимости считается по весам позиций: «первый на всех
+ * ключах» и «десятый на всех ключах» наконец перестают выглядеть одинаково.
+ */
+function leaderTag(b){
+  const l = b.leader;
+  if(!l) return '';
+  const our = +b.our_share || 0;
+  const weOwn = !!l.own;
+  const gap = weOwn ? '' : (our > 0 ? ` · наш лучший ${our}%` : ' · наших в бренде нет');
+  const cls = weOwn ? 'our' : 'win';
+  const title = `Доля видимости по всем ключам бренда: вес позиции × число ключей. Проценты приблизительные — они для сравнения сайтов между собой, а не оценка трафика${weOwn ? '. Бренд забирает НАШ сайт' : ''}`;
+  return `<span class="tag ${cls}" title="${esc(title)}">забирает ${esc(l.host)} ${l.share}%${gap}</span>`;
+}
+
+/** Таблица «кто забирает бренд»: сайты по доле видимости, сверху победитель. */
+function boardHtml(brand){
+  const board = brand.board || [];
+  if(!board.length) return '';
+  const keys = brand.query_count|0;
+  const trs = board.map((r, i) => {
+    const ours = r.own ? ' <span class="tag our" title="наш сайт">наш</span>' : '';
+    return `<tr class="${i === 0 ? 'leader' : ''} ${r.own ? 'mine' : ''}">
+      <td class="pos">${i + 1}</td>
+      <td class="site">${esc(r.host)}${ours}</td>
+      <td class="num"><b>${r.share}%</b></td>
+      <td class="num">${r.keys|0} из ${keys}</td>
+      <td class="num">${r.best|0}</td>
+      <td class="num">${r.top3|0}</td>
+      <td>${typeTag(r.type)}</td>
+      <td class="num">${r.fresh_label ? `<span class="${(r.fresh_days !== null && r.fresh_days <= 2) ? 'tag fresh' : 'hint'}">${esc(r.fresh_label)}</span>` : '<span class="hint">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="qblock"><div class="q">Кто забирает бренд <span class="hint">· доля видимости по всем ${keys} ключам; веса позиций приблизительные — для сравнения сайтов между собой</span></div>
+    <table class="board"><thead><tr><th>#</th><th>Сайт</th><th>Доля</th><th>Ключей</th><th>Лучшая</th><th>Топ-3</th><th>Тип</th><th>Свежесть</th></tr></thead>
+    <tbody>${trs}</tbody></table></div>`;
 }
 
 /** Выдача одного бренда: по ключу — таблица топа, каждая строка со своим типом и подсветкой. */
@@ -215,11 +266,12 @@ function queriesHtml(brand){
         <td class="site"${why ? ` title="${esc(why)}"` : ''}>${link}</td>
         <td>${typeTag(r.type)}${ours}</td>
         <td class="ttl">${esc(r.title).slice(0,120)}</td>
+        <td class="num">${r.fresh_label ? `<span class="${(r.fresh !== null && (Date.now()/1000 - r.fresh) <= 2*86400) ? 'tag fresh' : 'hint'}">${esc(r.fresh_label)}</span>` : '<span class="hint">—</span>'}</td>
         <td class="ttl">${r.reason && r.reason !== 'selected' ? esc(r.reason) : ''}</td>
       </tr>`;
     }).join('');
     parts.push(`<div class="qblock"><div class="q">${esc(q)} <span class="hint">· ${rows.length} строк</span></div>
-      <table><thead><tr><th>#</th><th>Сайт</th><th>Тип</th><th>Заголовок</th><th>Что сделала главная</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Сайт</th><th>Тип</th><th>Заголовок</th><th title="Когда страница добавлена или обновлена — по данным выдачи">Свежесть</th><th>Что сделала главная</th></tr></thead>
       <tbody>${trs}</tbody></table></div>`);
   }
   const d = brand.diff;
@@ -229,7 +281,7 @@ function queriesHtml(brand){
       ? `<div style="margin-top:6px"><span class="tag ${cls}">${word} ${arr.length}</span> <span class="hint">${arr.map(esc).join(', ')}</span></div>` : '';
     tail += list(d.added_hosts||[], 'add', 'появились') + list(d.removed_hosts||[], 'gone', 'пропали');
   }
-  return parts.join('') + tail;
+  return boardHtml(brand) + parts.join('') + tail;
 }
 
 async function loadBrand(el, key){
@@ -251,6 +303,8 @@ let sortDesc = true;
 function sortValue(b, key){
   if(key === 'label') return String(b.label || '').toLowerCase();
   if(key === 'changed'){ const d = b.diff || {}; return ((d.added&&d.added.total)|0) + ((d.removed&&d.removed.total)|0); }
+  if(key === 'lead_share') return b.leader ? (+b.leader.share || 0) : 0;
+  if(key === 'our_share') return +b.our_share || 0;
   if(key in (b.counts || {})) return b.counts[key]|0;
   return b[key]|0;
 }
@@ -263,6 +317,9 @@ function matchesOnly(b, only){
   if(only === 'noown') return doors > 0 && own === 0;
   if(only === 'net') return (b.networked|0) > 0;
   if(only === 'crossed') return (b.crossed|0) > 0;
+  // «Мы есть, но бренд забрал не мы» — самый практичный список: где уже стоим и где отстаём.
+  if(only === 'behind') return (+b.our_share || 0) > 0 && !(b.leader && b.leader.own);
+  if(only === 'fresh') return (b.fresh_sites|0) > 0;
   if(only === 'changed') return ((d.added&&d.added.total)|0) > 0 || ((d.removed&&d.removed.total)|0) > 0 || !!d.is_new || !!d.gone;
   return true;
 }

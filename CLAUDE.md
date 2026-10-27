@@ -1081,6 +1081,48 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   what actually matters. Covered additionally by
   `SerpAnalysisTest::testTotalsCountDistinctSitesAndCrossBrandRepeats` /
   `testMarksOurDoorsByMarkersAndByDomainList`.
+  WHO TAKES THE BRAND + FRESHNESS (1.42.0) — «чтоб я понимал кто в бренде победитель и забирает
+  трафик по всем основным ключам» and «можем ли мы собирать метки свежести сайта из яндекса».
+  Both answers were already in the data and simply never surfaced.
+  VISIBILITY: counting rows said «присутствует», not «держит». `SerpAnalysis::CTR` (a documented,
+  deliberately APPROXIMATE click share per position, `CTR_TAIL` 0.01 below the tenth) weights every row,
+  so each host in a brand gets `vis` (summed over the brand's keys), `share` (% of the brand's total
+  visibility), `best` position and `top3`. `board` is the hosts sorted by share — `leader` is the
+  winner, `our_best`/`our_share` the best OWN site, so «забирает X 72% · наш лучший 3%» reads without
+  comparing numbers by eye. The percentages compare competitors with each other and are NOT a traffic
+  estimate; every label on the page says so, because a number that looks like traffic will be used as
+  traffic. `leaders($analysis)` folds it into one line for the collect log: «наши — N, чужие — M (из
+  них мы в бренде есть, но не первые — K; нас нет совсем — L)», which is the actionable split.
+  FRESHNESS: Yandex's «добавлен 8 ч назад» badge. `<modtime>` has been parsed out of Yandex.XML into
+  `SearchResult` since the beginning but was DROPPED before `results.csv` — and `/serp` is built from
+  that file, so nothing downstream ever saw it. `ReportWriter::writeRawCsv()` now writes a `modtime`
+  column LAST and `csvRows()` reads it BY NAME, so a results.csv from an older collect still parses
+  (the column is simply absent → ''). The live source has no such field, only the visible badge:
+  `HtmlResponseParser::findFreshness()` walks the result's LEAF elements and takes the one whose WHOLE
+  short text reads as a date (`Freshness::looksLikeLabel`, ≤ 24 chars) — deliberately not by class
+  name, which Yandex renames, and the whole-node rule is what keeps «3 дня назад» inside a snippet
+  sentence from being read as the document's age. A relative badge is converted to an ABSOLUTE stamp
+  AT PARSE TIME (`HtmlResponseParser::__construct(?int $now)` exists for tests): results.csv is read
+  days later, where a stored «8 ч назад» would mean a different moment. `Support\Freshness` is the one
+  place that understands all the shapes (Yandex compact `20250815T101500`, ISO, «8 ч назад», «вчера»,
+  «2 недели назад», «15 авг 2025») and renders them back («8 ч назад», «вчера», «5 дн. назад»,
+  «15.08.2025»); in its relative regex the longer stem MUST precede the shorter one («недел» before
+  «нед»), and no `\b` — word boundaries do not work with Cyrillic and ate the inflections. A site is
+  `fresh` at ≤ `Freshness::FRESH_DAYS` (2); the brand carries `fresh_sites`. Why it matters here: a
+  door one day old already sitting in the top-3 is the sharpest sign that the niche is taken by fresh
+  launches rather than by age. Panel (`public/serp.html`): a «забирает host N%» tag in every brand
+  header (green when it is ours), «свежих N», the «Кто забирает бренд» table at the top of an opened
+  brand (place · site · share · keys of N · best · top-3 · type · freshness), a freshness column in
+  each query's table, sorts «по доле лидера / по нашей доле / по свежим сайтам» and filters «мы есть,
+  но бренд забрал не мы» / «только со свежими». `/api/serp` sends `board` TRIMMED TO 5 in the brand
+  list (hundreds of hosts × hundreds of brands would bloat it) and in full for one opened brand.
+  Covered by `tests/FreshnessTest.php`, `HtmlResponseParserTest::testReadsFreshnessLabelOfTheResult`
+  (the fixture's first organic result carries «8 ч назад», the others none),
+  `SerpAnalysisTest::testShowsWhoTakesTheBrand` (first-on-three-keys beats ninth-on-three-keys by far,
+  shares sum to 100, the fresh site is counted) / `testOurSiteCanBeTheLeader` /
+  `testFreshnessSurvivesTheRoundTripThroughResultsCsv`, and `PanelTest::testSerpAnalysisPageAndEndpoint`
+  (the leader reaches the API, the list's board is capped at 5) + `testRunJobProducesResults` (the log
+  line).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

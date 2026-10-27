@@ -51,6 +51,7 @@ use YandexSites\Dorgen\OwnBases;
 use YandexSites\Support\CollectHistory;
 use YandexSites\Support\ContentTaken;
 use YandexSites\Support\DomainLedger;
+use YandexSites\Support\Freshness;
 use YandexSites\Support\BrandDomains;
 use YandexSites\Support\Logger;
 use YandexSites\Support\ProblemSites;
@@ -1207,6 +1208,13 @@ while (true) {
                 'Разбор выдачи: брендов %d, запросов %d, строк %d, разных сайтов %d — %s; наших доров %d; сайтов на нескольких брендах %d',
                 count($serp['brands']), $serp['queries'], $serp['results'], $serp['sites'], $serpTotals,
                 $serp['own']['doors'], $serp['repeats']['sites'],
+            ));
+            // Кто забирает бренды — главный вопрос к разбору выдачи, поэтому ответ виден и в журнале,
+            // не только на странице: доля видимости считается по весам позиций на всех ключах бренда.
+            $lead = SerpAnalysis::leaders($serp);
+            $logger->info(sprintf(
+                'Кто забирает бренды: наши — %d, чужие — %d (из них мы в бренде есть, но не первые — %d; нас нет совсем — %d); свежие сайты (моложе %d сут.) в топах %d брендов',
+                $lead['ours'], $lead['theirs'], $lead['behind'], $lead['nobody'], Freshness::FRESH_DAYS, $lead['fresh'],
             ));
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));

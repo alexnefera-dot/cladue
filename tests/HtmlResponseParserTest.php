@@ -43,6 +43,20 @@ final class HtmlResponseParserTest
         Assert::same('Кириллический домен', $page->results[3]->snippet);
     }
 
+    public function testReadsFreshnessLabelOfTheResult(): void
+    {
+        // Метка «добавлен 8 ч назад» в выдаче — единственный признак возраста документа у живого
+        // источника. Берём её НЕ по имени класса (Яндекс их меняет), а по тому, что весь короткий
+        // узел читается как дата, и сразу переводим в абсолютное время: results.csv читают через дни.
+        $now = gmmktime(12, 0, 0, 10, 27, 2026);
+        $page = (new HtmlResponseParser($now))->parse($this->fixture('serp.html'), 'окна', 0);
+
+        Assert::same('20261027T040000', $page->results[0]->modtime, '«8 ч назад» стало меткой времени');
+        foreach (array_slice($page->results, 1) as $r) {
+            Assert::same('', $r->modtime, 'у остальных подписи нет — ничего не выдумываем: ' . $r->host);
+        }
+    }
+
     public function testPositionOffsetAndLastPage(): void
     {
         $parser = new HtmlResponseParser();

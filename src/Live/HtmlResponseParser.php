@@ -9,6 +9,7 @@ use YandexSites\Model\SearchPage;
 use YandexSites\Model\SearchResult;
 use YandexSites\Search\ApiException;
 use YandexSites\Search\ResponseParserInterface;
+use YandexSites\Support\Freshness;
 
 /**
  * Разбор HTML-страницы выдачи yandex.ru.
@@ -29,6 +30,14 @@ final class HtmlResponseParser implements ResponseParserInterface
     private const AD_HOSTS = '~(^|\.)(yabs\.yandex\.|an\.yandex\.|ads\.adfox\.)~i';
     private const CAPTCHA_MARKERS = '~class="[^"]*\b(CheckboxCaptcha|AdvancedCaptcha|captcha-wrapper)|id="captcha"|action="[^"]*checkcaptcha|<title>\s*Ой!\s*</title>|похожи на автоматические|Подтвердите, что запросы отправляли вы|Are you not a robot~iu';
     private const EMPTY_MARKERS = '~ничего не (нашлось|найдено)|не нашлось ни одного|Nothing found for|no results found~iu';
+
+    /**
+     * @param int|null $now момент получения выдачи: относительно него считается «8 ч назад».
+     *                      Подставляется только в тестах, в бою это time() на момент разбора.
+     */
+    public function __construct(private readonly ?int $now = null)
+    {
+    }
 
     /**
      * Определяет тип страницы: выдача, пустая выдача, капча, блокировка или что-то неизвестное.
@@ -102,6 +111,7 @@ final class HtmlResponseParser implements ResponseParserInterface
                 title: $this->findTitle($xpath, $item),
                 headline: '',
                 snippet: $this->findSnippet($xpath, $item),
+                modtime: $this->findFreshness($xpath, $item),
             );
         }
 
@@ -236,6 +246,32 @@ final class HtmlResponseParser implements ResponseParserInterface
                 if ($text !== '') {
                     return $text;
                 }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Подпись свежести у результата («8 ч назад», «вчера», «15 авг 2025») — в метку времени.
+     *
+     * Ищем НЕ по имени класса: Яндекс их меняет, а подпись при этом остаётся отдельным коротким
+     * узлом. Поэтому берём все листовые элементы результата и проверяем те, чей ВЕСЬ текст короток и
+     * читается как дата (Freshness::looksLikeLabel) — так «3 дня назад» внутри длинного сниппета не
+     * сойдёт за дату документа. Относительную подпись сразу переводим в абсолютное время: results.csv
+     * читают через дни, и сохранённое текстом «8 ч назад» к тому моменту значило бы другой момент.
+     */
+    private function findFreshness(\DOMXPath $xpath, \DOMElement $item): string
+    {
+        $nodes = $xpath->query('.//*[not(*)]', $item);
+        foreach ($nodes ?: [] as $node) {
+            $text = $this->clean($node->textContent);
+            if (!Freshness::looksLikeLabel($text)) {
+                continue;
+            }
+            $ts = Freshness::parse($text, $this->now ?? time());
+            if ($ts !== null) {
+                return Freshness::stamp($ts);
             }
         }
 

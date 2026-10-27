@@ -36,6 +36,66 @@ final class SerpAnalysisTest
         Assert::same('other', SerpAnalysis::classify(''), 'пустой хост');
     }
 
+    public function testShowsWhoTakesTheBrand(): void
+    {
+        // Главный вопрос пользователя к разбору: «кто в бренде победитель и забирает трафик по всем
+        // основным ключам». Отвечает доля видимости — вес позиции, просуммированный по ключам бренда:
+        // первый на трёх ключах должен обойти того, кто просто присутствует везде внизу.
+        $now = gmmktime(12, 0, 0, 10, 27, 2026);
+        $rows = [];
+        foreach (['вулкан казино', 'вулкан зеркало', 'вулкан слоты'] as $q) {
+            $rows[] = $this->row($q, 1, 'leader.ru');
+            $rows[] = $this->row($q, 9, 'kush.ourbase.ru');
+        }
+        $rows[] = $this->row('вулкан казино', 2, 'second.ru');
+        // Свежий дор: в выдаче страница моложе двух суток.
+        $fresh = $this->row('вулкан слоты', 4, 'fresh-door.ru');
+        $fresh['modtime'] = \YandexSites\Support\Freshness::stamp($now - 20 * 3600);
+        $rows[] = $fresh;
+
+        $brand = SerpAnalysis::build($rows, 10, new OwnSites(['ourbase.ru']), $now)['brands'][0];
+
+        Assert::same('leader.ru', $brand['leader']['host'], 'победитель — тот, кто держит первые места');
+        Assert::true($brand['leader']['share'] > 50.0, 'и его доля больше половины бренда: ' . $brand['leader']['share']);
+        Assert::same(3, $brand['leader']['keys'], 'лидер стоит на всех трёх ключах');
+        Assert::same(1, $brand['leader']['best']);
+        Assert::same(3, $brand['leader']['top3']);
+
+        // Наш сайт тоже на всех ключах, но девятым — доля должна быть кратно меньше.
+        Assert::same('kush.ourbase.ru', $brand['our_best']['host'], 'наш лучший найден по списку запусков');
+        Assert::true($brand['our_share'] < $brand['leader']['share'] / 5, 'присутствие внизу — это не «забирает бренд»');
+        Assert::same(3, $brand['our_best']['keys'], 'ключей столько же, сколько у лидера');
+
+        // Доска отсортирована по доле, сверху победитель; доли в сумме дают 100%.
+        $shares = array_column($brand['board'], 'share');
+        $sorted = $shares;
+        rsort($sorted);
+        Assert::same($sorted, $shares, 'доска отсортирована по доле, сверху победитель');
+        Assert::same(100.0, round(array_sum($shares), 0), 'доли делят бренд целиком');
+
+        // Свежесть: один сайт моложе двух суток, у остальных её просто нет.
+        Assert::same(1, $brand['fresh_sites'], 'свежий сайт в топе ровно один');
+        $byHost = [];
+        foreach ($brand['board'] as $r) {
+            $byHost[$r['host']] = $r;
+        }
+        Assert::same('20 ч назад', $byHost['fresh-door.ru']['fresh_label']);
+        Assert::same(0, $byHost['fresh-door.ru']['fresh_days']);
+        Assert::same('', $byHost['leader.ru']['fresh_label'], 'выдача даты не дала — ничего не выдумываем');
+        Assert::same(null, $byHost['leader.ru']['fresh_days']);
+    }
+
+    public function testOurSiteCanBeTheLeader(): void
+    {
+        // Если бренд забираем мы — это должно быть видно сразу, без сравнения чисел глазами.
+        $now = gmmktime(12, 0, 0, 10, 27, 2026);
+        $rows = [$this->row('вулкан казино', 1, 'kush.ourbase.ru'), $this->row('вулкан казино', 2, 'chuzhoy.ru')];
+        $brand = SerpAnalysis::build($rows, 10, new OwnSites(['ourbase.ru']), $now)['brands'][0];
+
+        Assert::true($brand['leader']['own'], 'победитель — наш');
+        Assert::same($brand['leader']['host'], $brand['our_best']['host']);
+    }
+
     public function testGroupsByBrandAndMarksIntersections(): void
     {
         // Блок на бренд: все его ключи со всей выдачей, повторы НЕ выбрасываются, пересечения помечены.
@@ -207,5 +267,34 @@ final class SerpAnalysisTest
         Assert::same('excluded_domain', $rows[1]['reason'], 'причина отсева сохранена');
         $a = SerpAnalysis::build($rows);
         Assert::same(1, $a['brands'][0]['counts']['door']);
+        Assert::same('', $rows[0]['modtime'], 'в сборе прошлой версии колонки свежести нет — и это не ошибка');
+    }
+
+    public function testFreshnessSurvivesTheRoundTripThroughResultsCsv(): void
+    {
+        // Свежесть приходит в <modtime> из Yandex.XML, разбирается у нас с самого начала — но до
+        // 1.42.0 терялась перед results.csv, а разбор выдачи строится именно по этому файлу.
+        $now = gmmktime(12, 0, 0, 10, 27, 2026);
+        $file = sys_get_temp_dir() . '/yandex-sites-serpfresh-' . uniqid() . '.csv';
+        $result = new \YandexSites\Model\SearchResult(
+            query: 'вулкан казино',
+            page: 0,
+            position: 1,
+            url: 'https://kush.grid-e.ru/',
+            host: 'kush.grid-e.ru',
+            title: 'Вулкан',
+            headline: '',
+            snippet: 'казино онлайн',
+            modtime: '20261027T040000',
+        );
+        (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([['result' => $result, 'reason' => null]], $file);
+
+        $rows = iterator_to_array(SerpAnalysis::csvRows($file));
+        @unlink($file);
+        Assert::same('20261027T040000', $rows[0]['modtime'], 'колонка дошла до разбора');
+
+        $brand = SerpAnalysis::build($rows, 10, null, $now)['brands'][0];
+        Assert::same('8 ч назад', $brand['board'][0]['fresh_label']);
+        Assert::same(1, $brand['fresh_sites']);
     }
 }

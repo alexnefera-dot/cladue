@@ -100,7 +100,9 @@ final class ReportWriter
         $appendTo = $append && is_file($path) && filesize($path) > 0;
         $fh = $appendTo ? $this->openAppend($path) : $this->open($path);
         if (!$appendTo) {
-            $this->row($fh, ['query', 'page', 'position', 'host', 'url', 'title', 'snippet', 'result']);
+            // modtime — свежесть документа по выдаче; колонка ПОСЛЕДНЯЯ и читается по имени,
+            // поэтому results.csv прошлых сборов (без неё) разбирается как раньше.
+            $this->row($fh, ['query', 'page', 'position', 'host', 'url', 'title', 'snippet', 'result', 'modtime']);
         }
         foreach ($rows as $row) {
             $r = $row['result'];
@@ -113,6 +115,7 @@ final class ReportWriter
                 $r->title,
                 mb_substr($r->text(), 0, 500),
                 $row['reason'] ?? 'selected',
+                $r->modtime,
             ]);
         }
         fclose($fh);

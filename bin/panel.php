@@ -647,6 +647,9 @@ if ($path === '/api/serp') {
     $list = [];
     foreach ($analysis['brands'] as $brand) {
         unset($brand['queries'], $brand['hosts']);
+        // Таблица «кто забирает бренд» в СПИСКЕ нужна только верхушкой: в раскрытом бренде она
+        // приходит целиком (/api/serp?brand=…), а здесь сотни строк на бренд раздули бы ответ.
+        $brand['board'] = array_slice($brand['board'] ?? [], 0, 5);
         $brand['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
         $list[] = $brand;
     }

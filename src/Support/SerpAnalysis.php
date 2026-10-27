@@ -34,6 +34,22 @@ final class SerpAnalysis
     public const DIFF_FILE = 'serp-diff.json';
 
     /** Типы сайтов в порядке показа. */
+    /**
+     * ПРИБЛИЗИТЕЛЬНЫЕ доли кликов по позиции — ими считается «видимость» сайта по бренду.
+     *
+     * Точных цифр по чужой выдаче ни у кого нет, и выдавать их за трафик нельзя. Но сравнивать
+     * конкурентов между собой они позволяют честно: первое место стоит примерно вдвое дороже
+     * второго и в разы дороже пятого, и именно это отличает «держит бренд» от «просто присутствует».
+     * Ниже десятого места вес одинаково мал — там уже не про трафик.
+     *
+     * @var array<int, float>
+     */
+    public const CTR = [1 => 0.35, 2 => 0.17, 3 => 0.11, 4 => 0.08, 5 => 0.06,
+        6 => 0.05, 7 => 0.04, 8 => 0.03, 9 => 0.025, 10 => 0.02];
+
+    /** Вес позиции за пределами первой десятки. */
+    public const CTR_TAIL = 0.01;
+
     public const TYPES = [
         'door' => 'доры (поддомены)',
         'theme' => 'тематические домены',
@@ -86,8 +102,9 @@ final class SerpAnalysis
      *        дор помечается «наш» (сверка по базе = регистрируемому домену хоста)
      * @return array<string, mixed>
      */
-    public static function build(iterable $rows, int $top = 10, ?OwnSites $own = null): array
+    public static function build(iterable $rows, int $top = 10, ?OwnSites $own = null, ?int $now = null): array
     {
+        $now ??= time();
         $brands = [];
         $results = 0;
         $hostBrands = []; // host => [brandKey => true] — сколько РАЗНЫХ брендов держится на домене
@@ -112,6 +129,10 @@ final class SerpAnalysis
                 ];
             }
             $type = self::classify($host, (string) ($row['title'] ?? ''), (string) ($row['snippet'] ?? ''));
+            // Свежесть документа по выдаче: в results.csv она уже абсолютная (живая выдача переводит
+            // «8 ч назад» в метку времени при разборе), поэтому здесь просто читаем.
+            $fresh = Freshness::parse((string) ($row['modtime'] ?? ''), $now);
+            $weight = self::CTR[$position] ?? self::CTR_TAIL;
             $brands[$bucket]['queries'][$query][] = [
                 'position' => $position,
                 'host' => $host,
@@ -119,14 +140,25 @@ final class SerpAnalysis
                 'title' => (string) ($row['title'] ?? ''),
                 'type' => $type,
                 'reason' => (string) ($row['reason'] ?? ''),
+                'fresh' => $fresh,
+                'fresh_label' => Freshness::label($fresh, $now),
             ];
             if (!isset($brands[$bucket]['hosts'][$host])) {
                 $reason = self::ownReason($host, $own);
                 $brands[$bucket]['hosts'][$host] = ['type' => $type, 'keys' => [], 'count' => 0,
-                    'own' => $reason !== '', 'own_reason' => $reason];
+                    'own' => $reason !== '', 'own_reason' => $reason,
+                    'best' => $position, 'top3' => 0, 'vis' => 0.0, 'fresh' => null];
             }
             $brands[$bucket]['hosts'][$host]['keys'][$query] = true;
             $brands[$bucket]['hosts'][$host]['count']++;
+            // Видимость копится ПО СТРОКАМ: сайт на пяти ключах в топ-3 весит больше, чем на одном.
+            $brands[$bucket]['hosts'][$host]['vis'] += $weight;
+            $brands[$bucket]['hosts'][$host]['best'] = min($brands[$bucket]['hosts'][$host]['best'], $position);
+            $brands[$bucket]['hosts'][$host]['top3'] += $position <= 3 ? 1 : 0;
+            if ($fresh !== null) {
+                // Самая СВЕЖАЯ из страниц сайта: по ней видно, когда он в нише появился/обновился.
+                $brands[$bucket]['hosts'][$host]['fresh'] = max($brands[$bucket]['hosts'][$host]['fresh'] ?? 0, $fresh);
+            }
             $hostBrands[$host][$bucket] = true;
             $results++;
         }
@@ -170,6 +202,45 @@ final class SerpAnalysis
                 // На скольких брендах держится этот домен: 2+ — это сетка, подсвечиваем отдельно.
                 $brand['hosts'][$host]['brands'] = count($hostBrands[$host] ?? []);
             }
+            // КТО ЗАБИРАЕТ БРЕНД. Доля видимости = вес позиций сайта к весу всех позиций бренда:
+            // «присутствует на всех ключах десятым» и «держит первое место» наконец перестают
+            // выглядеть одинаково, а по доле лидера сразу видно, насколько бренд вообще занят.
+            $visTotal = 0.0;
+            foreach ($brand['hosts'] as $info) {
+                $visTotal += (float) $info['vis'];
+            }
+            $freshSites = 0;
+            foreach ($brand['hosts'] as $host => $info) {
+                $brand['hosts'][$host]['share'] = $visTotal > 0 ? round(100 * $info['vis'] / $visTotal, 1) : 0.0;
+                $brand['hosts'][$host]['vis'] = round((float) $info['vis'], 4);
+                $days = Freshness::days($info['fresh'], $now);
+                $brand['hosts'][$host]['fresh_days'] = $days;
+                $brand['hosts'][$host]['fresh_label'] = Freshness::label($info['fresh'], $now);
+                if ($days !== null && $days <= Freshness::FRESH_DAYS) {
+                    $freshSites++;
+                }
+            }
+            // Таблица «кто забирает бренд»: сайты по доле видимости, сверху — победитель.
+            $board = [];
+            foreach ($brand['hosts'] as $host => $info) {
+                $board[] = ['host' => $host] + array_intersect_key($info, array_flip(
+                    ['type', 'own', 'own_reason', 'keys', 'count', 'brands', 'best', 'top3', 'share', 'fresh_days', 'fresh_label'],
+                ));
+            }
+            usort($board, static fn (array $a, array $b): int => $b['share'] <=> $a['share'] ?: $a['best'] <=> $b['best']);
+            $brand['board'] = $board;
+            $brand['leader'] = $board[0] ?? null;
+            // Наш лучший — чтобы отрыв «победитель против нас» читался без поиска глазами.
+            $ourBest = null;
+            foreach ($board as $row) {
+                if ($row['own']) {
+                    $ourBest = $row;
+                    break;
+                }
+            }
+            $brand['our_best'] = $ourBest;
+            $brand['our_share'] = $ourBest !== null ? $ourBest['share'] : 0.0;
+            $brand['fresh_sites'] = $freshSites;
             $brand['own_doors'] = $ownDoors;
             $queries += count($brand['queries']);
             $rowsCount = 0;
@@ -205,6 +276,40 @@ final class SerpAnalysis
             'results' => $results,
             'queries' => $queries,
         ];
+    }
+
+    /**
+     * Короткий итог «кто забирает бренды» для журнала задания и сообщения о сборе: сколько брендов
+     * забираем мы, сколько забрали чужие и в скольких топах стоят свежие (моложе двух суток) сайты.
+     *
+     * @param array<string, mixed> $analysis
+     * @return array{ours: int, theirs: int, behind: int, nobody: int, fresh: int}
+     */
+    public static function leaders(array $analysis): array
+    {
+        $out = ['ours' => 0, 'theirs' => 0, 'behind' => 0, 'nobody' => 0, 'fresh' => 0];
+        foreach ((array) ($analysis['brands'] ?? []) as $brand) {
+            $leader = $brand['leader'] ?? null;
+            if ($leader === null) {
+                continue;
+            }
+            if (!empty($leader['own'])) {
+                $out['ours']++;
+            } else {
+                $out['theirs']++;
+                // Отдельно: мы в бренде ЕСТЬ, но первым стоит чужой — именно эти бренды и доигрываются.
+                if ((float) ($brand['our_share'] ?? 0) > 0) {
+                    $out['behind']++;
+                } else {
+                    $out['nobody']++;
+                }
+            }
+            if ((int) ($brand['fresh_sites'] ?? 0) > 0) {
+                $out['fresh']++;
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -365,7 +470,9 @@ final class SerpAnalysis
                 return $i === false ? -1 : (int) $i;
             };
             $cols = ['query' => $at('query'), 'position' => $at('position'), 'host' => $at('host'),
-                'url' => $at('url'), 'title' => $at('title'), 'snippet' => $at('snippet'), 'reason' => $at('result')];
+                'url' => $at('url'), 'title' => $at('title'), 'snippet' => $at('snippet'), 'reason' => $at('result'),
+                // Свежесть пишется с 1.42.0; в results.csv прошлых сборов колонки нет — тогда -1 и ''.
+                'modtime' => $at('modtime')];
             if ($cols['query'] < 0 || $cols['host'] < 0) {
                 return;
             }
@@ -382,6 +489,7 @@ final class SerpAnalysis
                     'title' => $get('title'),
                     'snippet' => $get('snippet'),
                     'reason' => $get('reason'),
+                    'modtime' => $get('modtime'),
                 ];
             }
         } finally {
