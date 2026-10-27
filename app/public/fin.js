@@ -112,11 +112,17 @@ function portRows(it, depth, ctx) {
     // переносы — чистое наложение: «Сейчас» хранится как есть, «Стало» = «Сейчас» + переносы
     const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции (у автоцены она '$')
-    // «Сейчас» несёт три вещи: сумму, долю и — если есть переносы — во что она превратится
-    const shareTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const shareCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
-    const shareSub = shareTot == null ? '' :
-      `<span class="sub" title="доля от всего портфеля / внутри своего блока">${shareTot.toFixed(1)}%${shareCat != null ? ` / ${shareCat.toFixed(1)}%` : ''}</span>`;
+    // «Сейчас» несёт три вещи: сумму, долю и — если есть переносы — во что она превратится.
+    // Доля — в двух рамках: внутри своего раздела (прямого родителя) и внутри своей части.
+    // Вторым числом раньше стояла доля от блока верхнего уровня: уровень раздела она
+    // перескакивала, и по строке нельзя было понять, процент от чего.
+    const sharePart = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const shareIn = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
+    const scopeIn = `в «${fesc(ctx?.parentName || '')}»`;
+    const scopePart = ctx?.partTitle ? `в части «${fesc(ctx.partTitle)}»` : 'в портфеле';
+    const shareSub = sharePart == null ? '' :
+      `<span class="sub" title="доля ${shareIn != null ? scopeIn + ' / доля ' : ''}${scopePart}">${
+        shareIn != null ? shareIn.toFixed(1) + '% / ' : ''}${sharePart.toFixed(1)}%</span>`;
     const nowCell = it.auto
       ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
       : editable
@@ -143,11 +149,12 @@ function portRows(it, depth, ctx) {
     const planSumShown = it.planPin === 'eur' && !(it.children || []).some(c => c.planEur != null)
       ? it.target_value
       : planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
-    // доли цели в том же порядке, что у «Сейчас»: от всего портфеля / внутри своего блока.
-    // Кликабельна только первая — именно её мы храним в target_pct.
-    const planCatPct = ctx?.blockTarget > 0 && planRow != null ? planRow / ctx.blockTarget * 100 : null;
-    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от всего портфеля (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`
-      + (planCatPct != null ? ` <span class="derived" title="доля цели внутри своего блока">/ ${planCatPct.toFixed(1)}%</span>` : '');
+    // Доли цели — в тех же рамках и в том же порядке, что у «Сейчас»: внутри своего раздела,
+    // потом внутри своей части. Кликабельна вторая: именно её, долю от части, хранит target_pct —
+    // от раздела считать нельзя, его цель сама складывается из вложенных.
+    const planInPct = depth > 0 && ctx?.parentTarget > 0 && planRow != null ? planRow / ctx.parentTarget * 100 : null;
+    const pctCell = (planInPct != null ? `<span class="derived" title="доля цели ${scopeIn}">${planInPct.toFixed(1)}%</span> / ` : '')
+      + `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей ${scopePart} (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
       ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
@@ -190,7 +197,7 @@ function portRows(it, depth, ctx) {
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, partTitle: ctx?.partTitle, parentEur: it.eur, parentName: it.name, parentTarget: it.planEur, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -286,11 +293,16 @@ function portCard(it, depth, ctx) {
     : `<span class="num">${fmtE(it.eur)}</span>`;
   const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
   const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-  const pCat = !target && ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;   // внутри своего блока
+  const pCat = !target && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;   // внутри своего раздела
   let meta;
   if (target) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
-    const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;   // доля плана внутри блока
+    // Рамки те же, что в таблице: внутри своего раздела (прямого родителя) и внутри своей части
+    const scopeIn = `в «${fesc(ctx?.parentName || '')}»`;
+    const scopePart = ctx?.partTitle ? `в части «${fesc(ctx.partTitle)}»` : 'в портфеле';
+    const nowIn = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
+    const nowPart = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const planIn = depth > 0 && ctx?.parentTarget > 0 && it.planEur > 0 ? it.planEur / ctx.parentTarget * 100 : null;
     const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
     // «Сейчас» показано крупным числом как есть; «стало» = плюс переносы
     const net = ctx?.netByPath?.[path] || 0;
@@ -309,7 +321,10 @@ function portCard(it, depth, ctx) {
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
-    const shareStr = (planPct == null && planCat == null) ? '' : `<span class="meta" title="доля плана: от своего блока / от всего целевого">доля ${planCat != null ? `<b>${planCat.toFixed(1)}% кат.</b>` : ''}${planPct != null ? ` ${planPct.toFixed(1)}% общ.` : ''}</span>`;
+    const shareStr = (nowPart == null ? '' : `<span class="meta" title="доля суммы ${nowIn != null ? scopeIn + ' / доля ' : ''}${scopePart}">доля ${
+        nowIn != null ? `<b>${nowIn.toFixed(1)}%</b> / ` : ''}${nowPart.toFixed(1)}%</span>`)
+      + (planPct == null ? '' : `<span class="meta" title="доля цели ${planIn != null ? scopeIn + ' / доля цели ' : ''}${scopePart}">цель ${
+        planIn != null ? `<b>${planIn.toFixed(1)}%</b> / ` : ''}${planPct.toFixed(1)}%</span>`);
     meta = `${becameStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
@@ -333,7 +348,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, partTitle: ctx?.partTitle, parentEur: it.eur, parentName: it.name, parentTarget: it.planEur, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -595,7 +610,9 @@ function secPortfolio(d, s) {
       .filter(p => p.nodes.length)
     : [{ key: 'act', title: '', hint: '', nodes: acts, now: actTotal, plan: actPlan }];
   const partNet = ns => ns.reduce((a, n) => a + (rctx.netByPath?.['/' + (n.name || '').trim().toLowerCase()] || 0), 0);
-  const partCtx = p => ({ ...rctx, total: p.now, planTotal: p.plan, parentEur: p.now });
+  // Рамка самого верхнего уровня — часть портфеля: доли блоков считаются от неё,
+  // и её имя подставляется в подсказки, чтобы «процент от чего» читался со строки.
+  const partCtx = p => ({ ...rctx, total: p.now, planTotal: p.plan, parentEur: p.now, partTitle: p.title });
   // Шапка части — та же сетка колонок, что у строк: суммы стоят под своими заголовками
   const partHead = p => {
     const net = partNet(p.nodes);
@@ -641,9 +658,9 @@ function secPortfolio(d, s) {
       <tr><th>Название</th>
         <th class="r" style="width:96px" title="цена покупки в валюте позиции">Покупка</th>
         <th class="r" style="width:66px">Прирост</th>
-        <th class="r sep" style="width:116px" title="сколько размещено; под суммой — доля">Сейчас</th>
+        <th class="r sep" style="width:116px" title="сколько размещено; под суммой доли — внутри своего раздела / внутри своей части портфеля">Сейчас <span class="meta">% разд. / части</span></th>
         <th class="r" style="width:104px" title="сейчас плюс запланированные переносы; без них равно «Сейчас»">Станет</th>
-        <th class="r sep" style="width:126px" title="доля или сумма — заполненное закреплено, второе выводится">Цель</th>
+        <th class="r sep" style="width:126px" title="сумма или доля — заполненное закреплено, второе выводится; доли в тех же рамках: внутри своего раздела / внутри своей части">Цель <span class="meta">% разд. / части</span></th>
         <th class="r" style="width:118px" title="станет − цель">Отклонение</th>
         <th class="sep" style="width:180px">Перестановки</th><th style="width:92px"></th></tr>
       ${parts.map(p => (split ? partHead(p) : '')
@@ -713,7 +730,9 @@ function secPortfolio(d, s) {
       <div class="barswrap"><div class="bars">
         <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
         <div class="bhead"><span></span><span>${monCut === 'blocks' ? 'блок' : monCut === 'types' ? 'тип актива' : 'регион'}</span><span>сейчас против цели</span>
-          <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span></div>
+          <span>€</span><span title="доля в показанном уровне: в сумме строк ниже, а не в капитале целиком">%</span>
+          <span>€</span><span title="доля цели в том же показанном уровне">%</span>
+          <span>€</span><span title="разница этих двух долей, в пунктах">п.п.</span></div>
         ${catRows.map((r, ri) => {
           const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
           const over = r.nowP > r.planP ? (r.nowP - r.planP) / catMaxP * 100 : 0;
