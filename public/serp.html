@@ -25,6 +25,23 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
   .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 12px}
   .hint{color:var(--muted);font-size:12px}
+  /* СВОДКА ПАРАМЕТРОВ вместо абзацев: пять абзацев с цифрами внутри текста не читаются, их
+     пролистывают. В таблице глаз бежит по левой колонке, а число всегда на одном месте. */
+  .sum{display:grid;grid-template-columns:max-content minmax(0,1fr);margin-top:12px;font-size:13px;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .sum .hd{grid-column:1/-1;padding:7px 12px;background:var(--chip);color:var(--muted);
+    font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .sum .k{padding:8px 12px;color:var(--muted);border-top:1px solid var(--line)}
+  .sum .v{padding:8px 12px;border-top:1px solid var(--line);min-width:0}
+  .sum .hd + .k, .sum .hd + .k + .v{border-top:0}
+  .sum .v b{font-variant-numeric:tabular-nums}
+  .sum .note{color:var(--muted);font-size:11px;margin-top:2px}
+  .sum .tag{margin-right:4px}
+  .sum a.tag{text-decoration:none}
+  .sum .warn{color:#b45309}
+  @media (prefers-color-scheme: dark){ .sum .warn{color:#fbbf24} }
+  @media (max-width:640px){ .sum{grid-template-columns:1fr} .sum .k{border-top:1px solid var(--line);padding-bottom:0}
+    .sum .v{border-top:0;padding-top:2px} .sum .hd + .k + .v{border-top:0} }
   a{color:var(--accent)}
   button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:8px 14px;cursor:pointer}
   .btn-primary{background:var(--accent);color:var(--accent-ink)}
@@ -224,11 +241,8 @@
       <span class="tag door">доры</span><span class="tag theme">тематические</span>
       <span class="tag social">соцсети</span><span class="tag known">известные</span><span class="tag other">прочие</span>
     </div>
-    <div class="hint" id="captureLine" style="margin-top:10px"></div>
-    <div class="hint" id="repeatLine" style="margin-top:10px"></div>
-    <div class="hint" id="ownLine" style="margin-top:4px"></div>
-    <div class="hint" id="diffLine" style="margin-top:4px"></div>
-    <div class="hint" id="changeLine" style="margin-top:4px"></div>
+    <div class="sum" id="summary"></div>
+    <div class="hint" style="margin-top:6px">Числа в сводке кликабельны — ставят фильтр списка; наведите на строку, чтобы увидеть, как параметр считается.</div>
     <div id="trendBox" style="margin-top:12px"></div>
   </div>
 
@@ -735,6 +749,123 @@ function matchesOnly(b, only){
   return true;
 }
 
+/**
+ * СВОДКА ПО СБОРУ — таблицей «параметр → значение», а не абзацами: абзац, внутри которого спрятаны
+ * цифры, не читается, его пролистывают. Здесь глаз бежит по левой колонке и находит нужный
+ * параметр, число всегда на одном и том же месте, а длинное объяснение ушло в подсказку строки.
+ * Числа остаются кликабельными — они же и фильтры списка.
+ */
+function sumRow(label, value, note, title){
+  return `<div class="k"${title ? ` title="${esc(title)}"` : ''}>${label}</div>`
+    + `<div class="v">${value}${note ? `<div class="note">${note}</div>` : ''}</div>`;
+}
+
+/** Число-ссылка: клик ставит фильтр списка, поэтому сводка — ещё и панель навигации. */
+function sumLink(code, text, title){
+  return `<a href="#" data-only="${code}"${title ? ` title="${esc(title)}"` : ''}><b>${text}</b></a>`;
+}
+
+function renderSummary(j){
+  const cap = j.capture || {}, capLead = j.capture_leader || {}, c = j.changes || {};
+  const nBrands = brands.length;
+  const rows = ['<div class="hd">Что в выдаче</div>'];
+
+  // ЧЕМ ЗАБРАНЫ БРЕНДЫ — первый вопрос списка: куда вообще имеет смысл лезть дором.
+  const capTag = (code, cls, label) => {
+    const n = cap[code]|0, l = capLead[code]|0;
+    return `<a href="#" data-cap="${code}" class="tag ${cls}" title="${esc(label)}: ${n}`
+      + (l ? ` · дор стоит первым в ${l}` : '') + `">${esc(label)} <b>${n}</b></a>`;
+  };
+  rows.push(sumRow('Чем забраны бренды',
+    capTag('door', 'door', 'дорами') + capTag('mixed', 'mix', 'гибрид') + capTag('other', 'other', 'не дорами')
+      + ((cap.nobrand|0) ? `<span class="tag" title="Остаток запросов, в которых бренд не распознан">без бренда <b>${cap.nobrand|0}</b></span>` : ''),
+    `по доле видимости доров: ≥ ${CAPTURE_LIMITS.door}% — дорами, ≤ ${CAPTURE_LIMITS.other}% — не дорами, между — гибрид`,
+    'Считается по доле видимости доров, а не по их числу: десять доров в хвосте топа ничего не держат, а один дор на первом месте забирает треть бренда. Нажмите — в списке останутся только эти бренды.'));
+
+  // «Дор первым» не повторяет предыдущую строку: доров в выдаче много, но стоят они низко.
+  const leadAll = (capLead.door|0) + (capLead.mixed|0) + (capLead.other|0) + (capLead.nobrand|0);
+  rows.push(sumRow('Дор стоит первым',
+    leadAll ? sumLink('lead_door', `${leadAll} ${pword(leadAll, ['бренд', 'бренда', 'брендов'])}`)
+            : '<span class="hint">ни в одном</span>',
+    'доры там уже берут верх, а не стоят в хвосте топа'));
+
+  // Берёт ли место ХОТЯ БЫ ОДИН дор — вопрос, которого нет в сумме доров.
+  const sd = j.strong_doors || {}, sdN = sd.brands|0, sdOf = sd.of|0;
+  if(sdOf) rows.push(sumRow(`Дор забирает ≥ ${DOOR_MIN}%`,
+    sumLink('strong_door', `${sdN} из ${sdOf}`) + ' '
+      + (sdN < sdOf ? `<span class="note" style="display:inline">· ` + sumLink('no_strong_door', `в ${sdOf - sdN} не забирает ни один`) + '</span>' : ''),
+    'не то же, что доля доров: та — сумма всех доров сразу',
+    `Бренд может быть «забран не дорами», а один дор внутри держать 12% — значит, лезть туда дором можно. И наоборот: двадцать доров по 1% дают заметную сумму, но ни один ничего не забирает.`));
+
+  // НАШИ: сколько доров, в скольких брендах стоим и где забираем.
+  const own = j.own || {}, nbases = j.dorgen_bases|0;
+  const withOurs = brands.filter(b => (b.own_doors|0) > 0);
+  const weLead = withOurs.filter(b => b.leader && b.leader.own).length;
+  rows.push(sumRow('Наши доры',
+    (own.doors|0)
+      ? `<b>${own.doors|0}</b> · стоим в ` + sumLink('own', `${withOurs.length} из ${nBrands}`) + ' брендов'
+        + (weLead ? `, забираем <b>${weLead}</b>` : ', не забираем ни одного')
+      : (nbases ? '<span class="hint">в этой выдаче нет</span>'
+                : '<span class="warn">не определяются</span>'),
+    nbases ? `по списку запущенных доменов: баз ${nbases}`
+           : 'список системы запусков пуст — нажмите «Обновить наши домены»'));
+
+  // Повторы между брендами: сумма по брендам больше ровно на них.
+  const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};
+  const repDoors = (rep.by_type && rep.by_type.door)|0;
+  rows.push(sumRow('Сайты на нескольких брендах',
+    (rep.sites|0) ? sumLink('net', String(rep.sites|0)) + (repDoors ? ` <span class="note" style="display:inline">· из них доров ${repDoors}</span>` : '')
+                  : '<span class="hint">нет</span>',
+    `сумма по брендам: доров ${sum.door|0} против ${tot.door|0} разных — разница и есть повторы`,
+    'Все числа сводки — по РАЗНЫМ сайтам: домен, стоящий на нескольких брендах, считается один раз. В блоке бренда такие сайты подсвечены сиреневым.'));
+
+  // ДИНАМИКА — отдельной секцией: это другой вопрос, чем «что сейчас в выдаче».
+  rows.push('<div class="hd">С прошлого сбора'
+    + (j.changes_ok && j.changes_at ? ` · ${esc(new Date(j.changes_at).toLocaleString('ru-RU'))}` : '') + '</div>');
+
+  const dt = j.diff_totals || {};
+  rows.push(sumRow('Состав выдачи',
+    ((dt.added|0) || (dt.removed|0))
+      ? `<b class="up">+${dt.added|0}</b> пришло · <b class="down">−${dt.removed|0}</b> ушло`
+      : '<span class="hint">появится после следующего сбора</span>',
+    ((dt.added|0) || (dt.removed|0)) ? 'разбивка по типам — в блоке каждого бренда' : ''));
+
+  if(j.changes_ok){
+    rows.push(sumRow('Изменились бренды',
+      `<b>${c.brands|0}</b> · ` + sumLink('ch_cap', `захват ${c.cap_changed|0}`, `В сторону доров ${c.to_doors|0}, от доров ${c.from_doors|0}`)
+        + ' · ' + sumLink('ch_lead', `лидер ${c.lead_changed|0}`)
+        + ((c.type_changed|0) ? ' · ' + sumLink('ch_type', `тип лидера ${c.type_changed|0}`) : '')
+        + ' · ' + sumLink('ch_us_up', `наша доля ↑${c.our_up|0}`)
+        + ' · ' + sumLink('ch_us_down', `↓${c.our_down|0}`),
+      ((c.new|0) || (c.gone|0)) ? `новых брендов ${c.new|0}, пропало ${c.gone|0}` : ''));
+  } else {
+    rows.push(sumRow('Изменились бренды',
+      '<span class="hint">' + ((j.collects|0) > 1
+        ? `сравнение считается для топ-${j.changes_top|0} — переключите «топ»`
+        : `сравнивать не с чем (снимков сборов: ${j.collects|0})`) + '</span>', ''));
+  }
+
+  // СИГНАЛЫ читаются по РЯДАМ сборов, а не по сравнению с прошлым, поэтому показываются и когда
+  // сравнение «было → стало» недоступно (снимок сделан на другом «топ»).
+  const flips = brands.filter(b => b.flip || (b.changed && b.changed.lt_changed)).length;
+  rows.push(sumRow('Ротация типа',
+    flips ? sumLink('ch_type_any', `${flips} ${pword(flips, ['бренд', 'бренда', 'брендов'])}`)
+            + ' · ' + sumLink('flip_to_theme', 'дор → не дор') + ' · ' + sumLink('flip_to_door', 'не дор → дор')
+          : '<span class="hint">не было</span>',
+    'за всё окно сборов, не только с прошлого'));
+
+  const falling = brands.filter(b => b.spark && streakOf(b.spark.os) <= -2).length;
+  const rising = brands.filter(b => b.spark && streakOf(b.spark.os) >= 2).length;
+  rows.push(sumRow('Наша доля подряд',
+    (falling || rising)
+      ? [falling ? sumLink('fall', `падаем в ${falling}`) : '', rising ? sumLink('rise', `растём в ${rising}`) : '']
+          .filter(Boolean).join(' · ')
+      : '<span class="hint">без устойчивого движения</span>',
+    'два сбора в одну сторону и больше — это уже не шум'));
+
+  $('summary').innerHTML = rows.join('');
+}
+
 /** Ссылки выгрузок: обе описывают то же, что на экране — ту же глубину топа и выбранный тип. */
 function updateCsvLinks(){
   const top = encodeURIComponent($('top').value), type = encodeURIComponent($('hostType').value);
@@ -791,98 +922,8 @@ async function load(){
     for(const t of Object.keys(TYPES)) cells.push([TYPES[t], (j.totals||{})[t]|0]);
     cells.push(['наших доров', (j.own && j.own.doors)|0]);
     $('stats').innerHTML = cells.map(([s, b]) => `<div class="stat"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
-    // ЧЕМ ЗАБРАНЫ БРЕНДЫ — главный вопрос списка: куда вообще имеет смысл лезть дором.
-    const cap = j.capture || {}, capLead = j.capture_leader || {};
-    // «Дор первым» — второй вопрос, и он не повторяет первый: доров в выдаче много, но стоят они
-    // низко, поэтому «гибрид — 72» без этого уточнения ничего не решает.
-    const capLink = (code, text) => {
-      const l = capLead[code]|0;
-      return `<a href="#" data-cap="${code}"><b>${esc(text)}</b></a>`
-        + (l ? ` <span class="hint" title="В скольких из них ПЕРВЫЙ по видимости сайт — дор">(дор первым в ${l})</span>` : '');
-    };
-    const leadAll = (capLead.door|0) + (capLead.mixed|0) + (capLead.other|0) + (capLead.nobrand|0);
-    $('captureLine').innerHTML = 'Чем забраны бренды: '
-      + capLink('door', `дорами — ${cap.door|0}`) + ' · '
-      + capLink('mixed', `гибрид — ${cap.mixed|0}`) + ' · '
-      + capLink('other', `не дорами — ${cap.other|0}`)
-      + ((cap.nobrand|0) ? ` · без бренда — <b>${cap.nobrand|0}</b>` : '')
-      + `. Считается по <b>доле видимости</b> доров, а не по их числу: «дорами» — доры держат `
-      + `≥ ${CAPTURE_LIMITS.door}% видимости бренда, «не дорами» — ≤ ${CAPTURE_LIMITS.other}%, между — гибрид. `
-      + (leadAll ? `Дор стоит <b>первым</b> в <a href="#" data-only="lead_door"><b>${leadAll}</b></a> ${pword(leadAll, ['бренде', 'брендах', 'брендах'])} — это и есть доказательство, что доры там берут верх, а не стоят в хвосте. ` : '')
-      + strongLine(j.strong_doors || {})
-      + 'Нажмите на число — в списке останутся только эти бренды.';
-    // Все числа выше — по РАЗНЫМ сайтам. Сумма по брендам больше ровно на повторы между брендами.
-    const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};
-    const repDoors = (rep.by_type && rep.by_type.door)|0;
-    $('repeatLine').innerHTML = `Все числа — по <b>разным сайтам</b>: домен, который стоит на нескольких брендах, в общем итоге считается один раз. `
-      + `Сумма по брендам: доров <b>${sum.door|0}</b> против <b>${tot.door|0}</b> разных — значит `
-      + `<b>${rep.sites|0}</b> сайтов держатся сразу на нескольких брендах (из них доров <b>${repDoors}</b>). `
-      + `Это и есть повторы между брендами; в блоке бренда они подсвечены сиреневым.`;
-    const dt = j.diff_totals || {};
-    // ПОЧЕМУ доры помечены нашими: разбивка по причинам. Без неё непонятно, какая метка ловит лишнее.
-    const own = j.own || {}, nbases = j.dorgen_bases|0;
-    // СКОЛЬКО НАШИХ И В КАКИХ БРЕНДАХ — прямой ответ одной строкой, а не поиск глазами по списку.
-    const withOurs = brands.filter(b => (b.own_doors|0) > 0);
-    const lead = withOurs.filter(b => b.leader && b.leader.own).length;
-    const ourLine = withOurs.length
-      ? ` Стоим в <a href="#" data-only="own"><b>${withOurs.length}</b></a> брендах из <b>${brands.length}</b>`
-        + (lead ? `, забираем <b>${lead}</b>` : ', не забираем ни одного')
-        + ` (фильтр «только с нашими»).`
-      : ' Ни в одном бренде наших доров нет.';
-    $('ownLine').innerHTML = (own.doors|0)
-      ? `Наших доров: <b>${own.doors|0}</b> — по списку запущенных доменов из системы запусков (баз в списке: <b>${nbases}</b>).`
-        + ourLine
-      : (nbases ? `Наших доров в этой выдаче нет (баз в списке: <b>${nbases}</b>).`
-                : 'Список системы запусков пуст — наши сайты не определяются. Нажмите «Обновить наши домены».');
-    // Состояние выгрузки из системы запусков: по ней «наш» определяется точнее всего.
-    const d = j.dorgen || {}, nb = j.dorgen_bases|0;
-    // Свежесть базы: доры запускаются каждый день, и устаревший список молча занижает число наших.
-    const staleDays = d.date_to ? Math.floor((Date.parse(new Date().toISOString().slice(0,10)) - Date.parse(d.date_to)) / 86400000) : 0;
-    $('dorgenState').innerHTML = nb
-      ? `наших баз из системы запусков: <b>${nb}</b>${d.date_to ? ` (по ${esc(d.date_to)})` : ''}`
-        + (staleDays > 1 ? ` · <b style="color:#b45309">устарело на ${staleDays} дн.</b> — обновите` : '')
-      : (d.has_token ? 'наши домены ещё не выгружены — нажмите «Обновить наши домены»'
-                     : 'выгрузка наших доменов не настроена: впишите ключ в «Настройках» панели → «Ключи доступа» → «Система запусков dorgen»');
-    $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
-      ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
-      : 'Сравнение с прошлым сбором появится после следующего сбора.';
-    // ЧТО ИЗМЕНИЛОСЬ ПО ЧИСЛАМ БРЕНДА — отдельно от разницы по составу сайтов выше: там «появилось
-    // 3, пропало 1», здесь «кто сменил лидера и где просела наша доля».
-    const c = j.changes || {}, chLink = (code, text) => `<a href="#" data-only="${code}"><b>${esc(text)}</b></a>`;
-    if(!j.changes_ok){
-      $('changeLine').innerHTML = (j.collects|0) > 1
-        ? `Сравнение «было → стало» считается для топ-${j.changes_top|0} — переключите «топ», чтобы увидеть динамику.`
-        : 'Динамика по числам брендов появится после следующего сбора: сейчас сравнивать не с чем (снимков сборов: '
-          + `${j.collects|0}).`;
-    } else {
-      $('changeLine').innerHTML = `С прошлого сбора (${j.changes_at ? new Date(j.changes_at).toLocaleString('ru-RU') : ''}) `
-        + `${(c.brands|0) === 1 ? 'изменился' : 'изменились'} <b>${plural(c.brands|0, ['бренд', 'бренда', 'брендов'])}</b>: `
-        + chLink('ch_cap', `сменили захват — ${c.cap_changed|0}`) + ` <span class="hint">(в сторону доров ${c.to_doors|0}, от доров ${c.from_doors|0})</span> · `
-        + chLink('ch_lead', `сменился лидер — ${c.lead_changed|0}`)
-      + ((c.type_changed|0) ? ` <span class="hint">(ротация типа: ` + chLink('ch_type', String(c.type_changed|0)) + ')</span>' : '') + ' · '
-        + chLink('ch_us_up', `наша доля выросла у ${c.our_up|0}`) + ' · '
-        + chLink('ch_us_down', `упала у ${c.our_down|0}`)
-        + ((c.new|0) || (c.gone|0) ? ` · новых брендов <b>${c.new|0}</b>, пропало <b>${c.gone|0}</b>` : '');
-    }
-    // СИГНАЛЫ — устойчивое движение, а не один шаг: по ним решают, чем заняться сегодня. Считаются
-    // по РЯДАМ сборов, а не по сравнению с прошлым, поэтому показываются и когда сравнение «было →
-    // стало» недоступно (снимок сделан на другом «топ»).
-    // Ротация за всё окно — отдельным числом: смена типа могла случиться не в последнем сборе, и
-    // тогда плашки «дор → тематический» в строке мало — её ещё надо найти в списке на сотни брендов.
-    const flips = brands.filter(b => b.flip || (b.changed && b.changed.lt_changed)).length;
-    if(flips) $('changeLine').innerHTML += ` <b>Ротация типа</b> (за всё окно сборов, не только с прошлого): `
-      + `<a href="#" data-only="ch_type_any"><b>${plural(flips, ['бренд', 'бренда', 'брендов'])}</b></a>`
-      + ` · <a href="#" data-only="flip_to_theme"><b>дор → не дор</b></a>`
-      + ` · <a href="#" data-only="flip_to_door"><b>не дор → дор</b></a>.`;
-    const falling = brands.filter(b => b.spark && streakOf(b.spark.os) <= -2).length;
-    const rising = brands.filter(b => b.spark && streakOf(b.spark.os) >= 2).length;
-    if(falling || rising){
-      $('changeLine').innerHTML += ` <b>Подряд:</b> `
-        + (falling ? `<a href="#" data-only="fall"><b>падаем в ${plural(falling, ['бренде', 'брендах', 'брендах'])}</b></a>` : '')
-        + (falling && rising ? ' · ' : '')
-        + (rising ? `<a href="#" data-only="rise"><b>растём в ${rising}</b></a>` : '')
-        + ` (два сбора и больше — это уже не шум).`;
-    }
+    // СВОДКА — таблицей, а не абзацами: пять абзацев подряд не читаются, их просто пролистывают.
+    renderSummary(j);
     overviewCharts(j.overview || []);
     $('updated').textContent = j.diff_at ? 'сравнение от ' + new Date(j.diff_at).toLocaleString('ru-RU') : '';
     render();
@@ -946,23 +987,8 @@ $('dorgen').addEventListener('click', async () => {
   }
 });
 // Числа в строке «чем забраны бренды» — это и есть фильтр: клик оставляет свою кучу.
-$('ownLine').addEventListener('click', e => {
-  const a = e.target.closest('a[data-only]');
-  if(!a) return;
-  e.preventDefault();
-  $('only').value = a.dataset.only;
-  render();
-  $('brands').scrollIntoView({behavior:'smooth', block:'start'});
-});
-$('changeLine').addEventListener('click', e => {
-  const a = e.target.closest('a[data-only]');
-  if(!a) return;
-  e.preventDefault();
-  $('only').value = a.dataset.only;
-  render();
-  $('brands').scrollIntoView({behavior:'smooth', block:'start'});
-});
-$('captureLine').addEventListener('click', e => {
+// Любое число сводки — фильтр списка: одна таблица, один обработчик.
+$('summary').addEventListener('click', e => {
   const a = e.target.closest('a[data-cap],a[data-only]');
   if(!a) return;
   e.preventDefault();

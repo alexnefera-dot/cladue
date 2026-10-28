@@ -1437,6 +1437,27 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   row with «Брендов 2», the registrable column, the rejected row is present, and `['door']` leaves
   only doors) and `PanelTest::testSerpAnalysisPageAndEndpoint` (both downloads over HTTP and
   `file=hosts` in the browser-rendered page).
+  THE SUMMARY IS A TABLE, NOT FIVE PARAGRAPHS (1.52.0) — «ты даёшь текстом много инфы, но их сложно
+  читать, сделай табличкой, выдели параметры и тп, чтоб это было информативно с первого взгляда».
+  Everything added since 1.42.0 had been appended to the block above the list as one more SENTENCE,
+  and it ended as five dense paragraphs (`#captureLine`, `#repeatLine`, `#ownLine`, `#diffLine`,
+  `#changeLine`) with the numbers buried inside the prose. A paragraph with figures in it is not read,
+  it is scrolled past. `renderSummary(j)` replaces all five with ONE grid `#summary` (`.sum`:
+  `max-content | 1fr`, a `.hd` band per section, one row per parameter) built from `sumRow(label,
+  value, note, title)` + `sumLink(code, text)`: the left column is the parameter name, the value is
+  always in the same place, the one-line note under it says how it is counted, and the LONG
+  explanation moved into the row's `title` — it is read once and is noise forever after. Rows: «Что в
+  выдаче» — Чем забраны бренды (the three capture counts as coloured tags) · Дор стоит первым · Дор
+  забирает ≥ 5% · Наши доры (count + «стоим в N из M, забираем K», or the amber «не определяются» when
+  the launch-system list is empty) · Сайты на нескольких брендах; «С прошлого сбора» (its header
+  carries the compared snapshot's date) — Состав выдачи · Изменились бренды (захват / лидер / тип
+  лидера / наша доля ↑↓) · Ротация типа · Наша доля подряд. Every number stays a filter link, so the
+  table is also the navigation: the three per-line click handlers collapsed into ONE on `#summary`
+  (`a[data-cap]` or `a[data-only]`), and a single `.hint` under the table says so. Under 640px the
+  grid becomes one column with the label above the value. Covered by
+  `PanelTest::testSerpAnalysisPageAndEndpoint`, whose browser-rendered assertions now pin the table
+  itself (`class="sum"`) and the parameter names («Чем забраны бренды», «Дор стоит первым», «Сайты на
+  нескольких брендах», «стоим в») instead of the old sentences.
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

@@ -1800,12 +1800,16 @@ final class PanelTest
                 Assert::contains('kush.grid-x.ru', $rendered, 'в ряду виден тот, кто забирает бренд');
                 Assert::contains('Доля лидера', $rendered, 'шапка колонок на месте');
                 Assert::contains('Захват', $rendered, 'колонка «чем забран бренд» на месте');
+                // СВОДКА — таблица «параметр → значение», а не абзацы текста: проверяем и саму
+                // таблицу, и что параметры в ней названы.
+                Assert::contains('class="sum"', $rendered, 'сводка собрана таблицей');
                 Assert::contains('Чем забраны бренды', $rendered, 'счёт по типам захвата посчитан на клиенте');
-                Assert::contains('дор первым', $rendered, 'счёт «где дор стоит первым» на месте');
+                Assert::contains('Дор стоит первым', $rendered, 'счёт «где дор стоит первым» на месте');
+                Assert::contains('Сайты на нескольких брендах', $rendered, 'повторы между брендами — своей строкой');
                 Assert::contains('С прошлого сбора', $rendered, 'итог по динамике посчитан на клиенте');
                 Assert::contains('тематический → дор', $rendered, 'ротация по типу видна прямо в ряду бренда');
                 Assert::contains('class="num"', $rendered, 'бренды пронумерованы');
-                Assert::contains('Стоим в', $rendered, 'сколько наших и в каких брендах — одной строкой');
+                Assert::contains('стоим в', $rendered, 'сколько наших и в каких брендах — своей строкой');
                 Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
                 Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
                 Assert::contains('class="rot"', $rendered, 'ротация типа — своей строкой в ряду бренда');
