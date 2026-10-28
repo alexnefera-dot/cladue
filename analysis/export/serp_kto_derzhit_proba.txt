@@ -1,0 +1,79 @@
+снимков: 1
+  2026-09-25T14:29:48  запросов 1044  строк 10438  (serp_nashi_25.09_1429.json)
+
+КТО ДЕРЖИТ ВЫДАЧУ БРЕНДА — хост в топ-3 не меньше чем по 50% ключей ЭТОГО бренда
+  2026-09-25T14:29:48: брендов опознано 139, запросов без бренда 490
+
+  бренд               ключей  держателей кто держит                                             чем занят топ-3
+  Kilogram                10           1 kilogram.ftcasino.team (70%)                           наш 67%, чужой 33%
+  Вулкан 24                8           2 casino-v24.club (100%); 716clubvulkan28.com (62%)      домен 92%, известные 4%, чужой 4%
+  Brillx                   8           3 brillx118.gg (88%); t.me (50%)                         домен 67%, соцсети 21%, наш 8%
+  Enomo                    8           3 t.me (100%); enomo.24x9rule.casino (50%)               соцсети 33%, чужой 33%, домен 17%
+  Вулкан Старс             8           2 vstars-zerkalo.com (100%); 716clubvulkan28.com (62%)   домен 83%, наш 17%
+  Vivaro                   7           2 vivarocasino.net (86%); vivaro.8096.lol (57%)          домен 57%, наш 29%, чужой 10%
+  Everum                   7           3 everumcasino.eu (100%); www.gipsyteam.ru (57%)         домен 33%, чужой 24%, наш 24%
+  Blitzred                 7           2 blitz-red.epl.casino (57%); blitzred.4253casino.buzz (57%) чужой 62%, наш 38%
+  Spacewin                 7           2 spacewincasino.com (86%); topkazinobonus.com (57%)     домен 62%, наш 29%, чужой 10%
+  Покердом                 6           2 pxd7pokerdom.com (100%); pokerdom-domru.com (100%)     домен 78%, чужой 22%
+  Luckybear                6           1 luckybear4790.casino (100%)                            домен 72%, чужой 17%, соцсети 11%
+  Jetton                   6           2 jettonw.games (100%); jetton.uk.com (100%)             домен 61%, чужой 33%, соцсети 6%
+  Slotozal                 6           3 slotozal-casino-fun.ru (83%); slotozal.vegas44-casino.sbs (83%) домен 67%, чужой 28%, соцсети 6%
+  Vulkan Platinum          6           2 vulkanplatinumcasino.org (100%); 716clubvulkan28.com (83%) домен 72%, чужой 22%, наш 6%
+  Izzi                     6           2 izzicasino330.com (67%); izzicasino1839.com (67%)      домен 89%, известные 6%, чужой 6%
+  Honey Money              6           2 honeymoney24.com (100%); casino.ru (50%)               домен 72%, наш 22%, соцсети 6%
+  Friends                  6           4 gofriends.news (100%); t.me (67%)                      домен 72%, соцсети 22%, чужой 6%
+  Bitz                     6           2 bitz-io.games (83%); bitz8.com (83%)                   домен 89%, чужой 6%, соцсети 6%
+  Spinbetter               6           2 spinbetter3n.com (100%); spin-better.site (83%)        домен 89%, чужой 11%
+  Onion                    6           2 onion-win.monster (50%); telegram.me (50%)             домен 72%, чужой 17%, соцсети 6%
+  Betwinner                6           3 betwinner-of-bet2.top (83%); betwinners2026.fun (50%)  домен 94%, чужой 6%
+  Slott                    6           3 slott698.com (100%); slott086.com (100%)               домен 78%, чужой 22%
+  Champion Slots           6           1 slotschampiontr.bet (67%)                              домен 78%, наш 11%, соцсети 6%
+  Fairspin                 6           2 t.me (83%); fairspin.2509d.casino (50%)                домен 33%, соцсети 28%, чужой 28%
+  Crystalslot              6           2 crystalslot.casino-24l09d.sbs (67%); crystalslot.2509d.casino (50%) чужой 39%, наш 28%, домен 22%
+  Tippy                    6           3 tippy.2509r.casino (83%); tippy.j000.buzz (67%)        чужой 72%, соцсети 22%, домен 6%
+  Fraga                    6           2 fraga.casino (67%); fraga.8096.lol (50%)               наш 50%, чужой 28%, домен 22%
+  Luckyduck                6           3 lucky-duck.plus (83%); luckyduck.1785.team (50%)       домен 33%, соцсети 28%, чужой 22%
+  Jackpoker                6           4 jack-pokers.monster (67%); jackpokerz.shop (50%)       домен 89%, известные 6%, чужой 6%
+  Atom                     5           2 atom674.casino (100%); atom581.com (100%)              домен 93%, чужой 7%
+  Beef                     5           1 beef-casino412.com (60%)                               чужой 53%, домен 27%, соцсети 13%
+  AUF                      5           1 auf.2509r.casino (60%)                                 домен 47%, чужой 40%, соцсети 13%
+  Baboss                   5           3 telegram.me (80%); t.me (80%)                          домен 27%, наш 27%, соцсети 27%
+  New Retro                5           3 newretrocazino.sbs (80%); newretrocasino9.club (60%)   домен 80%, соцсети 13%, чужой 7%
+  Gizbo                    5           2 gizbo-casino407.com (100%); gizbocasino154.com (60%)   домен 73%, чужой 20%, соцсети 7%
+  Starda                   5           3 stardacasino233.com (100%); stardacasino138.com (80%)  домен 100%
+  GetX                     5           3 getx-777-casino.click (100%); getx-game-bwam.life (100%) домен 100%
+  Jozz                     5           4 jozz-casino-xob.top (100%); jozz-casino-jrx.top (80%)  домен 80%, соцсети 20%
+  Trix                     5           3 trix64.casino (80%); trix.ltd (80%)                    домен 80%, чужой 13%, известные 7%
+  Pokerok                  5           1 t.me (80%)                                             чужой 53%, соцсети 27%, домен 20%
+
+ЧЕМ ЗАНЯТ ТОП-3 В ЦЕЛОМ (доля строк топа по типу хоста)
+  снимок                                наш дор   чужой дор (поддомен)                  домен        соцсети и видео       известные рунета
+  2026-09-25T14:29:48                    11.0%                 19.6%                 61.1%                  7.2%                  1.1%
+
+САМЫЕ ЧАСТЫЕ ХОСТЫ В ТОП-3 ПО ВСЕМ СНИМКАМ
+  хост                                      строк топа    доля тип                   
+  t.me                                             210   6.7% соцсети и видео       
+  casino.ru                                         58   1.9% домен                 
+  telegram.me                                       46   1.5% домен                 
+  716clubvulkan28.com                               34   1.1% домен                 
+  topkazinobonus.com                                30   1.0% домен                 
+  yandex.ru                                         21   0.7% известные рунета      
+  vulkanplatinumcasino.org                          20   0.6% домен                 
+  vulkanvegas-casino.vip                            18   0.6% домен                 
+  roscasinos.com                                    16   0.5% домен                 
+  respin.info                                       16   0.5% домен                 
+  casino-v24.club                                   16   0.5% домен                 
+  vstars-zerkalo.com                                16   0.5% домен                 
+  vk.ru                                             14   0.4% соцсети и видео       
+  betera.by                                         14   0.4% домен                 
+  luckybear4790.casino                              13   0.4% домен                 
+  dbbet-134201.casino                               13   0.4% домен                 
+  spintocasino-official.pro                         12   0.4% домен                 
+  getx-game-bwam.life                               11   0.4% домен                 
+  gizbo-casino407.com                               11   0.4% домен                 
+  nomadcasino905.com                                11   0.4% домен                 
+  atom581.com                                       10   0.3% домен                 
+  cactus-florencia.xyz                              10   0.3% домен                 
+  topcasino-clubnikamob.top                         10   0.3% домен                 
+  1leebet.casino                                    10   0.3% домен                 
+  honeymoney24.com                                  10   0.3% домен                 
