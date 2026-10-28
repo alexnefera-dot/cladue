@@ -345,6 +345,15 @@ if ($path === '/' || $path === '/index.html') {
     exit;
 }
 
+if ($path === '/chart.js') {
+    // Общий код графиков для главной панели и разбора выдачи — один файл на две страницы.
+    $js = @file_get_contents(dirname(__DIR__) . '/public/chart.js');
+    header('Content-Type: application/javascript; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo $js !== false ? $js : '/* public/chart.js не найден */';
+    exit;
+}
+
 if ($path === '/serp' || $path === '/serp.html') {
     // Технический разбор выдачи — ОТДЕЛЬНАЯ страница: собственный HTML, свой опрос API, главная не меняется.
     $html = @file_get_contents(dirname(__DIR__) . '/public/serp.html');

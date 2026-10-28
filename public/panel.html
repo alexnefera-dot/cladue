@@ -321,6 +321,9 @@
       <div style="flex:0 0 260px"><select id="statRun" title="Один сбор или итог по всем сборам"></select></div>
     </div>
     <div id="funnel"></div>
+    <!-- НАШИ ПО СБОРАМ. Та же история, что и в таблице ниже (runs/history.json), но графиком:
+         по строке в таблице не видно, растём мы или стоим. -->
+    <div id="statCharts"></div>
     <div class="hint" id="statZones" style="margin:10px 0"></div>
     <div class="hint" id="statBase" style="margin-bottom:10px"></div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -395,6 +398,7 @@
 
 <div id="lightbox"><div class="lbcap" id="lbcap"></div><img id="lbimg" src="" alt=""></div>
 
+<script src="/chart.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','batchsize','fixrounds','fixpause','cleanwhile','proxylist','dorgenauto'];
@@ -647,6 +651,42 @@ function showRun(){
   }
   document.querySelectorAll('#statBody tr').forEach(tr=>tr.classList.toggle('selrow', tr.dataset.i===v));
 }
+/**
+ * НАШИ ПО СБОРАМ — графиком, а не только строкой в таблице: по строкам не видно, растём мы или
+ * стоим. Данные те же (runs/history.json), поэтому работают сразу на всей накопленной истории,
+ * без ожидания нового сбора.
+ *
+ * Два числа про наших — это РАЗНЫЕ вопросы, поэтому два графика: сколько наших сайтов всего и
+ * какую долю они занимают среди ВСЕХ доров выдачи (наши шаблоны и есть доры). Рядом — масса ниши,
+ * иначе рост «наших» нельзя отличить от роста всей выдачи.
+ */
+function renderStatCharts(recs){
+  const box=$('statCharts');
+  if(!box || typeof chartHtml!=='function') return;
+  if(recs.length<2){
+    box.innerHTML = recs.length
+      ? '<div class="hint" style="margin:10px 0">График по сборам появится со второго сбора — сейчас в истории одна запись.</div>'
+      : '';
+    return;
+  }
+  // История приходит новыми вперёд, график рисуется слева направо.
+  const rows=recs.slice().reverse();
+  const at=rows.map(r=>collectLabel(r.date));
+  // База доли наших — все доры выдачи; у старых записей их нет, там отобранное (как в таблице).
+  const ownBase=r=>{ const mass=r.unique_sites|0, found=r.found|0;
+    const bd=(mass>0||found>0)?(r.found_doors|0):((r.doors!=null?r.doors:r.subdomains)|0);
+    return bd>0?bd:(r.sites|0); };
+  // null, а не 0: у записей до 1.15.0 числа наших нет вовсе — линия должна рваться, а не падать в ноль.
+  const own=rows.map(r=>r.own==null?null:(r.own|0));
+  const ownPct=rows.map(r=>{ if(r.own==null) return null; const b=ownBase(r); return b>0?Math.round(1000*(r.own|0)/b)/10:0; });
+  box.innerHTML='<div class="charts">'
+    + chartHtml('Наших сайтов', 'сколько наших нашлось в выдаче за сбор', at, own, 'var(--c-our)', '')
+    + chartHtml('Доля наших', 'от всех доров выдачи — наши шаблоны и есть доры', at, ownPct, 'var(--c-our)', '%')
+    + chartHtml('Доров в выдаче', 'вся масса доров ниши за сбор', at, rows.map(r=>{const m=r.unique_sites|0,f=r.found|0;return (m>0||f>0)?(r.found_doors|0):((r.doors!=null?r.doors:r.subdomains)|0);}), 'var(--c-door)', '')
+    + chartHtml('Отобрано сайтов', 'что прошло фильтры и попало в таблицу', at, rows.map(r=>r.sites|0), 'var(--c-door)', '')
+    + '</div>';
+}
+
 async function loadStats(){
   statsLoaded=true;
   let data=null;
@@ -662,6 +702,7 @@ async function loadStats(){
     // По умолчанию — последний сбор: именно его обычно и разбирают.
     sel.value = (keep && (keep==='all' || +keep<recs.length)) ? keep : (recs.length?'0':'all');
   }
+  renderStatCharts(recs);
   const bs=$('statBase');
   if(bs) bs.innerHTML = recs.length
     ? `Всего доменов в базе пересечений: <b>${num(t.base_domains|0)}</b> · сборов в истории: <b>${t.runs|0}</b>`

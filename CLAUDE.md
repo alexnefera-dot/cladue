@@ -38,6 +38,7 @@ cladue/
 ├── bin/dorgen-sync.php         # fetch OUR launched subdomains from the dorgen API into runs/dorgen-bases.json
 ├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── public/serp.html            # separate page /serp — technical SERP breakdown by brand (own CSS/JS + /api/serp)
+├── public/chart.js             # shared per-collect line charts (served at /chart.js, used by both pages)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
 ├── src/
 │   ├── Cli/Application.php     # argument parsing, dependency wiring (sources, cache, checker, visitor), summary output
@@ -1271,6 +1272,27 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   2 vs own_brands 1 — the distinction the user asked for) / `testOverviewIgnoresTheNoBrandBlock` and
   `PanelTest::testSerpAnalysisPageAndEndpoint` (the overview reaches `/api/serp`, and the
   browser-rendered page carries the chart titles and a `<path class="ln">`).
+  THE CHART HAS TO BE WHERE THEY LOOK (1.46.0) — «не вижу где ты отображаешь наших динамику?
+  добавил новый сбор». Nothing was broken: a real collect does write the snapshot (now guarded by
+  `PanelTest::testRunJobProducesResults`, which asserts `runs/serp-history.json` exists with one
+  record after an end-to-end collect), but `serp-history.json` had started EMPTY on the update, so
+  after one collect there was exactly one record and every chart correctly said «появится после
+  второго сбора» — and all of it lived on `/serp`, a page the user had not opened. The fix is that
+  the same question is already answerable from `runs/history.json`, which holds MONTHS of their
+  collects with `own` in every record: the «Статистика» tab now renders four charts above its table
+  (`renderStatCharts()` in `loadStats()`): наших сайтов · доля наших (от ALL doors of the SERP mass,
+  the same base the table's own cell uses — `found_doors`, falling back to `doors`/`sites` for
+  pre-1.16.0 records) · доров в выдаче · отобрано сайтов. The last two are there so a rise in «наших»
+  can be told apart from a rise of the whole niche. A record with NO `own` key (before 1.15.0) is
+  `null`, not 0 — the line breaks instead of dropping to the floor, because «не записано» is not
+  «ноль наших».
+  THE RENDERER MOVED TO `public/chart.js`, served by `bin/panel.php` at `/chart.js` and included by
+  BOTH pages. The whole file is one IIFE that injects its own `<style>` and exports `chartHtml` and
+  `collectLabel` on `window`: both pages already declare a top-level `const esc`, and a second
+  declaration of the same name in the global scope is a SyntaxError that kills the page outright —
+  the first draft did exactly that. Colors come from the pages' CSS variables, which both define.
+  Axis labels are now placed EVENLY (`steps = min(n, 4)`, indices `round(k*(n-1)/(steps-1))`) instead
+  of «every Nth plus always the last», which made the last two labels overlap on 8 collects.
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

@@ -88,6 +88,14 @@ final class PanelTest
         // для сравнения со следующим сбором и посчитанную разницу.
         Assert::true(is_file(dirname($runDir) . '/' . \YandexSites\Support\SerpAnalysis::INDEX_FILE), 'слепок выдачи сохранён для сравнения');
         Assert::true(is_file($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE), 'разница с прошлым сбором посчитана');
+        // Снимок для графиков и «было/стало» пишет САМ СБОР — без него динамика не появится никогда,
+        // сколько раз ни пересобирай.
+        $histFile = dirname($runDir) . '/' . \YandexSites\Support\SerpHistory::FILE;
+        Assert::true(is_file($histFile), 'сбор записал снимок для динамики: ' . $histFile);
+        $snap = \YandexSites\Support\SerpHistory::load(dirname($runDir));
+        Assert::same(1, count($snap), 'один сбор — одна запись');
+        Assert::same(10, (int) $snap[0]['top'], 'глубина топа записана');
+        Assert::true(($snap[0]['brands'] ?? []) !== [], 'в снимке есть бренды');
         $collectLog = (string) file_get_contents($runDir . '/run.log');
         Assert::contains('Разбор выдачи: брендов', $collectLog);
         // Кто забирает бренды — ответ виден прямо в журнале сбора, без захода на /serp.
