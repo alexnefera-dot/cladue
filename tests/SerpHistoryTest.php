@@ -144,6 +144,59 @@ final class SerpHistoryTest
         rmdir($runs);
     }
 
+    public function testOverviewFeedsTheChartInCollectOrder(): void
+    {
+        // «График доли по сборам» + «становится наших больше или нет»: сводка по строке на сбор,
+        // от старых к новым — в том порядке, в каком рисуется график.
+        $runs = $this->runs() . '/overview';
+        mkdir($runs, 0777, true);
+        $own = new \YandexSites\Filter\OwnSites(['ourbase.ru']);
+        // Сбор 1: бренд держат не доры, нас нет.
+        SerpHistory::record($runs, SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'official-vulkan.ru'),
+            $this->row('вулкан казино', 9, 'old.netone.ru'),
+        ], 10, $own));
+        // Сбор 2: доры заняли бренд, и два из них наши.
+        SerpHistory::record($runs, SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'kush.ourbase.ru'),
+            $this->row('вулкан казино', 2, 'max.ourbase.ru'),
+            $this->row('вулкан казино', 3, 'a.netone.ru'),
+            $this->row('лекс казино', 1, 'lex-casino.ru'),
+        ], 10, $own));
+
+        $rows = SerpHistory::overview($runs);
+        Assert::same(2, count($rows));
+        Assert::true($rows[0]['at'] <= $rows[1]['at'], 'от старых к новым — как рисуется график');
+        Assert::same(1, $rows[0]['brands'], 'в первом сборе один бренд');
+        Assert::same(2, $rows[1]['brands']);
+        Assert::true($rows[1]['ds_avg'] > $rows[0]['ds_avg'], 'доля доров выросла: ' . $rows[0]['ds_avg'] . ' → ' . $rows[1]['ds_avg']);
+        Assert::same(0, $rows[0]['own_doors'], 'наших тогда не было');
+        Assert::same(0, $rows[0]['own_brands']);
+        Assert::same(2, $rows[1]['own_doors'], 'наших доров стало два');
+        Assert::same(1, $rows[1]['own_brands'], 'но держатся они в одном бренде');
+        Assert::true($rows[1]['os_avg'] > 0, 'наша доля появилась');
+        array_map('unlink', glob($runs . '/*') ?: []);
+        rmdir($runs);
+    }
+
+    public function testOverviewIgnoresTheNoBrandBlock(): void
+    {
+        // «без бренда» — остаток запросов: в среднем по брендам он сдвигал бы картину тем сильнее,
+        // чем больше в списке общетематических ключей.
+        $runs = $this->runs() . '/overview-nobrand';
+        mkdir($runs, 0777, true);
+        SerpHistory::record($runs, SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'a.netone.ru'),
+            $this->row('пластиковые окна москва', 1, 'okna-msk.ru'),
+        ], 10));
+        $row = SerpHistory::overview($runs)[0];
+
+        Assert::same(1, $row['brands'], 'остаток запросов брендом не считается');
+        Assert::same(100.0, (float) $row['ds_avg'], 'и в среднюю долю доров не попадает');
+        array_map('unlink', glob($runs . '/*') ?: []);
+        rmdir($runs);
+    }
+
     public function testSnapshotKeepsOnlyNumbersNotRows(): void
     {
         // Файл живёт рядом с историей сборов и пишется каждый сбор: строки выдачи или списки хостов

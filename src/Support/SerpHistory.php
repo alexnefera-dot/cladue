@@ -224,6 +224,58 @@ final class SerpHistory
     }
 
     /**
+     * СВОДКА ПО СБОРАМ для графика: по строке на сбор, в хронологическом порядке (слева направо —
+     * как рисуется график), от старых к новым.
+     *
+     * Средние считаются ПО БРЕНДАМ и без блока «без бренда»: это остаток запросов, а не бренд, и в
+     * среднем он сдвигал бы картину тем сильнее, чем больше в списке общетематических ключей.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function overview(string $runsDir, int $limit = 30): array
+    {
+        $out = [];
+        foreach (array_slice(self::load($runsDir), 0, $limit) as $record) {
+            $brands = array_filter(
+                (array) ($record['brands'] ?? []),
+                static fn ($b, $key): bool => is_array($b) && (string) $key !== '',
+                ARRAY_FILTER_USE_BOTH,
+            );
+            $n = count($brands);
+            $cap = ['door' => 0, 'mixed' => 0, 'other' => 0];
+            $ds = 0.0;
+            $os = 0.0;
+            $leadDoors = 0;
+            $ownBrands = 0;
+            $ownDoors = 0;
+            foreach ($brands as $b) {
+                $cap[(string) $b['cap']] = ($cap[(string) $b['cap']] ?? 0) + 1;
+                $ds += (float) $b['ds'];
+                $os += (float) $b['os'];
+                $leadDoors += ((string) $b['lt'] === 'door') ? 1 : 0;
+                // Наших СТАНОВИТСЯ БОЛЬШЕ или нет — два разных вопроса: сколько наших доров всего
+                // и в скольких брендах мы вообще присутствуем. Второе важнее: 50 доров в одном
+                // бренде и 50 в пятидесяти — это разные ниши.
+                $ownBrands += ((int) $b['own'] > 0) ? 1 : 0;
+                $ownDoors += (int) $b['own'];
+            }
+            $out[] = [
+                'at' => (string) ($record['at'] ?? ''),
+                'top' => (int) ($record['top'] ?? 0),
+                'brands' => $n,
+                'ds_avg' => $n > 0 ? round($ds / $n, 1) : 0.0,
+                'os_avg' => $n > 0 ? round($os / $n, 1) : 0.0,
+                'cap' => $cap,
+                'lead_doors' => $leadDoors,
+                'own_brands' => $ownBrands,
+                'own_doors' => $ownDoors,
+            ];
+        }
+
+        return array_reverse($out);
+    }
+
+    /**
      * ДИНАМИКА ОДНОГО БРЕНДА по сборам — для раскрытого блока: дата, захват, доля доров, лидер, наша доля.
      * Сборы, в которых бренда не было, пропускаются.
      *

@@ -1236,6 +1236,41 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   and `PanelTest::testSerpAnalysisPageAndEndpoint` (a hand-written two-record history: `/api/serp`
   reports `changes_ok` and the per-brand `changed`, `?brand=` carries the trend, the CSV holds the
   previous leader, and the browser-rendered page shows «С прошлого сбора» and the «сменился» tag).
+  THE CHART (1.45.0) — «давай сделай график доли по сборам» + «чтоб видно было динамику наших,
+  становится их больше по бренду или брендам или нет». The data was already accumulating in
+  `serp-history.json`, so this is a renderer plus one aggregate: `SerpHistory::overview($runs, 30)`
+  returns ONE ROW PER COLLECT in CHRONOLOGICAL order (oldest first — the order a chart is drawn in,
+  unlike `load()`/`trend()`, which are newest-first), with `ds_avg`/`os_avg` (door share and our
+  share averaged over brands), `cap`, `lead_doors`, and the two numbers that answer «становится их
+  больше»: `own_brands` (in how many brands at least one of our doors stands) and `own_doors` (the
+  sum over brands). Both are needed and they are not the same question — 50 doors in one brand and
+  50 across fifty brands are different niches. The «без бренда» block is excluded from every average
+  and count: it is a leftover-queries bucket, and in a mean it would pull the picture by however
+  many generic keys the list happens to carry.
+  THE CHART IS ONE SERIES PER CHART, SIDE BY SIDE (small multiples), because a mean door share of
+  34% and our 0.6% on one axis is a flat line along the floor — and a second y-axis is the one thing
+  a chart must never have. So: four charts globally (`#trendBox`, under the change line: средняя
+  доля доров · наша средняя доля · брендов, где мы есть · наших доров всего) and three inside an
+  opened brand (`brandCharts()`, above the «Динамика по сборам» table: доля доров · наша доля ·
+  наших доров). `chartHtml(title, sub, labels, values, color, unit)` draws inline SVG with no
+  library (the page is self-contained and there are a dozen points): a 2px line, 3.5px dots with a
+  2px surface ring, the last value direct-labelled, x labels thinned to ~5, and a hover layer — a
+  transparent column per collect with a dashed crosshair and a tooltip (date + value, flipped at the
+  right half), all CSS, no JS. The axis ALWAYS STARTS AT ZERO and ends on a ROUND number:
+  `scaleOf()` picks a step from 1/2/2.5/5 × 10^k giving 2–5 intervals, drops fractional steps for
+  counts («2.5 дора» is not a tick) and caps a percent axis at 100 (the first version ran to «125%»
+  and made 91% look like half the plot). A `null` breaks the line rather than drawing a zero — a
+  collect in which the brand did not exist is not «0%». Colors are two categorical slots,
+  `--c-door`/`--c-our`, RUN THROUGH the dataviz validator rather than eyeballed: light
+  `#4338ca`/`#0d9488` on `#fcfcfb`, dark `#6366f1`/`#11a899` on the card's `#1a2029` (the page's own
+  `#0f766e` FAILS the chroma floor and reads gray; dark needs its own steps, the light pair is
+  outside the dark L band 0.48–0.67). Both pairs pass lightness, chroma, CVD separation,
+  normal-vision floor and contrast. A single series per chart needs no legend — the title names it —
+  and the «Динамика по сборам» table right below is the table view. Covered by
+  `SerpHistoryTest::testOverviewFeedsTheChartInCollectOrder` (order, the averages moving, own_doors
+  2 vs own_brands 1 — the distinction the user asked for) / `testOverviewIgnoresTheNoBrandBlock` and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (the overview reaches `/api/serp`, and the
+  browser-rendered page carries the chart titles and a `<path class="ln">`).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

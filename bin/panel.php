@@ -699,6 +699,8 @@ if ($path === '/api/serp') {
         'changes_top' => $prevSnap !== null ? (int) ($prevSnap['top'] ?? 0) : 0,
         'changes_ok' => $sameTop,
         'collects' => count($serpRecords),
+        // Сводка по сборам для графика: по строке на сбор, от старых к новым.
+        'overview' => \YandexSites\Support\SerpHistory::overview($projectDir . '/runs'),
         'version' => \YandexSites\Cli\Application::VERSION,
     ]);
 }

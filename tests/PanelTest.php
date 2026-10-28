@@ -1714,6 +1714,12 @@ final class PanelTest
             Assert::same('kush.grid-x.ru', $trend[0]['lead'], 'сверху текущий сбор');
             Assert::same('bylo-vulkan.ru', $trend[1]['lead']);
 
+            // ГРАФИК ПО СБОРАМ строится из той же истории: по строке на сбор, от старых к новым.
+            Assert::same(2, count($j['overview']), 'сводка по каждому сбору');
+            Assert::true($j['overview'][0]['at'] <= $j['overview'][1]['at'], 'от старых к новым');
+            Assert::same(1, (int) $j['overview'][1]['own_brands'], 'брендов, где есть наш дор');
+            Assert::same(1, (int) $j['overview'][1]['own_doors'], 'наших доров всего');
+
             // ВЫГРУЗКА РАЗБОРА: одна строка на бренд — чтобы делить бренды самому, а не только фильтрами.
             $csv = (string) $this->http('GET', $base . '/download?file=serp', null, $csvCode);
             Assert::same(200, $csvCode, 'разбор выгружается в CSV');
@@ -1756,6 +1762,10 @@ final class PanelTest
                 Assert::contains('дор первым', $rendered, 'счёт «где дор стоит первым» на месте');
                 Assert::contains('С прошлого сбора', $rendered, 'итог по динамике посчитан на клиенте');
                 Assert::contains('сменился', $rendered, 'смена лидера видна прямо в ряду бренда');
+                // График рисуется на клиенте — проверяем, что он действительно собрался.
+                Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
+                Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');
+                Assert::contains('<path class="ln"', $rendered, 'линия графика нарисована');
             }
 
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
