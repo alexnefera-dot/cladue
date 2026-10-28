@@ -704,6 +704,9 @@ if ($path === '/api/serp') {
         'capture_labels' => \YandexSites\Support\SerpAnalysis::CAPTURE,
         'capture_door' => \YandexSites\Support\SerpAnalysis::CAPTURE_DOOR,
         'capture_other' => \YandexSites\Support\SerpAnalysis::CAPTURE_OTHER,
+        // Берёт ли место хотя бы один дор: порог и счёт брендов (страница подписывает им всё сама).
+        'door_share_min' => \YandexSites\Support\SerpAnalysis::DOOR_SHARE_MIN,
+        'strong_doors' => $analysis['strong_doors'],
         'sites' => $analysis['sites'],
         'results' => $analysis['results'],
         'queries' => $analysis['queries'],

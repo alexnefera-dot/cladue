@@ -101,6 +101,46 @@ final class SerpAnalysisTest
         Assert::same('other', SerpAnalysis::captureOf(SerpAnalysis::CAPTURE_OTHER));
     }
 
+    public function testMarksBrandWhereOneDoorTakesEnough(): void
+    {
+        // «отметим есть ли дор который хотя бы 5% в бренде забирает» — вопроса этого в доле доров
+        // НЕТ: та доля — сумма всех доров сразу, и в ней не видно ни одинокого сильного дора,
+        // ни двадцати слабых в хвосте топа.
+        $rows = [];
+        // «вулкан»: бренд держат не доры, но один дор всё же забирает заметную долю — лезть можно.
+        $rows[] = $this->row('вулкан казино', 1, 'vulkan-official.ru', 'Вулкан казино — официальный сайт');
+        $rows[] = $this->row('вулкан казино', 2, 'obzor-kazino.ru', 'Обзор казино Вулкан');
+        $rows[] = $this->row('вулкан казино', 3, 'otzyvy-kazino.ru', 'Отзывы о казино');
+        $rows[] = $this->row('вулкан казино', 4, 'kush.ourbase.ru');
+        // «лекс»: дор в бренде есть, но стоит в хвосте и не забирает ничего.
+        $rows[] = $this->row('лекс казино', 1, 'lex-casino.ru', 'Лекс казино — официальный сайт');
+        $rows[] = $this->row('лекс казино', 2, 'obzor-kazino.ru', 'Обзор казино Лекс');
+        $rows[] = $this->row('лекс казино', 9, 'a.netone.ru');
+
+        $analysis = SerpAnalysis::build($rows, 10, new OwnSites(['ourbase.ru']));
+        $byKey = [];
+        foreach ($analysis['brands'] as $brand) {
+            $byKey[$brand['key']] = $brand;
+        }
+
+        // ГЛАВНЫЙ СЛУЧАЙ: по типу захвата бренд «не дорами», а дор в нём забирает — порог это ловит.
+        Assert::same('other', $byKey['vulkan']['capture'], 'доля доров: ' . $byKey['vulkan']['door_share']);
+        Assert::true($byKey['vulkan']['strong_door'], 'лучший дор забирает ' . $byKey['vulkan']['door_best'] . '%');
+        Assert::true($byKey['vulkan']['door_best'] >= SerpAnalysis::DOOR_SHARE_MIN);
+        Assert::same('kush.ourbase.ru', $byKey['vulkan']['door_best_host'], 'назван сам дор');
+        Assert::true($byKey['vulkan']['door_best_own'], 'и чей он: свой дор на такой доле — уже наша позиция');
+        Assert::same(1, $byKey['vulkan']['doors_strong']);
+
+        // Дор стоит, но не забирает: отметки нет, хотя в счёте доров бренда он есть.
+        Assert::same(1, $byKey['lex']['counts']['door'], 'дор в выдаче бренда стоит');
+        Assert::same(false, $byKey['lex']['strong_door'], 'но забирает всего ' . $byKey['lex']['door_best'] . '%');
+        Assert::true($byKey['lex']['door_best'] > 0 && $byKey['lex']['door_best'] < SerpAnalysis::DOOR_SHARE_MIN);
+        Assert::same(0, $byKey['lex']['doors_strong']);
+
+        Assert::same(['brands' => 1, 'of' => 2], $analysis['strong_doors'], 'итог по всему списку');
+        Assert::contains('в 1 из 2 брендов', SerpAnalysis::strongDoorsText($analysis));
+    }
+
     public function testQueriesWithoutBrandAreCountedApart(): void
     {
         // «без бренда» — остаток запросов, а не бренд: в счёте по типам захвата он стоит отдельно,
@@ -154,6 +194,13 @@ final class SerpAnalysisTest
         $analysis['brands'][0]['flip'] = ['from' => 'door', 'to' => 'theme', 'ago' => 3];
         $withFlip = preg_split('/\r?\n/', SerpAnalysis::brandsCsv($analysis, ';', false)) ?: [];
         Assert::contains('"доры (поддомены) → тематические домены";3', (string) ($withFlip[1] ?? ''));
+
+        // Берёт ли место хотя бы один дор — колонками, чтобы список делился и в Excel: по сумме
+        // доров («Доля доров %») этого вопроса не задать.
+        Assert::contains('Дор от 5%', $lines[0]);
+        Assert::contains('Доля лучшего дора %', $lines[0]);
+        Assert::contains('Лучший дор', $lines[0]);
+        Assert::contains(';да;80,5;kush.ourbase.ru;да;2', $lines[1], 'есть дор, его доля, он сам и сколько таких');
     }
 
     public function testShowsWhoTakesTheBrand(): void

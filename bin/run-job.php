@@ -1230,6 +1230,9 @@ while (true) {
                 'Чем забраны бренды (по доле видимости доров, порог %d%%/%d%%): %s',
                 (int) SerpAnalysis::CAPTURE_DOOR, (int) SerpAnalysis::CAPTURE_OTHER, SerpAnalysis::captureText($serp),
             ));
+            // И отдельно — берёт ли место ХОТЯ БЫ ОДИН дор: доля выше это сумма всех доров сразу,
+            // в ней не видно ни одинокого сильного дора, ни двадцати слабых в хвосте топа.
+            $logger->info(SerpAnalysis::strongDoorsText($serp) . ' — вкладка «Разбор выдачи»');
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
             }

@@ -1703,6 +1703,13 @@ final class PanelTest
             Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $j['capture_leader']);
             Assert::same(2, array_sum($j['capture']), 'сумма сходится с числом блоков');
             Assert::same(70.0, (float) $j['capture_door'], 'порог отдаётся странице, чтобы подпись не расходилась с расчётом');
+            // БЕРЁТ ЛИ МЕСТО ХОТЯ БЫ ОДИН ДОР — отдельное поле бренда: в сумме доров выше этого
+            // вопроса нет (бренд бывает «не дорами», а один дор в нём забирает).
+            Assert::same(5.0, (float) $j['door_share_min'], 'порог тоже приходит с сервера');
+            Assert::true($byKey['vulkan']['strong_door'], 'дор забирает ' . $byKey['vulkan']['door_best'] . '%');
+            Assert::same('kush.grid-x.ru', $byKey['vulkan']['door_best_host'], 'назван сам дор');
+            Assert::true($byKey['vulkan']['door_best_own'], 'и что он наш');
+            Assert::same(2, (int) $j['strong_doors']['of'], 'счёт по брендам: «без бренда» в нём не участвует');
 
             // БЫЛО/СТАЛО. Раньше между сборами хранился только список сайтов бренда, и разница
             // отвечала «появилось 3, пропало 1»; числа, по которым принимают решение, не сравнивались.
@@ -1753,6 +1760,7 @@ final class PanelTest
             Assert::contains('bylo-vulkan.ru', $csv, 'прошлый лидер в выгрузке');
             Assert::contains('Сменился тип лидера', $csv, 'ротация с прошлого сбора — колонкой');
             Assert::contains('Ротация типа за окно', $csv, 'и за всё окно сборов, с числом сборов назад');
+            Assert::contains('Доля лучшего дора %', $csv, 'берёт ли место хотя бы один дор — колонками');
             Assert::contains('тематические домены → доры (поддомены)', $csv);
 
             // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
@@ -1791,6 +1799,8 @@ final class PanelTest
                 Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
                 Assert::contains('class="rot"', $rendered, 'ротация типа — своей строкой в ряду бренда');
                 Assert::contains('data-only="flip_to_door"', $rendered, 'по ротации можно отфильтровать список');
+                Assert::contains('class="tag our" title="Лучший дор бренда', $rendered, 'в ряду отмечено, что дор забирает ≥ порога');
+                Assert::contains('data-only="strong_door"', $rendered, 'и по этому список тоже фильтруется');
                 // График рисуется на клиенте — проверяем, что он действительно собрался.
                 Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
                 Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');

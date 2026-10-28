@@ -62,6 +62,16 @@ final class SerpAnalysis
     /** Ниже этой доли доров бренд считается забранным НЕ дорами. */
     public const CAPTURE_OTHER = 30.0;
 
+    /**
+     * Сколько бренда должен забирать ОДИН дор, чтобы считать, что доры здесь берут (порог задал
+     * пользователь). Отвечает на вопрос, которого нет в `door_share`: та доля — СУММА всех доров,
+     * и в ней тонет главное. Бренд может быть «забран не дорами» (все доры вместе 18%), а один дор
+     * при этом держать 12% — значит, лезть туда дором МОЖНО. И наоборот: двадцать доров по 1% в
+     * хвосте топа дают заметную сумму, но ни один из них ничего не забирает.
+     * Читают отсюда и страница, и выгрузка, и журнал задания — расходиться им нельзя.
+     */
+    public const DOOR_SHARE_MIN = 5.0;
+
     /** Подписи типов захвата (ключ `capture` бренда). */
     public const CAPTURE = [
         'door' => 'забран дорами',
@@ -270,6 +280,25 @@ final class SerpAnalysis
             $brand['door_share'] = $visTotal > 0 ? round(100 * $doorVis / $visTotal, 1) : 0.0;
             $brand['capture'] = self::captureOf($brand['door_share']);
             $brand['capture_label'] = self::CAPTURE[$brand['capture']];
+            // ЕСТЬ ЛИ ЗДЕСЬ ДОР, КОТОРЫЙ РЕАЛЬНО ЗАБИРАЕТ (см. DOOR_SHARE_MIN). Доска уже
+            // отсортирована по доле, поэтому первый дор в ней и есть лучший.
+            $bestDoor = null;
+            $strongDoors = 0;
+            foreach ($board as $row) {
+                if ($row['type'] !== 'door') {
+                    continue;
+                }
+                $bestDoor ??= $row;
+                if ((float) $row['share'] >= self::DOOR_SHARE_MIN) {
+                    $strongDoors++;
+                }
+            }
+            $brand['door_best'] = $bestDoor !== null ? (float) $bestDoor['share'] : 0.0;
+            $brand['door_best_host'] = $bestDoor !== null ? (string) $bestDoor['host'] : '';
+            // Чей он: чужой дор на 12% — это доказательство, что место берётся, и нас там нет.
+            $brand['door_best_own'] = $bestDoor !== null && !empty($bestDoor['own']);
+            $brand['doors_strong'] = $strongDoors;
+            $brand['strong_door'] = $strongDoors > 0;
             $queries += count($brand['queries']);
             $rowsCount = 0;
             foreach ($brand['queries'] as $list) {
@@ -286,7 +315,15 @@ final class SerpAnalysis
         }
         $capture = ['door' => 0, 'mixed' => 0, 'other' => 0, 'nobrand' => 0];
         $captureLeader = $capture;
+        $strongDoorBrands = 0;
+        $realBrands = 0;
         foreach ($out as $brand) {
+            if ($brand['key'] !== '') {
+                $realBrands++;
+                if ($brand['strong_door']) {
+                    $strongDoorBrands++;
+                }
+            }
             // «без бренда» — не бренд, а остаток запросов: считаем его отдельно, иначе счёт брендов
             // по типу захвата врёт на одну строку, а сумма перестаёт сходиться с числом блоков.
             $bucket = $brand['key'] === '' ? 'nobrand' : $brand['capture'];
@@ -317,6 +354,9 @@ final class SerpAnalysis
             'own' => $ownAll,
             'capture' => $capture,       // брендов по тому, чем они забраны (+ отдельно «без бренда»)
             'capture_leader' => $captureLeader, // из них те, где ПЕРВЫЙ по видимости — дор
+            // Брендов, где хотя бы один дор забирает ≥ DOOR_SHARE_MIN (и сколько брендов всего —
+            // «без бренда» не в счёт, это остаток запросов, а не бренд).
+            'strong_doors' => ['brands' => $strongDoorBrands, 'of' => $realBrands],
             'sites' => count($seenHost),
             'results' => $results,
             'queries' => $queries,
@@ -361,6 +401,30 @@ final class SerpAnalysis
      * Тип захвата по доле видимости доров. Отдельный метод, чтобы границы были в ОДНОМ месте:
      * по ним считается и страница, и строка журнала, и выгрузка в CSV.
      */
+    /**
+     * Порог числом для подписи: «5», а не «5,0» — дробная часть в тексте только мешает.
+     */
+    public static function thresholdText(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 1, ',', ''), '0'), ',');
+    }
+
+    /**
+     * «Дор забирает ≥ 5% в N брендах из M» — для журнала задания и сообщения о сборе. Отдельная
+     * строка, а не часть `captureText()`: там счёт идёт по ТИПУ захвата (сумма доров), здесь — по
+     * тому, берёт ли место ХОТЯ БЫ ОДИН дор, и эти два числа не складываются.
+     *
+     * @param array<string, mixed> $analysis
+     */
+    public static function strongDoorsText(array $analysis): string
+    {
+        $s = (array) ($analysis['strong_doors'] ?? []);
+
+        return 'Берут ли место доры: хотя бы один дор забирает ≥ '
+            . self::thresholdText(self::DOOR_SHARE_MIN) . '% в '
+            . (int) ($s['brands'] ?? 0) . ' из ' . (int) ($s['of'] ?? 0) . ' брендов';
+    }
+
     public static function captureOf(float $doorShare): string
     {
         if ($doorShare >= self::CAPTURE_DOOR) {
@@ -426,6 +490,13 @@ final class SerpAnalysis
         // случилась не в последнем сборе, и тогда колонки «(прошлый)» выше о ней молчат.
         $head[] = 'Ротация типа за окно';
         $head[] = 'Сборов назад';
+        // БЕРЁТ ЛИ ЗДЕСЬ ХОТЯ БЫ ОДИН ДОР: по сумме `Доля доров %` этого не видно.
+        $thr = self::thresholdText(self::DOOR_SHARE_MIN);
+        $head[] = 'Дор от ' . $thr . '%';
+        $head[] = 'Доля лучшего дора %';
+        $head[] = 'Лучший дор';
+        $head[] = 'Лучший дор наш';
+        $head[] = 'Доров от ' . $thr . '%';
         $out = fopen('php://temp', 'r+');
         if ($out === false) {
             return '';
@@ -490,6 +561,11 @@ final class SerpAnalysis
                     . (self::TYPES[(string) $flip['to']] ?? $flip['to']))
                 : '';
             $row[] = is_array($flip) ? (int) $flip['ago'] : '';
+            $row[] = !empty($brand['strong_door']) ? 'да' : 'нет';
+            $row[] = self::num((float) ($brand['door_best'] ?? 0));
+            $row[] = (string) ($brand['door_best_host'] ?? '');
+            $row[] = ($brand['door_best_host'] ?? '') === '' ? '' : (!empty($brand['door_best_own']) ? 'да' : 'нет');
+            $row[] = (int) ($brand['doors_strong'] ?? 0);
             fputcsv($out, $row, $delimiter, '"', '');
         }
         rewind($out);

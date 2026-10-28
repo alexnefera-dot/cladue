@@ -50,6 +50,8 @@
   .tag.mix{background:#fef3c7;color:#713f12}
   @media (prefers-color-scheme: dark){ .tag.mix{background:#3d2f10;color:#ffd98a} }
   .tag.our{background:#0f766e;color:#fff}
+  .tag.d5{background:transparent;box-shadow:inset 0 0 0 1px #86efac;color:#15803d}
+  @media (prefers-color-scheme: dark){ .tag.d5{box-shadow:inset 0 0 0 1px #2f6b45;color:#8ceaa9} }
   .tag.win{background:#4338ca;color:#fff}
   .tag.fresh{background:#fde68a;color:#713f12}
   @media (prefers-color-scheme: dark){ .tag.fresh{background:#4a3a10;color:#ffd98a} }
@@ -155,6 +157,7 @@
           <option value="sites">по числу сайтов</option>
           <option value="query_count">по числу ключей</option>
           <option value="door_share">по доле доров (чем забран бренд)</option>
+          <option value="door_best">по доле лучшего дора</option>
           <option value="lead_share">по доле лидера (кто монополизировал бренд)</option>
           <option value="our_share">по нашей доле</option>
           <option value="fresh_sites">по свежим сайтам в топе</option>
@@ -174,6 +177,8 @@
           <option value="">все бренды</option>
           <option value="cap_door">забранные дорами</option>
           <option value="lead_door">где дор стоит первым</option>
+          <option value="strong_door">где дор забирает от 5%</option>
+          <option value="no_strong_door">где ни один дор столько не забирает</option>
           <option value="cap_mixed">гибриды (и доры, и не доры)</option>
           <option value="cap_other">забранные не дорами</option>
           <option value="door">только с дорами</option>
@@ -231,6 +236,7 @@ const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 let TYPES = {};          // код типа → подпись (приходит с сервера)
 let CAPTURE_LIMITS = {door:70, other:30}; // границы типов захвата — приходят с сервера
+let DOOR_MIN = 5; // с какой доли считаем, что дор РЕАЛЬНО забирает — порог тоже с сервера
 let brands = [];         // список брендов последнего разбора
 const loaded = {};       // ключ бренда → его выдача (подгружается при раскрытии)
 
@@ -271,6 +277,9 @@ function plural(n, forms){
   if(mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} ${forms[1]}`;
   return `${n} ${forms[2]}`;
 }
+
+/** Только слово в нужной форме: число рядом обычно уже обёрнуто в ссылку или в <b>. */
+function pword(n, forms){ return plural(n, forms).replace(/^\d+\s/, ''); }
 
 /** Короткий ярлык типа — для ряда бренда, где длинное «доры (поддомены)» занимает полколонки. */
 const TYPES_SHORT = {door:'дор', theme:'тематический', social:'соцсеть', known:'известный', other:'прочий'};
@@ -319,8 +328,40 @@ function captureCell(b){
   // Форма ряда прямо в строке: по списку из сотен брендов видно, куда идёт каждый, не раскрывая его.
   const sp = b.spark ? spark(b.spark.ds, 'var(--c-door)', 'Доля доров по сборам') : '';
   return cell('Захват',
-    `${moved}<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>`,
+    `${moved}<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>${doorTag(b)}`,
     `${share}%${delta(ch.ds_delta, 'доля доров')} · доров ${doors}/${b.sites|0}`, '', '', sp);
+}
+
+/**
+ * Итог по всему списку: в скольких брендах хотя бы один дор забирает от порога. Стоит рядом с
+ * типами захвата, но отвечает на другое: «дорами — 12» это про СУММУ доров, а здесь — про то,
+ * берёт ли место хоть один из них. Бренды «не дорами» с сильным дором внутри и есть самое
+ * интересное в этом числе.
+ */
+function strongLine(s){
+  const n = s.brands|0, of = s.of|0;
+  if(!of) return '';
+  return `Хотя бы один дор забирает <b>${DOOR_MIN}%</b> и больше в `
+    + `<a href="#" data-only="strong_door"><b>${n}</b></a> ${pword(n, ['бренде', 'брендах', 'брендах'])} из ${of}`
+    + (n < of ? ` (в <a href="#" data-only="no_strong_door"><b>${of - n}</b></a> не забирает ни один)` : '')
+    + '. Это не то же, что доля доров: та — сумма всех доров сразу. ';
+}
+
+/**
+ * БЕРЁТ ЛИ ЗДЕСЬ ХОТЯ БЫ ОДИН ДОР. Доля доров слева — СУММА, и она отвечает на другой вопрос:
+ * бренд может быть «забран не дорами» (все доры вместе 18%), а один дор при этом держать 12% —
+ * значит, место дором берётся. И наоборот: двадцать доров по 1% дают заметную сумму, но ни один
+ * из них ничего не забирает. Плашки нет, когда такого дора нет: отсутствие и есть ответ.
+ */
+function doorTag(b){
+  if(!b.strong_door) return '';
+  const v = +b.door_best || 0, txt = v >= 10 ? Math.round(v) : v.toFixed(1);
+  const n = b.doors_strong|0;
+  const t = `Лучший дор бренда — ${b.door_best_host || '?'}, забирает ${v}%`
+    + (b.door_best_own ? ' (наш)' : ' (чужой)')
+    + `. Доров от ${DOOR_MIN}%: ${n}. Это отдельный вопрос от «Захвата»: там сумма всех доров, `
+    + 'здесь — забирает ли место хотя бы один.';
+  return ` <span class="tag ${b.door_best_own ? 'our' : 'd5'}" title="${esc(t)}">дор ${txt}%</span>`;
 }
 
 /**
@@ -638,6 +679,8 @@ function sortValue(b, key){
   if(key === 'changed'){ const d = b.diff || {}; return ((d.added&&d.added.total)|0) + ((d.removed&&d.removed.total)|0); }
   if(key === 'lead_share') return b.leader ? (+b.leader.share || 0) : 0;
   if(key === 'door_share') return +b.door_share || 0;
+  // «Сколько забирает лучший дор» — не то же, что сумма доров: по нему видно, где доры БЕРУТ.
+  if(key === 'door_best') return +b.door_best || 0;
   if(key === 'ds_delta') return +((b.changed||{}).ds_delta) || 0;
   if(key === 'os_delta') return +((b.changed||{}).os_delta) || 0;
   // Сортируем так, чтобы «от большего» показало самые долгие падения первыми.
@@ -668,6 +711,9 @@ function matchesOnly(b, only){
   if(only === 'fall') return (b.spark ? streakOf(b.spark.os) : 0) <= -2;
   if(only === 'rise') return (b.spark ? streakOf(b.spark.os) : 0) >= 2;
   if(only === 'lead_door') return !!(b.leader && b.leader.type === 'door');
+  // Берёт ли место хотя бы один дор — вопрос, которого нет в сумме доров (см. doorTag).
+  if(only === 'strong_door') return !!b.strong_door;
+  if(only === 'no_strong_door') return !b.strong_door;
   if(only === 'cap_door') return b.capture === 'door';
   if(only === 'cap_mixed') return b.capture === 'mixed';
   if(only === 'cap_other') return b.capture === 'other';
@@ -711,6 +757,13 @@ async function load(){
     if(!j.ok){ $('status').innerHTML = `<span class="err">${esc(j.error || 'Ошибка')}</span>`; return; }
     TYPES = j.types || {};
     CAPTURE_LIMITS = {door: +j.capture_door || 70, other: +j.capture_other || 30};
+    // Порог «дор реально забирает» приходит с сервера — подписи фильтров берут число оттуда же,
+    // чтобы правка порога в одном месте не оставила на странице старое «от 5%».
+    DOOR_MIN = +j.door_share_min || DOOR_MIN;
+    const optStrong = $('only').querySelector('option[value="strong_door"]');
+    const optWeak = $('only').querySelector('option[value="no_strong_door"]');
+    if(optStrong) optStrong.textContent = `где дор забирает от ${DOOR_MIN}%`;
+    if(optWeak) optWeak.textContent = `где ни один дор не забирает ${DOOR_MIN}%`;
     brands = j.brands || [];
     // Выгрузка должна описывать ТО ЖЕ, что на экране: глубина топа уходит в ссылку.
     $('serpCsv').href = '/download?file=serp&top=' + encodeURIComponent($('top').value);
@@ -737,7 +790,8 @@ async function load(){
       + ((cap.nobrand|0) ? ` · без бренда — <b>${cap.nobrand|0}</b>` : '')
       + `. Считается по <b>доле видимости</b> доров, а не по их числу: «дорами» — доры держат `
       + `≥ ${CAPTURE_LIMITS.door}% видимости бренда, «не дорами» — ≤ ${CAPTURE_LIMITS.other}%, между — гибрид. `
-      + (leadAll ? `Дор стоит <b>первым</b> в <a href="#" data-only="lead_door"><b>${leadAll}</b></a> брендах — это и есть доказательство, что доры там берут верх, а не стоят в хвосте. ` : '')
+      + (leadAll ? `Дор стоит <b>первым</b> в <a href="#" data-only="lead_door"><b>${leadAll}</b></a> ${pword(leadAll, ['бренде', 'брендах', 'брендах'])} — это и есть доказательство, что доры там берут верх, а не стоят в хвосте. ` : '')
+      + strongLine(j.strong_doors || {})
       + 'Нажмите на число — в списке останутся только эти бренды.';
     // Все числа выше — по РАЗНЫМ сайтам. Сумма по брендам больше ровно на повторы между брендами.
     const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};

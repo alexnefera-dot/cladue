@@ -1383,6 +1383,36 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `SerpAnalysisTest::testBrandsCsvCarriesTheSplitAndTheLeader` (the four columns) and
   `PanelTest::testSerpAnalysisPageAndEndpoint` (`flip` over the API, the columns in the downloaded CSV,
   and `class="rot"` + `data-only="flip_to_door"` in the browser-rendered page).
+  DOES ANY ONE DOOR ACTUALLY TAKE SOMETHING (1.50.0) — «давай отметим есть ли дор который хотя бы 5%
+  в бренде забирает, отдельным полем у каждого бренда» (the user set the threshold themselves, first
+  saying 7% and correcting it to 5% mid-turn). `door_share` cannot answer it: that share is the SUM of
+  every door, so a brand reads «забран не дорами» at 15% while one door inside it holds 12% — doors
+  demonstrably rank there — and, the other way round, twenty doors at 1% in the tail add up to a
+  visible share while not one of them takes anything. `SerpAnalysis::DOOR_SHARE_MIN` (5.0, the one
+  place the threshold lives — page, CSV and job log all read it) and `build()` give every brand
+  `strong_door` (bool), `doors_strong` (how many doors are at or above it), `door_best` (the best
+  door's share — the board is already sorted, so the first door in it is the best), `door_best_host`
+  and `door_best_own`; the analysis gains `strong_doors` = `{brands, of}`, counted over REAL brands
+  («без бренда» excluded, as everywhere in the capture counts). `strongDoorsText()` writes the job-log
+  line «Берут ли место доры: хотя бы один дор забирает ≥ 5% в 4 из 5 брендов» — the «N из M брендов»
+  shape is deliberate, it needs no plural agreement. Page: `doorTag()` puts a quiet outlined chip
+  «дор 12%» (`.tag.d5`; solid `.tag.our` when that door is OURS — a door of ours already at that share
+  is a position, not an opportunity) on the top line of «Захват», right after the capture tag, and
+  NOTHING when there is no such door, because the absence is the answer; the exact share, the host and
+  the count live in its tooltip. The share prints as an integer from 10% up and with one decimal below
+  it, so a 5.4% door is not rounded into the threshold it only just cleared. `strongLine()` adds the
+  clickable count to `#captureLine`, `#only` gained `strong_door` / `no_strong_door` (their labels are
+  rewritten from the server's `door_share_min` on load, so moving the threshold cannot leave a stale
+  «от 5%» on the page) and `#sort` a «по доле лучшего дора». `pword()` was added for «в 1 бренде» —
+  the existing «Дор стоит первым в 1 брендах» had the same plural bug. `brandsCsv()` gains five
+  columns AT THE END («Дор от 5%», «Доля лучшего дора %», «Лучший дор», «Лучший дор наш», «Доров от
+  5%»), and `cell()`'s third slot was already raw HTML from 1.49.0, so nothing moved in the grid.
+  Covered by `SerpAnalysisTest::testMarksBrandWhereOneDoorTakesEnough` (the decisive pair: a brand
+  whose capture is «не дорами» yet has a door above the threshold, and one whose door sits ninth and
+  takes 4.6% — plus the totals and the log line),
+  `testBrandsCsvCarriesTheSplitAndTheLeader` (the five columns) and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (`door_share_min`, the per-brand fields, the CSV column
+  and the chip + `data-only="strong_door"` in the browser-rendered page).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row
