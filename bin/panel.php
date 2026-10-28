@@ -634,11 +634,27 @@ if ($path === '/api/serp') {
         $ownSites,
     );
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
+    // БЫЛО/СТАЛО. Самый свежий снимок описывает ТЕКУЩИЙ results.csv (его пишет конец сбора), поэтому
+    // сравниваем с предыдущим. Считаем на лету, а не читаем готовое: так числа «было» всегда об одном
+    // и том же — глубина топа у снимка и у текущего разбора должна совпадать, иначе сравнивать нельзя.
+    $serpRecords = \YandexSites\Support\SerpHistory::load($projectDir . '/runs');
+    $prevSnap = $serpRecords[1] ?? null;
+    $sameTop = $prevSnap !== null && (int) ($prevSnap['top'] ?? 0) === $top;
+    $changes = $sameTop
+        ? \YandexSites\Support\SerpHistory::compare($prevSnap, $analysis)
+        : ['brands' => [], 'gone' => []];
     $want = trim((string) ($_GET['brand'] ?? ''));
     if ($want !== '' || isset($_GET['brand'])) {
         foreach ($analysis['brands'] as $brand) {
             if ((string) $brand['key'] === $want) {
-                jsonOut(['ok' => true, 'brand' => $brand, 'diff' => $diff['brands'][$want] ?? null]);
+                jsonOut([
+                    'ok' => true,
+                    'brand' => $brand,
+                    'diff' => $diff['brands'][$want] ?? null,
+                    'changed' => $changes['brands'][$want] ?? null,
+                    // Динамика бренда по сборам: дата, захват, доля доров, лидер, наша доля.
+                    'trend' => \YandexSites\Support\SerpHistory::trend($projectDir . '/runs', $want),
+                ]);
             }
         }
         jsonOut(['ok' => false, 'error' => 'Бренд не найден в текущем сборе']);
@@ -651,6 +667,7 @@ if ($path === '/api/serp') {
         // приходит целиком (/api/serp?brand=…), а здесь сотни строк на бренд раздули бы ответ.
         $brand['board'] = array_slice($brand['board'] ?? [], 0, 5);
         $brand['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
+        $brand['changed'] = $changes['brands'][(string) $brand['key']] ?? null;
         $list[] = $brand;
     }
     jsonOut([
@@ -676,6 +693,12 @@ if ($path === '/api/serp') {
         'dorgen_bases' => $ownSites->count(),
         'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
         'diff_at' => $diff['compared_at'] ?? '',
+        // Сравнение по числам бренда: итог, дата прошлого снимка и почему его может не быть.
+        'changes' => \YandexSites\Support\SerpHistory::summary($changes),
+        'changes_at' => $prevSnap !== null ? (string) ($prevSnap['at'] ?? '') : '',
+        'changes_top' => $prevSnap !== null ? (int) ($prevSnap['top'] ?? 0) : 0,
+        'changes_ok' => $sameTop,
+        'collects' => count($serpRecords),
         'version' => \YandexSites\Cli\Application::VERSION,
     ]);
 }
@@ -884,8 +907,15 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'serp') {
     );
     // Изменения с прошлого сбора считаются в конце сбора — в выгрузке они такие же, как на странице.
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => []];
+    $csvTop = max(0, min(100, (int) ($_GET['top'] ?? 10)));
+    $csvRecords = \YandexSites\Support\SerpHistory::load($projectDir . '/runs');
+    $csvPrev = $csvRecords[1] ?? null;
+    $csvChanges = ($csvPrev !== null && (int) ($csvPrev['top'] ?? 0) === $csvTop)
+        ? \YandexSites\Support\SerpHistory::compare($csvPrev, $analysis)
+        : ['brands' => []];
     foreach ($analysis['brands'] as $i => $brand) {
         $analysis['brands'][$i]['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
+        $analysis['brands'][$i]['changed'] = $csvChanges['brands'][(string) $brand['key']] ?? null;
     }
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="serp-brands-' . date('Y-m-d') . '.csv"');

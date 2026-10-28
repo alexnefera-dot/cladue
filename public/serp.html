@@ -63,7 +63,7 @@
      по вертикали. Раньше здесь лежала дюжина плашек в одну строку, и каждый бренд приходилось
      разбирать заново — «куча плашек, сложно анализировать». */
   .bhead,.brand>summary{display:grid;gap:12px;align-items:center;
-    grid-template-columns:14px minmax(120px,1.2fr) 118px 112px minmax(140px,1.4fr) 96px 112px minmax(100px,1fr)}
+    grid-template-columns:14px minmax(110px,1.1fr) 152px 106px minmax(130px,1.3fr) 118px 92px minmax(96px,1fr)}
   .bhead{padding:2px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
   .brand>summary{cursor:pointer;padding:10px 14px;list-style:none}
   .brand>summary::-webkit-details-marker{display:none}
@@ -81,6 +81,15 @@
   .us-win{color:#0f766e;font-weight:700}
   .us-behind{color:#b45309;font-weight:600}
   .us-none{color:var(--muted)}
+  /* Сдвиг числа с прошлого сбора: цвет говорит направление, а не «хорошо/плохо». */
+  .up{color:#15803d;font-weight:700;font-size:12px}
+  .down{color:#b91c1c;font-weight:700;font-size:12px}
+  .moved{color:#b45309;font-weight:700}
+  .tag.moved-tag{background:#fde68a;color:#713f12}
+  @media (prefers-color-scheme: dark){
+    .up{color:#6ee7a0} .down{color:#ff9d9d} .moved{color:#fbbf24}
+    .tag.moved-tag{background:#4a3a10;color:#ffd98a}
+  }
   @media (prefers-color-scheme: dark){ .us-win{color:#5eead4} .us-behind{color:#fbbf24} }
   /* Узкий экран: колонки превращаются в строки «подпись — значение», ничего не обрезается. */
   @media (max-width:900px){
@@ -146,7 +155,9 @@
           <option value="crossed">по пересечениям внутри бренда</option>
           <option value="networked">по сайтам на нескольких брендах</option>
           <option value="theme">по тематическим доменам</option>
-          <option value="changed">по изменениям с прошлого сбора</option>
+          <option value="changed">по изменениям с прошлого сбора (сайты)</option>
+          <option value="ds_delta">по сдвигу доли доров</option>
+          <option value="os_delta">по сдвигу нашей доли</option>
           <option value="label">по названию</option>
         </select>
       </label>
@@ -165,7 +176,13 @@
           <option value="fresh">только со свежими сайтами в топе</option>
           <option value="net">только с сайтами на нескольких брендах</option>
           <option value="crossed">только с пересечениями внутри бренда</option>
-          <option value="changed">только изменившиеся</option>
+          <option value="changed">только изменившиеся (состав сайтов)</option>
+          <optgroup label="Динамика с прошлого сбора">
+            <option value="ch_cap">сменили тип захвата</option>
+            <option value="ch_lead">сменился лидер</option>
+            <option value="ch_us_up">наша доля выросла</option>
+            <option value="ch_us_down">наша доля упала</option>
+          </optgroup>
         </select>
       </label>
       <span class="hint" id="shownCount"></span>
@@ -187,6 +204,7 @@
     <div class="hint" id="repeatLine" style="margin-top:10px"></div>
     <div class="hint" id="ownLine" style="margin-top:4px"></div>
     <div class="hint" id="diffLine" style="margin-top:4px"></div>
+    <div class="hint" id="changeLine" style="margin-top:4px"></div>
   </div>
 
   <div id="brands"></div>
@@ -273,11 +291,27 @@ const CAPTURE_TAG = {door:'door', mixed:'mix', other:'other'};
  */
 function captureCell(b){
   const c = b.capture || 'other', share = +b.door_share || 0, doors = (b.counts && b.counts.door)|0;
-  const title = `Доры забирают ${share}% видимости бренда (${doors} из ${b.sites|0} сайтов). `
+  const ch = b.changed || {};
+  let title = `Доры забирают ${share}% видимости бренда (${doors} из ${b.sites|0} сайтов). `
     + `Порог: ≥ ${CAPTURE_LIMITS.door}% — «дорами», ≤ ${CAPTURE_LIMITS.other}% — «не дорами»`;
+  if(ch.cap_changed) title += `. С прошлого сбора: было «${CAPTURE_SHORT[ch.cap_was] || ch.cap_was}»`;
+  const moved = ch.cap_changed ? `<span class="moved" title="Бренд сменил тип захвата">${ch.cap_dir > 0 ? '↑' : '↓'}</span> ` : '';
   return cell('Захват',
-    `<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>`,
-    `${share}% · доров ${doors} из ${b.sites|0}`);
+    `${moved}<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>`,
+    `${share}%${delta(ch.ds_delta, 'доля доров')} · доров ${doors}/${b.sites|0}`);
+}
+
+/**
+ * Сдвиг числа с прошлого сбора — рядом с самим числом, а не отдельной колонкой: иначе «было/стало»
+ * приходится сводить глазами. Мелкие колебания (< 1 п.п.) не показываем — это шум округления,
+ * точное значение остаётся в подсказке.
+ */
+function delta(v, what){
+  v = +v || 0;
+  if(!v) return '';
+  const cls = v > 0 ? 'up' : 'down', sign = v > 0 ? '+' : '−';
+  const txt = Math.abs(v) >= 1 ? `${sign}${Math.abs(v).toFixed(1)}` : '·';
+  return ` <span class="${cls}" title="${esc(what)}: ${sign}${Math.abs(v).toFixed(1)} п.п. с прошлого сбора">${txt}</span>`;
 }
 
 /** Колонка «Доля лидера»: число плюс полоска — по ней бренды и сравниваются взглядом. */
@@ -292,18 +326,25 @@ function shareCell(b){
 
 /** Колонка «Забирает»: кто первый по видимости и чей он. */
 function takerCell(b){
-  const l = b.leader;
+  const l = b.leader, ch = b.changed || {};
   if(!l) return cell('Забирает', '<span class="hint">—</span>', '');
   const who = l.own ? '<span class="tag our">наш</span>' : typeTagShort(l.type);
-  return cell('Забирает', `<b>${esc(l.host)}</b>`, `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`);
+  // Смена лидера — самое заметное событие бренда: кто-то отобрал верх.
+  const sw = ch.lead_changed
+    ? ` <span class="tag moved-tag" title="С прошлого сбора бренд забирал ${esc(ch.lead_was)}">сменился</span>` : '';
+  return cell('Забирает', `<b>${esc(l.host)}</b>${sw}`, `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`);
 }
 
 /** Колонка «Мы»: забираем, отстаём или нас нет — это и есть ответ, с чем работать. */
 function usCell(b){
-  const l = b.leader, our = +b.our_share || 0, best = b.our_best;
-  if(l && l.own) return cell('Мы', '<span class="us-win">забираем</span>', `${our}% · ${best ? best.best|0 : 1}-я`);
-  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>`, `${best ? best.best|0 : 0}-я позиция`);
-  return cell('Мы', '<span class="us-none">нас нет</span>', (b.counts && b.counts.door|0) > 0 ? 'доры чужие' : '');
+  const l = b.leader, our = +b.our_share || 0, best = b.our_best, ch = b.changed || {};
+  // «Было X%» важнее пояснения «доры чужие»: если доля была, а сейчас нас нет — бренд потерян.
+  const was = ch.os_delta ? `было ${ch.os_was}%` : '';
+  const pos = best ? `${best.best|0}-я` : '';
+  if(l && l.own) return cell('Мы', `<span class="us-win">забираем</span>${delta(ch.os_delta, 'наша доля')}`, [`${our}%`, pos, was].filter(Boolean).join(' · '));
+  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>${delta(ch.os_delta, 'наша доля')}`, [pos, was].filter(Boolean).join(' · '));
+  return cell('Мы', `<span class="us-none">нас нет</span>${delta(ch.os_delta, 'наша доля')}`,
+    was || ((b.counts && b.counts.door|0) > 0 ? 'доры чужие' : ''));
 }
 
 /** Колонка «Ещё»: всё мелкое — одной строкой, а не россыпью плашек. */
@@ -341,6 +382,27 @@ function boardHtml(brand){
   }).join('');
   return `<div class="qblock"><div class="q">Кто забирает бренд <span class="hint">· доля видимости по всем ${keys} ключам; веса позиций приблизительные — для сравнения сайтов между собой</span></div>
     <table class="board"><thead><tr><th>#</th><th>Сайт</th><th>Доля</th><th>Ключей</th><th>Лучшая</th><th>Топ-3</th><th>Тип</th><th>Свежесть</th></tr></thead>
+    <tbody>${trs}</tbody></table></div>`;
+}
+
+/**
+ * ДИНАМИКА БРЕНДА ПО СБОРАМ: строка на сбор — чем забран, доля доров, кто забирает, наша доля.
+ * Фиксировать руками ничего не нужно: снимок пишется в конце каждого сбора.
+ */
+function trendHtml(trend){
+  if(!trend || trend.length < 2) return '';
+  const trs = trend.map((t, i) => `<tr${i === 0 ? ' class="leader"' : ''}>
+    <td>${esc(t.at ? new Date(t.at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '')}</td>
+    <td><span class="tag ${CAPTURE_TAG[t.cap] || 'other'}">${esc(CAPTURE_SHORT[t.cap] || t.cap)}</span></td>
+    <td class="num">${t.ds}%</td>
+    <td class="site">${esc(t.lead || '—')}</td>
+    <td class="num">${t.ls}%</td>
+    <td class="num">${t.os}%</td>
+    <td class="num">${t.own|0}</td>
+    <td class="num">${t.sites|0}</td>
+  </tr>`).join('');
+  return `<div class="qblock"><div class="q">Динамика по сборам <span class="hint">· сверху текущий; снимок пишется в конце каждого сбора</span></div>
+    <table><thead><tr><th>Сбор</th><th>Захват</th><th>Доля доров</th><th>Забирает</th><th>Доля лидера</th><th>Наша доля</th><th>Наших доров</th><th>Сайтов</th></tr></thead>
     <tbody>${trs}</tbody></table></div>`;
 }
 
@@ -382,7 +444,8 @@ function queriesHtml(brand){
       ? `<div style="margin-top:6px"><span class="tag ${cls}">${word} ${arr.length}</span> <span class="hint">${arr.map(esc).join(', ')}</span></div>` : '';
     tail += list(d.added_hosts||[], 'add', 'появились') + list(d.removed_hosts||[], 'gone', 'пропали');
   }
-  return boardHtml(brand) + parts.join('') + tail;
+  // Динамика идёт сразу за «кто забирает»: это тоже заголовок бренда, а не сноска под выдачей.
+  return boardHtml(brand) + trendHtml(brand.trend) + parts.join('') + tail;
 }
 
 async function loadBrand(el, key){
@@ -393,6 +456,8 @@ async function loadBrand(el, key){
     const j = await r.json();
     if(!j.ok){ body.innerHTML = `<div class="err">${esc(j.error || 'Ошибка')}</div>`; return; }
     j.brand.diff = j.diff;
+    j.brand.changed = j.changed;
+    j.brand.trend = j.trend;
     loaded[key] = j.brand;
     body.innerHTML = queriesHtml(j.brand);
   }catch(e){ body.innerHTML = `<div class="err">Не удалось загрузить: ${esc(e.message || e)}</div>`; }
@@ -406,6 +471,8 @@ function sortValue(b, key){
   if(key === 'changed'){ const d = b.diff || {}; return ((d.added&&d.added.total)|0) + ((d.removed&&d.removed.total)|0); }
   if(key === 'lead_share') return b.leader ? (+b.leader.share || 0) : 0;
   if(key === 'door_share') return +b.door_share || 0;
+  if(key === 'ds_delta') return +((b.changed||{}).ds_delta) || 0;
+  if(key === 'os_delta') return +((b.changed||{}).os_delta) || 0;
   if(key === 'our_share') return +b.our_share || 0;
   if(key in (b.counts || {})) return b.counts[key]|0;
   return b[key]|0;
@@ -416,6 +483,12 @@ function matchesOnly(b, only){
   const doors = (b.counts && b.counts.door)|0, own = b.own_doors|0, d = b.diff || {};
   // Три кучи, на которые делится список: забрали доры, забрали не доры, и то и другое.
   // Дор на первом месте — доказательство, что в этом бренде дор берёт верх, а не просто стоит в хвосте.
+  // Динамика: что сдвинулось с прошлого сбора — по этому и смотрят пересбор.
+  const ch = b.changed || {};
+  if(only === 'ch_cap') return !!ch.cap_changed;
+  if(only === 'ch_lead') return !!ch.lead_changed;
+  if(only === 'ch_us_up') return (+ch.os_delta || 0) > 0;
+  if(only === 'ch_us_down') return (+ch.os_delta || 0) < 0;
   if(only === 'lead_door') return !!(b.leader && b.leader.type === 'door');
   if(only === 'cap_door') return b.capture === 'door';
   if(only === 'cap_mixed') return b.capture === 'mixed';
@@ -515,6 +588,23 @@ async function load(){
     $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
       ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
       : 'Сравнение с прошлым сбором появится после следующего сбора.';
+    // ЧТО ИЗМЕНИЛОСЬ ПО ЧИСЛАМ БРЕНДА — отдельно от разницы по составу сайтов выше: там «появилось
+    // 3, пропало 1», здесь «кто сменил лидера и где просела наша доля».
+    const c = j.changes || {}, chLink = (code, text) => `<a href="#" data-only="${code}"><b>${esc(text)}</b></a>`;
+    if(!j.changes_ok){
+      $('changeLine').innerHTML = (j.collects|0) > 1
+        ? `Сравнение «было → стало» считается для топ-${j.changes_top|0} — переключите «топ», чтобы увидеть динамику.`
+        : 'Динамика по числам брендов появится после следующего сбора: сейчас сравнивать не с чем (снимков сборов: '
+          + `${j.collects|0}).`;
+    } else {
+      $('changeLine').innerHTML = `С прошлого сбора (${j.changes_at ? new Date(j.changes_at).toLocaleString('ru-RU') : ''}) `
+        + `изменились <b>${c.brands|0}</b> брендов: `
+        + chLink('ch_cap', `сменили захват — ${c.cap_changed|0}`) + ` <span class="hint">(в сторону доров ${c.to_doors|0}, от доров ${c.from_doors|0})</span> · `
+        + chLink('ch_lead', `сменился лидер — ${c.lead_changed|0}`) + ' · '
+        + chLink('ch_us_up', `наша доля выросла у ${c.our_up|0}`) + ' · '
+        + chLink('ch_us_down', `упала у ${c.our_down|0}`)
+        + ((c.new|0) || (c.gone|0) ? ` · новых брендов <b>${c.new|0}</b>, пропало <b>${c.gone|0}</b>` : '');
+    }
     $('updated').textContent = j.diff_at ? 'сравнение от ' + new Date(j.diff_at).toLocaleString('ru-RU') : '';
     render();
   }catch(e){ $('status').innerHTML = `<span class="err">Не удалось загрузить: ${esc(e.message || e)}</span>`; }
@@ -577,6 +667,14 @@ $('dorgen').addEventListener('click', async () => {
   }
 });
 // Числа в строке «чем забраны бренды» — это и есть фильтр: клик оставляет свою кучу.
+$('changeLine').addEventListener('click', e => {
+  const a = e.target.closest('a[data-only]');
+  if(!a) return;
+  e.preventDefault();
+  $('only').value = a.dataset.only;
+  render();
+  $('brands').scrollIntoView({behavior:'smooth', block:'start'});
+});
 $('captureLine').addEventListener('click', e => {
   const a = e.target.closest('a[data-cap],a[data-only]');
   if(!a) return;

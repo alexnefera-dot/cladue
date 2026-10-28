@@ -60,6 +60,7 @@ use YandexSites\Support\QueryDupes;
 use YandexSites\Support\QueryQueue;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SerpAnalysis;
+use YandexSites\Support\SerpHistory;
 use YandexSites\Support\SiteRows;
 use YandexSites\Visit\KeyPages;
 use YandexSites\Visit\PageVisitor;
@@ -1203,6 +1204,13 @@ while (true) {
             $serpDiff = SerpAnalysis::diff($prevIndex, $serp);
             saveJson($runDir . '/' . SerpAnalysis::DIFF_FILE, $serpDiff);
             saveJson($indexFile, SerpAnalysis::index($serp));
+            // ДИНАМИКА ПО БРЕНДАМ: слепок чисел, по которым принимают решение (захват, лидер, наша
+            // доля) — без него разница между сборами отвечала только «появилось 3, пропало 1».
+            // Продолжение сбора переписывает свою же запись: сбор частями — это один сбор.
+            $serpRuns = dirname($runDir);
+            $serpPrev = SerpHistory::previous($serpRuns, $resume);
+            $serpChanges = SerpHistory::compare($serpPrev, $serp);
+            SerpHistory::record($serpRuns, $serp, 10, $resume);
             $serpTotals = SerpAnalysis::totalsText($serp['totals']);
             $logger->info(sprintf(
                 'Разбор выдачи: брендов %d, запросов %d, строк %d, разных сайтов %d — %s; наших доров %d; сайтов на нескольких брендах %d',
@@ -1224,6 +1232,10 @@ while (true) {
             ));
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
+            }
+            if ($serpPrev !== null) {
+                // Было/стало по числам бренда — то, чего в разнице по списку сайтов не видно.
+                $logger->info('Динамика брендов с прошлого сбора: ' . SerpHistory::summaryText(SerpHistory::summary($serpChanges)));
             }
 
             // Тип вёрстки по превью главной (7–9 / 12–15 страниц / без категории) — виден сразу после сбора,

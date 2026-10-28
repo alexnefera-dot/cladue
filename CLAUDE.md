@@ -1192,6 +1192,50 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `b.leader.type`). Covered by the extended `testSplitsBrandsByWhoCapturesThem` (the brand with a
   39% door share AND a door leader is the case the bucket alone would hide) and
   `PanelTest::testSerpAnalysisPageAndEndpoint`.
+  WAS → IS BETWEEN COLLECTS (1.44.0) — «а как ещё в этих отчётах сравнить было стало после
+  пересбора? по каждому бренду получается отдельно надо фиксировать динамику?». Nothing is fixed by
+  hand: `Support\SerpHistory` (`runs/serp-history.json`, next to `history.json`, newest first,
+  `LIMIT` 60) writes a snapshot at the end of every collect. What existed before — `index()` +
+  `diff()` — kept only brand → host → type, so the comparison could answer «появилось 3, пропало 1»
+  and nothing about the numbers decisions are made on. `snapshot()` therefore stores, per brand,
+  ONLY those: `cap`/`ds` (capture + door share), `lead`/`lt`/`ls` (who takes it), `os`/`own` (our
+  share and doors), `sites`/`doors`/`keys`/`fresh` — no queries and no host lists, which would make
+  the file megabytes on the first 3000-query collect (asserted by
+  `testSnapshotKeepsOnlyNumbersNotRows`). The record also carries `top`: a snapshot taken at top-10
+  cannot be compared with an analysis built at top-50, and both the page and the CSV simply say so
+  instead of subtracting incomparable numbers.
+  THE NEWEST RECORD DESCRIBES THE CURRENT `results.csv` (the collect that just ended wrote it), so
+  «прошлый сбор» is `records[1]` — that is what `bin/panel.php` compares the live analysis against,
+  and `previous()` is what `bin/run-job.php` compares against BEFORE writing the new one. A collect
+  done in PARTS is ONE collect: `record(..., replaceLast: $resume)` overwrites its own record and
+  `previous($runs, $resume)` skips it, otherwise «прошлый сбор» would be the previous part of this
+  one. `compare()` returns per brand `cap_was`/`cap_changed`/`cap_dir`, `ds_was`/`ds_delta`,
+  `lead_was`/`lead_changed`, `os_was`/`os_delta`, `own_delta`, `sites_delta`, with `is_new` for a
+  brand that was not there and a separate `gone` map; a brand with NO movement is left out entirely
+  (`EPS` 0.1 p.p.), or the «изменившиеся» filter would show the whole list. `summary()`/
+  `summaryText()` give «изменились N брендов; сменился захват — 7 (в сторону доров 5, от доров 2),
+  сменился лидер — 23, наша доля выросла у 4, упала у 2; новых 1, пропало 0» for the collect log.
+  Page: the deltas sit NEXT TO THE NUMBER THAT MOVED, not in a column of their own — `delta()`
+  renders «+37.3»/«−26.6» (green/red, a dot below 1 p.p. with the exact value in the tooltip) after
+  the door share and after our share, `captureCell()` prefixes an ↑/↓ when the bucket itself changed
+  (the old one in the tooltip), `takerCell()` adds a «сменился» tag naming the previous leader, and
+  `usCell()` prints «было X%» — which is how a LOST brand reads: «нас нет −2.1 · было 2.1%». The
+  grid columns had to grow for it (`152px` for «Захват», `118px` for «Мы», «доров 6/7» instead of
+  «доров 6 из 7»); the first version silently ellipsised both cells, caught on a rendered
+  screenshot. `#changeLine` under the stats carries the summary with the counts CLICKABLE, and
+  `#only` gained an optgroup «Динамика с прошлого сбора» (`ch_cap`/`ch_lead`/`ch_us_up`/`ch_us_down`)
+  plus the sorts `ds_delta`/`os_delta`. An opened brand shows «Динамика по сборам» right after «Кто
+  забирает бренд» (`SerpHistory::trend()`, last 10 collects: date · capture · door share · leader ·
+  leader share · our share · our doors · sites) — that is the per-brand dynamics the user asked
+  about, and it needs no manual bookkeeping. `brandsCsv()` gained seven trailing columns («Чем забран
+  (прошлый сбор)», «Доля доров % (прошлый)», «Δ доля доров», «Лидер (прошлый)», «Сменился лидер»,
+  «Наша доля % (прошлый)», «Δ наша доля»), EMPTY rather than zero when there is nothing to compare
+  with — a 0 would read as a real measurement — and «новый бренд» in the first of them for a brand
+  that is new. Covered by `tests/SerpHistoryTest.php` (the comparison, an unchanged brand absent
+  from it, new/gone split, resume replacing its own record + the trend order, the snapshot's shape)
+  and `PanelTest::testSerpAnalysisPageAndEndpoint` (a hand-written two-record history: `/api/serp`
+  reports `changes_ok` and the per-brand `changed`, `?brand=` carries the trend, the CSV holds the
+  previous leader, and the browser-rendered page shows «С прошлого сбора» and the «сменился» tag).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

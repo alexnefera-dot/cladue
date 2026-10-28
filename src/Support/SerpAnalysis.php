@@ -415,6 +415,12 @@ final class SerpAnalysis
         }
         $head[] = 'Появилось с прошлого сбора';
         $head[] = 'Пропало с прошлого сбора';
+        // БЫЛО/СТАЛО по числам бренда (пусто, когда сравнивать не с чем — первый сбор или другая
+        // глубина топа). Колонки В КОНЦЕ: старые фильтры в Excel от этого не разъезжаются.
+        foreach (['Чем забран (прошлый сбор)', 'Доля доров % (прошлый)', 'Δ доля доров',
+            'Лидер (прошлый)', 'Сменился лидер', 'Наша доля % (прошлый)', 'Δ наша доля'] as $h) {
+            $head[] = $h;
+        }
         $out = fopen('php://temp', 'r+');
         if ($out === false) {
             return '';
@@ -455,6 +461,22 @@ final class SerpAnalysis
             }
             $row[] = (int) ($diff['added']['total'] ?? 0);
             $row[] = (int) ($diff['removed']['total'] ?? 0);
+            $ch = $brand['changed'] ?? null;
+            if (is_array($ch) && empty($ch['is_new'])) {
+                $row[] = self::CAPTURE[(string) $ch['cap_was']] ?? '';
+                $row[] = self::num((float) $ch['ds_was']);
+                $row[] = self::num((float) $ch['ds_delta']);
+                $row[] = (string) $ch['lead_was'];
+                $row[] = !empty($ch['lead_changed']) ? 'да' : 'нет';
+                $row[] = self::num((float) $ch['os_was']);
+                $row[] = self::num((float) $ch['os_delta']);
+            } else {
+                // Новый бренд или сравнивать не с чем: пустые ячейки, а не нули — ноль читался бы
+                // как «было 0%», то есть как настоящее измерение.
+                $row = array_merge($row, is_array($ch) && !empty($ch['is_new'])
+                    ? ['новый бренд', '', '', '', '', '', '']
+                    : ['', '', '', '', '', '', '']);
+            }
             fputcsv($out, $row, $delimiter, '"', '');
         }
         rewind($out);

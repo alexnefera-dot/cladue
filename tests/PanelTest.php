@@ -1582,6 +1582,18 @@ final class PanelTest
             'updated_at' => date(DATE_ATOM), 'date_from' => '2026-10-01', 'date_to' => date('Y-m-d'),
             'bases' => ['grid-x.ru' => ['subdomains' => 3, 'first_seen' => '2026-10-01']],
         ]));
+        // ДИНАМИКА: снимок предыдущего сбора. Самая свежая запись описывает ТЕКУЩИЙ results.csv (её
+        // пишет конец сбора), поэтому панель сравнивает со второй — как и будет на живом пересборе.
+        file_put_contents($dir . '/runs/' . \YandexSites\Support\SerpHistory::FILE, (string) json_encode([
+            ['id' => 'now', 'at' => date(DATE_ATOM), 'top' => 10, 'brands' => [
+                'vulkan' => ['label' => 'vulkan', 'cap' => 'mixed', 'ds' => 67.3, 'sites' => 3, 'doors' => 1,
+                    'keys' => 2, 'lead' => 'kush.grid-x.ru', 'lt' => 'door', 'ls' => 67.3, 'own' => 1, 'os' => 67.3, 'fresh' => 0],
+            ]],
+            ['id' => 'prev', 'at' => date(DATE_ATOM, time() - 86400), 'top' => 10, 'brands' => [
+                'vulkan' => ['label' => 'vulkan', 'cap' => 'other', 'ds' => 10.0, 'sites' => 2, 'doors' => 0,
+                    'keys' => 2, 'lead' => 'bylo-vulkan.ru', 'lt' => 'theme', 'ls' => 50.0, 'own' => 0, 'os' => 0.0, 'fresh' => 0],
+            ]],
+        ], JSON_UNESCAPED_UNICODE));
         $mk = static fn (string $q, int $pos, string $host, string $title, string $reason): array => [
             'result' => new \YandexSites\Model\SearchResult($q, 0, $pos, "https://$host/", $host, $title, '', 'казино онлайн'),
             'reason' => $reason === 'selected' ? null : $reason,
@@ -1685,6 +1697,23 @@ final class PanelTest
             Assert::same(2, array_sum($j['capture']), 'сумма сходится с числом блоков');
             Assert::same(70.0, (float) $j['capture_door'], 'порог отдаётся странице, чтобы подпись не расходилась с расчётом');
 
+            // БЫЛО/СТАЛО. Раньше между сборами хранился только список сайтов бренда, и разница
+            // отвечала «появилось 3, пропало 1»; числа, по которым принимают решение, не сравнивались.
+            Assert::true($j['changes_ok'] ?? false, 'сравнение с прошлым сбором посчитано');
+            $ch = $byKey['vulkan']['changed'];
+            Assert::same('other', $ch['cap_was'], 'раньше бренд держали не доры');
+            Assert::true($ch['cap_changed'], 'тип захвата сменился');
+            Assert::same('bylo-vulkan.ru', $ch['lead_was'], 'кто забирал бренд раньше');
+            Assert::true($ch['lead_changed'], 'лидер сменился');
+            Assert::true($ch['ds_delta'] > 0, 'доля доров выросла: ' . $ch['ds_delta']);
+            Assert::same(1, (int) $j['changes']['lead_changed'], 'итог по изменениям');
+            Assert::same(1, (int) $j['changes']['new'], 'бренда «лекс» в прошлом сборе не было');
+            // Динамика одного бренда по сборам приезжает вместе с ним.
+            $trend = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true)['trend'];
+            Assert::same(2, count($trend), 'строка на сбор');
+            Assert::same('kush.grid-x.ru', $trend[0]['lead'], 'сверху текущий сбор');
+            Assert::same('bylo-vulkan.ru', $trend[1]['lead']);
+
             // ВЫГРУЗКА РАЗБОРА: одна строка на бренд — чтобы делить бренды самому, а не только фильтрами.
             $csv = (string) $this->http('GET', $base . '/download?file=serp', null, $csvCode);
             Assert::same(200, $csvCode, 'разбор выгружается в CSV');
@@ -1694,6 +1723,8 @@ final class PanelTest
             Assert::contains('kush.grid-x.ru', $csv, 'лидер назван');
             $csvLines = array_values(array_filter(explode("\n", str_replace("\r\n", "\n", $csv))));
             Assert::same(3, count($csvLines), 'шапка и по строке на каждый бренд');
+            Assert::contains('Чем забран (прошлый сбор)', $csv, 'колонки «было» в выгрузке');
+            Assert::contains('bylo-vulkan.ru', $csv, 'прошлый лидер в выгрузке');
 
             // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
             // по HTTP» проходит и у страницы, которая падает в браузере с ошибкой JS. Открываем её
@@ -1723,6 +1754,8 @@ final class PanelTest
                 Assert::contains('Захват', $rendered, 'колонка «чем забран бренд» на месте');
                 Assert::contains('Чем забраны бренды', $rendered, 'счёт по типам захвата посчитан на клиенте');
                 Assert::contains('дор первым', $rendered, 'счёт «где дор стоит первым» на месте');
+                Assert::contains('С прошлого сбора', $rendered, 'итог по динамике посчитан на клиенте');
+                Assert::contains('сменился', $rendered, 'смена лидера видна прямо в ряду бренда');
             }
 
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
