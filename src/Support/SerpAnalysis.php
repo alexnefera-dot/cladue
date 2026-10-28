@@ -72,6 +72,9 @@ final class SerpAnalysis
      */
     public const DOOR_SHARE_MIN = 5.0;
 
+    /** Сколько брендов перечислять в одной ячейке выгрузки доменов: дальше ячейка нечитаема. */
+    private const BRANDS_IN_CELL = 12;
+
     /** Подписи типов захвата (ключ `capture` бренда). */
     public const CAPTURE = [
         'door' => 'забран дорами',
@@ -401,6 +404,106 @@ final class SerpAnalysis
      * Тип захвата по доле видимости доров. Отдельный метод, чтобы границы были в ОДНОМ месте:
      * по ним считается и страница, и строка журнала, и выгрузка в CSV.
      */
+    /**
+     * ВСЕ САЙТЫ ВЫДАЧИ ОДНИМ СПИСКОМ — по строке на РАЗНЫЙ сайт, со всеми брендами, где он стоит.
+     * Разбор по брендам отвечает «кто забрал бренд», а этот файл — «что это вообще за домены»:
+     * его открывают отдельно, группируют по регистрируемому домену (сетка держит по дору на бренд)
+     * и смотрят по типу. Поэтому тип — и колонка, и параметр: доры, тематические, прочие или все.
+     * Числа сводятся ПО ВСЕМ брендам сайта: ключей и строк — сумма, лучшая позиция — минимум,
+     * доля — МАКСИМАЛЬНАЯ из брендов (и рядом сказано, в каком именно: доля всегда внутри бренда,
+     * общей доли по сбору не существует).
+     *
+     * @param array<string, mixed> $analysis
+     * @param list<string> $types ключи `TYPES`; пустой список — все типы
+     */
+    public static function hostsCsv(array $analysis, array $types = [], string $delimiter = ';', bool $bom = true): string
+    {
+        $want = $types === [] ? null : array_flip($types);
+        $leaderOf = [];
+        $rows = [];
+        foreach ((array) ($analysis['brands'] ?? []) as $brand) {
+            $label = (string) $brand['label'];
+            $leader = $brand['leader']['host'] ?? null;
+            if ($leader !== null) {
+                $leaderOf[(string) $leader] = ($leaderOf[(string) $leader] ?? 0) + 1;
+            }
+            foreach ((array) ($brand['hosts'] ?? []) as $host => $info) {
+                $host = (string) $host;
+                $type = (string) $info['type'];
+                if ($want !== null && !isset($want[$type])) {
+                    continue;
+                }
+                if (!isset($rows[$host])) {
+                    $rows[$host] = ['host' => $host, 'registrable' => Domains::registrable($host),
+                        'type' => $type, 'own' => !empty($info['own']),
+                        'own_reason' => (string) ($info['own_reason'] ?? ''), 'brands' => [],
+                        'keys' => 0, 'rows' => 0, 'best' => (int) $info['best'], 'top3' => 0,
+                        'share' => 0.0, 'share_brand' => '', 'fresh_days' => null, 'fresh_label' => ''];
+                }
+                $row = &$rows[$host];
+                $row['brands'][] = $label;
+                $row['keys'] += (int) $info['keys'];
+                $row['rows'] += (int) $info['count'];
+                $row['best'] = min($row['best'], (int) $info['best']);
+                $row['top3'] += (int) $info['top3'];
+                if ((float) $info['share'] > $row['share']) {
+                    $row['share'] = (float) $info['share'];
+                    $row['share_brand'] = $label;
+                }
+                $days = $info['fresh_days'] ?? null;
+                if ($days !== null && ($row['fresh_days'] === null || (int) $days < $row['fresh_days'])) {
+                    $row['fresh_days'] = (int) $days;
+                    $row['fresh_label'] = (string) ($info['fresh_label'] ?? '');
+                }
+                unset($row);
+            }
+        }
+        // Сверху — то, с чего начинают разбор: сайты сразу на нескольких брендах (это сетка),
+        // потом самые широкие по ключам. Остальное пользователь отсортирует у себя.
+        uasort($rows, static fn (array $a, array $b): int => count($b['brands']) <=> count($a['brands'])
+            ?: $b['keys'] <=> $a['keys'] ?: strcmp($a['host'], $b['host']));
+
+        $out = fopen('php://temp', 'r+');
+        if ($out === false) {
+            return '';
+        }
+        if ($bom) {
+            fwrite($out, "\xEF\xBB\xBF"); // иначе Excel открывает кириллицу кракозябрами
+        }
+        fputcsv($out, ['Сайт', 'Домен', 'Тип', 'Наш', 'Почему наш', 'Брендов', 'Бренды', 'Ключей',
+            'Строк выдачи', 'Лучшая позиция', 'В топ-3', 'Лучшая доля в бренде %', 'Где эта доля',
+            'Лидер в брендах', 'Свежесть'], $delimiter, '"', '');
+        foreach ($rows as $row) {
+            $brands = $row['brands'];
+            $shown = array_slice($brands, 0, self::BRANDS_IN_CELL);
+            if (count($brands) > self::BRANDS_IN_CELL) {
+                $shown[] = '… ещё ' . (count($brands) - self::BRANDS_IN_CELL);
+            }
+            fputcsv($out, [
+                $row['host'],
+                $row['registrable'],
+                self::TYPES[$row['type']] ?? $row['type'],
+                $row['own'] ? 'да' : 'нет',
+                $row['own_reason'],
+                count($brands),
+                implode(', ', $shown),
+                $row['keys'],
+                $row['rows'],
+                $row['best'],
+                $row['top3'],
+                self::num($row['share']),
+                $row['share_brand'],
+                $leaderOf[$row['host']] ?? 0,
+                $row['fresh_label'],
+            ], $delimiter, '"', '');
+        }
+        rewind($out);
+        $csv = (string) stream_get_contents($out);
+        fclose($out);
+
+        return $csv;
+    }
+
     /**
      * Порог числом для подписи: «5», а не «5,0» — дробная часть в тексте только мешает.
      */

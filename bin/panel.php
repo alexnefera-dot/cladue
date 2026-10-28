@@ -915,6 +915,35 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'history') {
     exit;
 }
 
+if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'hosts') {
+    // ВСЕ ДОМЕНЫ ВЫДАЧИ ОДНИМ СПИСКОМ, по строке на разный сайт — чтобы разбирать их отдельно от
+    // брендов (сгруппировать по домену, посмотреть сетки). `type` сужает список до одного типа:
+    // доры, тематические, прочие. Строится на лету из results.csv, как и страница /serp.
+    $csv = $runDir . '/results.csv';
+    if (!is_file($csv)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Нет результатов сбора (results.csv) — сначала соберите сайты';
+        exit;
+    }
+    $saved = readJsonFile($settingsFile) ?? [];
+    $analysis = \YandexSites\Support\SerpAnalysis::build(
+        \YandexSites\Support\SerpAnalysis::csvRows($csv),
+        max(0, min(100, (int) ($_GET['top'] ?? 10))),
+        ownSitesForPanel($projectDir, $saved),
+    );
+    // Тип приходит ключом из TYPES; всё лишнее молча отбрасывается, пустой список = все типы.
+    $types = array_values(array_intersect(
+        array_filter(array_map('trim', explode(',', (string) ($_GET['type'] ?? '')))),
+        array_keys(\YandexSites\Support\SerpAnalysis::TYPES),
+    ));
+    $name = $types === [] ? 'vse' : implode('-', $types);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="serp-domains-' . $name . '-' . date('Y-m-d') . '.csv"');
+    echo \YandexSites\Support\SerpAnalysis::hostsCsv($analysis, $types);
+    exit;
+}
+
 if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'serp') {
     // РАЗБОР ВЫДАЧИ В CSV: одна строка на бренд (чем забран, доля доров, лидер, наша доля). Строится
     // на лету из results.csv, как и сама страница /serp, поэтому отдельно ничего не копится.

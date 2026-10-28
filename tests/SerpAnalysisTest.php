@@ -141,6 +141,43 @@ final class SerpAnalysisTest
         Assert::contains('в 1 из 2 брендов', SerpAnalysis::strongDoorsText($analysis));
     }
 
+    public function testHostsCsvListsEveryDistinctSiteOnceWithItsType(): void
+    {
+        // «дай мне кнопку выгрузить все домены чтоб я мог их отдельно анализировать, и чтоб можно
+        // было выбрать тип». Разбор по брендам отвечает «кто забрал бренд»; этот файл — про сами
+        // домены, поэтому строка на РАЗНЫЙ сайт, а не на пару сайт-бренд: дор одной сетки стоит в
+        // нескольких брендах, и в списке он должен быть один, но с числом брендов.
+        $rows = [
+            $this->row('вулкан казино', 1, 'obzor-kazino.ru', 'Обзор казино Вулкан'),
+            $this->row('вулкан казино', 2, 'kush.netone.ru'),
+            $this->row('вулкан казино', 3, 'vk.com', 'Вулкан', '', 'excluded_domain'),
+            $this->row('лекс казино', 1, 'kush.netone.ru'),
+            $this->row('лекс казино', 2, 'lex-casino.ru', 'Лекс казино — обзор'),
+        ];
+        $analysis = SerpAnalysis::build($rows, 10);
+
+        $all = preg_split('/\r?\n/', SerpAnalysis::hostsCsv($analysis, [], ';', false)) ?: [];
+        $all = array_values(array_filter($all));
+        Assert::same(5, count($all), 'шапка и по строке на каждый РАЗНЫЙ сайт');
+        Assert::contains('Сайт;Домен;Тип', $all[0], 'домен рядом с сайтом — по нему группируют сетку');
+        $door = '';
+        foreach ($all as $line) {
+            if (str_starts_with($line, 'kush.netone.ru;')) {
+                $door = $line;
+            }
+        }
+        Assert::contains('kush.netone.ru;netone.ru;"доры (поддомены)"', $door, 'тип и регистрируемый домен');
+        Assert::contains(';2;"Lex, vulkan";', $door, 'один раз, но с числом брендов и их списком');
+        // Строка выдачи, которую главная отсеяла, здесь всё равно есть: страница про выдачу как она есть.
+        Assert::contains('vk.com', implode("\n", $all), 'отсеянные главной строки тоже в списке');
+
+        // ВЫБОР ТИПА: в файле остаются только доры, остальных нет вовсе.
+        $doors = array_values(array_filter(preg_split('/\r?\n/', SerpAnalysis::hostsCsv($analysis, ['door'], ';', false)) ?: []));
+        Assert::same(2, count($doors), 'шапка и один дор');
+        Assert::contains('kush.netone.ru', $doors[1]);
+        Assert::notContains('obzor-kazino.ru', implode("\n", $doors), 'тематический домен отфильтрован');
+    }
+
     public function testQueriesWithoutBrandAreCountedApart(): void
     {
         // «без бренда» — остаток запросов, а не бренд: в счёте по типам захвата он стоит отдельно,

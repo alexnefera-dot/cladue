@@ -138,6 +138,12 @@
     <div class="btns" style="margin-bottom:12px">
       <button class="btn-primary" id="reload">Обновить разбор</button>
       <a class="btn-ghost" id="serpCsv" href="/download?file=serp" title="Одна строка на бренд: чем забран, доля доров, лидер, наша доля, свежие — чтобы делить бренды самому в Excel">Скачать разбор (CSV)</a>
+      <a class="btn-ghost" id="hostsCsv" href="/download?file=hosts" title="Одна строка на РАЗНЫЙ сайт: домен, тип, наш ли он, в скольких брендах стоит, ключи, лучшая позиция и доля — чтобы разбирать домены отдельно от брендов">Скачать домены (CSV)</a>
+      <label class="hint" style="display:flex;align-items:center;gap:6px">тип доменов
+        <select id="hostType" title="Какие домены попадут в выгрузку «Скачать домены»">
+          <option value="">все типы</option>
+        </select>
+      </label>
       <label class="hint" style="display:flex;align-items:center;gap:6px">топ
         <select id="top">
           <option value="10" selected>10</option>
@@ -729,6 +735,13 @@ function matchesOnly(b, only){
   return true;
 }
 
+/** Ссылки выгрузок: обе описывают то же, что на экране — ту же глубину топа и выбранный тип. */
+function updateCsvLinks(){
+  const top = encodeURIComponent($('top').value), type = encodeURIComponent($('hostType').value);
+  $('serpCsv').href = '/download?file=serp&top=' + top;
+  $('hostsCsv').href = '/download?file=hosts&top=' + top + (type ? '&type=' + type : '');
+}
+
 function render(){
   const q = $('find').value.trim().toLowerCase();
   const only = $('only').value, key = $('sort').value;
@@ -766,7 +779,12 @@ async function load(){
     if(optWeak) optWeak.textContent = `где ни один дор не забирает ${DOOR_MIN}%`;
     brands = j.brands || [];
     // Выгрузка должна описывать ТО ЖЕ, что на экране: глубина топа уходит в ссылку.
-    $('serpCsv').href = '/download?file=serp&top=' + encodeURIComponent($('top').value);
+    // Типы в селекте выгрузки доменов — те же, что в разборе, и приходят с сервера.
+    const sel = $('hostType'), keep = sel.value;
+    sel.innerHTML = '<option value="">все типы</option>'
+      + Object.keys(TYPES).map(t => `<option value="${esc(t)}">${esc(TYPES[t])}</option>`).join('');
+    sel.value = keep;
+    updateCsvLinks();
     $('version').textContent = j.version ? 'версия ' + j.version : '';
     const cells = [['брендов', brands.length], ['запросов', j.queries|0], ['строк выдачи', j.results|0],
       ['разных сайтов', j.sites|0]];
@@ -954,6 +972,7 @@ $('captureLine').addEventListener('click', e => {
 });
 $('reload').addEventListener('click', load);
 $('top').addEventListener('change', load);
+$('hostType').addEventListener('change', updateCsvLinks);
 $('find').addEventListener('input', render);
 // Страницу могли открыть заново, пока выгрузка идёт, — подхватываем её прогресс.
 (async () => {

@@ -1413,6 +1413,30 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testBrandsCsvCarriesTheSplitAndTheLeader` (the five columns) and
   `PanelTest::testSerpAnalysisPageAndEndpoint` (`door_share_min`, the per-brand fields, the CSV column
   and the chip + `data-only="strong_door"` in the browser-rendered page).
+  ALL THE DOMAINS, BY TYPE (1.51.0) — «дай мне кнопку выгрузить все домены чтоб я мог их отдельно
+  анализировать, и чтоб можно было выбрать тип — доры / тематические домены или другие или все».
+  `brandsCsv()` answers «who took the brand» and has one row per BRAND, so the domains themselves are
+  only reachable through it; `SerpAnalysis::hostsCsv($analysis, $types)` is the other cut of the same
+  analysis: ONE ROW PER DISTINCT SITE, not per site-brand pair — a network's door stands in several
+  brands and must appear once, with the number of brands next to it. Columns: Сайт · Домен
+  (`Domains::registrable()`, which is what groups a network) · Тип · Наш + причина · Брендов + their
+  names (capped at `BRANDS_IN_CELL` 12) · Ключей · Строк выдачи · Лучшая позиция · В топ-3 · Лучшая
+  доля в бренде % + в каком · Лидер в брендах · Свежесть. The numbers are folded ACROSS the site's
+  brands: keys and rows summed, best position minimised, share MAXIMISED with the brand named — a
+  share only exists inside a brand, there is no collect-wide one, and printing a sum would invent a
+  number. Sorted by brands desc, then keys desc: networks first, which is where such a list is read
+  from. Rows the main pipeline rejected are in it (`vk.com`, `lenta.ru`) — this page is the SERP as it
+  was. `/download?file=hosts&top=N&type=door` builds it on the fly from `results.csv` like everything
+  else here; `type` is a comma-separated list of `TYPES` keys, anything unknown is dropped and an
+  empty list means all types, and the filename carries the choice (`serp-domains-door-2026-10-28.csv`).
+  Page: the button «Скачать домены (CSV)» next to «Скачать разбор (CSV)» plus a select «тип доменов»
+  (`#hostType`, filled from the server's `TYPES` on load so the page cannot know a type the analysis
+  does not), and `updateCsvLinks()` keeps BOTH hrefs carrying the current «топ» — a CSV that describes
+  a different depth than the screen is the bug to avoid. Covered by
+  `SerpAnalysisTest::testHostsCsvListsEveryDistinctSiteOnceWithItsType` (the door on two brands is one
+  row with «Брендов 2», the registrable column, the rejected row is present, and `['door']` leaves
+  only doors) and `PanelTest::testSerpAnalysisPageAndEndpoint` (both downloads over HTTP and
+  `file=hosts` in the browser-rendered page).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

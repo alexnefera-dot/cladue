@@ -1761,6 +1761,17 @@ final class PanelTest
             Assert::contains('Сменился тип лидера', $csv, 'ротация с прошлого сбора — колонкой');
             Assert::contains('Ротация типа за окно', $csv, 'и за всё окно сборов, с числом сборов назад');
             Assert::contains('Доля лучшего дора %', $csv, 'берёт ли место хотя бы один дор — колонками');
+
+            // ВСЕ ДОМЕНЫ ОТДЕЛЬНЫМ СПИСКОМ — по строке на разный сайт, с выбором типа.
+            $hostsCode = 0;
+            $hosts = (string) $this->http('GET', $base . '/download?file=hosts&top=10', null, $hostsCode);
+            Assert::same(200, $hostsCode, 'домены выгружаются в CSV');
+            Assert::contains('Сайт;Домен;Тип', $hosts, 'шапка списка доменов');
+            Assert::contains('kush.grid-x.ru', $hosts, 'дор в списке');
+            Assert::contains('lenta.ru', $hosts, 'и то, что главная отсеяла, — страница про выдачу как она есть');
+            $onlyDoors = (string) $this->http('GET', $base . '/download?file=hosts&top=10&type=door');
+            Assert::contains('kush.grid-x.ru', $onlyDoors, 'выбор типа оставляет доры');
+            Assert::notContains('lenta.ru', $onlyDoors, 'и убирает всё остальное');
             Assert::contains('тематические домены → доры (поддомены)', $csv);
 
             // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
@@ -1801,6 +1812,7 @@ final class PanelTest
                 Assert::contains('data-only="flip_to_door"', $rendered, 'по ротации можно отфильтровать список');
                 Assert::contains('class="tag our" title="Лучший дор бренда', $rendered, 'в ряду отмечено, что дор забирает ≥ порога');
                 Assert::contains('data-only="strong_door"', $rendered, 'и по этому список тоже фильтруется');
+                Assert::contains('file=hosts', $rendered, 'кнопка выгрузки доменов с выбранным типом');
                 // График рисуется на клиенте — проверяем, что он действительно собрался.
                 Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
                 Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');
