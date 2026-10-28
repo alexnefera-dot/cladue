@@ -46,7 +46,7 @@ final class SerpHistoryTest
         $runs = $this->runs();
         // БЫЛО: бренд держал чужой тематический домен, доров почти нет, нас нет.
         $before = SerpAnalysis::build([
-            $this->row('вулкан казино', 1, 'official-vulkan.ru'),
+            $this->row('вулкан казино', 1, 'vulkan-casino.ru'),
             $this->row('вулкан казино', 2, 'obzor-kazino.ru'),
             $this->row('вулкан казино', 9, 'old.netone.ru'),
         ], 10);
@@ -68,7 +68,7 @@ final class SerpHistoryTest
         Assert::true($c['cap_changed'], 'тип захвата сменился');
         Assert::same(1, $c['cap_dir'], 'сдвиг в сторону доров');
         Assert::true($c['ds_delta'] > 50, 'доля доров выросла: ' . $c['ds_delta']);
-        Assert::same('official-vulkan.ru', $c['lead_was'], 'кто забирал бренд раньше');
+        Assert::same('vulkan-casino.ru', $c['lead_was'], 'кто забирал бренд раньше');
         Assert::true($c['lead_changed'], 'лидер сменился');
         Assert::same(0.0, (float) $c['os_was'], 'нас раньше не было');
         Assert::true($c['os_delta'] > 0, 'наша доля выросла: ' . $c['os_delta']);
@@ -79,6 +79,12 @@ final class SerpHistoryTest
         Assert::same(1, $sum['to_doors']);
         Assert::same(0, $sum['from_doors']);
         Assert::same(1, $sum['lead_changed']);
+        // РОТАЦИЯ ПО ТИПУ: бренд забирал тематический домен, стал забирать дор. Это отдельный
+        // вопрос от смены хоста — лидер может смениться внутри одного типа.
+        Assert::same('theme', $c['lt_was']);
+        Assert::true($c['lt_changed'], 'тип лидера сменился');
+        Assert::same(1, $sum['type_changed']);
+        Assert::contains('сменился ТИП лидера — 1', SerpHistory::summaryText($sum));
         Assert::same(1, $sum['our_up']);
         Assert::contains('сменился лидер — 1', SerpHistory::summaryText($sum));
     }
@@ -208,7 +214,8 @@ final class SerpHistoryTest
         $brand = $snap['brands']['vulkan'];
 
         Assert::same(10, $snap['top'], 'глубина топа записана: сравнивать можно только одинаковые');
-        Assert::same(['label', 'cap', 'ds', 'sites', 'doors', 'keys', 'lead', 'lt', 'ls', 'own', 'os', 'fresh'], array_keys($brand));
+        Assert::same(['label', 'cap', 'ds', 'sites', 'doors', 'keys', 'lead', 'lt', 'ls', 'own', 'os', 'fresh', 'by'], array_keys($brand));
+        Assert::same(1, (int) $brand['by']['door'], 'состав по типам — для ротации');
         Assert::notContains('вулкан казино', json_encode($snap, JSON_UNESCAPED_UNICODE), 'запросов в снимке нет');
         Assert::notContains('obzor-kazino.ru', json_encode($snap, JSON_UNESCAPED_UNICODE), 'списка хостов в снимке нет');
     }

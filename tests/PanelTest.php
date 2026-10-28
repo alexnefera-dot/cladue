@@ -1713,6 +1713,10 @@ final class PanelTest
             Assert::true($ch['cap_changed'], 'тип захвата сменился');
             Assert::same('bylo-vulkan.ru', $ch['lead_was'], 'кто забирал бренд раньше');
             Assert::true($ch['lead_changed'], 'лидер сменился');
+            // РОТАЦИЯ: бренд забирал тематический домен, стал забирать дор.
+            Assert::same('theme', $ch['lt_was'], 'каким типом бренд забирался раньше');
+            Assert::true($ch['lt_changed'], 'тип лидера сменился');
+            Assert::same(1, (int) $j['changes']['type_changed'], 'ротация посчитана отдельно от смены хоста');
             Assert::true($ch['ds_delta'] > 0, 'доля доров выросла: ' . $ch['ds_delta']);
             Assert::same(1, (int) $j['changes']['lead_changed'], 'итог по изменениям');
             Assert::same(1, (int) $j['changes']['new'], 'бренда «лекс» в прошлом сборе не было');
@@ -1769,7 +1773,10 @@ final class PanelTest
                 Assert::contains('Чем забраны бренды', $rendered, 'счёт по типам захвата посчитан на клиенте');
                 Assert::contains('дор первым', $rendered, 'счёт «где дор стоит первым» на месте');
                 Assert::contains('С прошлого сбора', $rendered, 'итог по динамике посчитан на клиенте');
-                Assert::contains('сменился', $rendered, 'смена лидера видна прямо в ряду бренда');
+                Assert::contains('тематический → дор', $rendered, 'ротация по типу видна прямо в ряду бренда');
+                Assert::contains('class="num"', $rendered, 'бренды пронумерованы');
+                Assert::contains('Стоим в', $rendered, 'сколько наших и в каких брендах — одной строкой');
+                Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
                 // График рисуется на клиенте — проверяем, что он действительно собрался.
                 Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
                 Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');

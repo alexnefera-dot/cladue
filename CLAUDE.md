@@ -1293,6 +1293,38 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the first draft did exactly that. Colors come from the pages' CSS variables, which both define.
   Axis labels are now placed EVENLY (`steps = min(n, 4)`, indices `round(k*(n-1)/(steps-1))`) instead
   of «every Nth plus always the last», which made the last two labels overlap on 8 collects.
+  OURS, ROTATION AND A ROW NUMBER (1.47.0) — «сделай на странице разбора выдачи чтоб я видел
+  сколько наших в каких брендах, и какую долю забирают. как происходит ротация в бренде (захватывал
+  один тип сайтов стал другой). дай порядковый номер брендам чтоб видеть количество в каждой
+  категории».
+  OURS: the count of our doors moved OUT of the «Ещё» catch-all and INTO the «Мы» cell, next to the
+  share — «16.9% +3.1 / 3 наших дора · 1-я». The share answers «сколько забираем», the count answers
+  «чем забираем», and the first without the second does not read; «было X%» moved to the cell's
+  `title` because only one of the two fits, and the count is the one being asked for (a LOST brand
+  still prints «было X%» in the cell — there it is the whole point). `#ownLine` gained the direct
+  answer in words: «Стоим в N брендах из M, забираем K», with N a link that applies the «только с
+  нашими» filter.
+  ROTATION is a THIRD kind of change, separate from the two that existed: `cap_changed` is the
+  bucket (дорами/гибрид/не дорами), `lead_changed` is the HOST at #1, and the new `lt_changed` is
+  the TYPE of that host — «захватывал один тип сайтов, стал другой». A leader can change inside one
+  type (just a reshuffle) or the type itself can flip (a door displaced a thematic domain), and only
+  the second is rotation. `snapshot()` already stored `lt`; `compare()` now returns `lt_was`/
+  `lt_changed`, `summary()` counts `type_changed`, `summaryText()` says «сменился лидер — 23 (из них
+  сменился ТИП лидера — 7)», `#changeLine` prints it as a clickable «(ротация типа: N)», `#only`
+  gained `ch_type`, and the brand row shows a «тематический → дор» tag in «Забирает» INSTEAD of the
+  plain «сменился» (which stays for a same-type reshuffle). The snapshot also gained `by` — the
+  per-type composition of the brand (five small ints) — so the «Динамика по сборам» table has two
+  new columns, «Тип» (what type held the brand in that collect) and «Состав» («дор 2 · тематический
+  1»), and a fourth per-brand chart «Доров в бренде» sits next to «Наших доров»: side by side they
+  answer whether we are growing or the whole niche is.
+  THE ROW NUMBER is a `#` column (30px, right-aligned, tabular figures) renumbered on EVERY render,
+  so it follows the current filter and sort — the last number IS the count of the chosen category,
+  which is what it was asked for. Covered by the extended
+  `SerpHistoryTest::testComparesNumbersOfEachBrandBetweenCollects` (the previous leader is now
+  `vulkan-casino.ru`, a THEME domain, so the fixture shows a real тематический → дор rotation) /
+  `testSnapshotKeepsOnlyNumbersNotRows` (the `by` key) and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (`lt_was`/`lt_changed`/`type_changed` over the API,
+  and the browser-rendered page carries «тематический → дор», `class="num"`, «Стоим в» and «наш дор»).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

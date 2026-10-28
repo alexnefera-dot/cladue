@@ -63,7 +63,8 @@
      по вертикали. Раньше здесь лежала дюжина плашек в одну строку, и каждый бренд приходилось
      разбирать заново — «куча плашек, сложно анализировать». */
   .bhead,.brand>summary{display:grid;gap:12px;align-items:center;
-    grid-template-columns:14px minmax(110px,1.1fr) 152px 106px minmax(130px,1.3fr) 118px 92px minmax(96px,1fr)}
+    grid-template-columns:14px 30px minmax(104px,1.1fr) 150px 104px minmax(126px,1.3fr) 126px 86px minmax(92px,1fr)}
+  .num{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
   .bhead{padding:2px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
   .brand>summary{cursor:pointer;padding:10px 14px;list-style:none}
   .brand>summary::-webkit-details-marker{display:none}
@@ -180,6 +181,7 @@
           <optgroup label="Динамика с прошлого сбора">
             <option value="ch_cap">сменили тип захвата</option>
             <option value="ch_lead">сменился лидер</option>
+            <option value="ch_type">ротация: сменился ТИП лидера</option>
             <option value="ch_us_up">наша доля выросла</option>
             <option value="ch_us_down">наша доля упала</option>
           </optgroup>
@@ -234,9 +236,10 @@ function countsHtml(counts){
  * лидера — кто забирает — мы — объём — остальное. Разбивка по типам сайтов уехала внутрь бренда
  * («Итого по бренду»), в списке от неё было больше шума, чем пользы.
  */
-function brandHtml(b){
+function brandHtml(b, n){
   return `<details class="brand" data-key="${esc(b.key)}">
     <summary>
+      <span class="num">${n|0}</span>
       ${cell('Бренд', `<span class="name">${esc(b.label)}</span>`, plural(b.query_count|0, ['ключ','ключа','ключей']))}
       ${captureCell(b)}
       ${shareCell(b)}
@@ -266,6 +269,7 @@ function typeTagShort(t){ return `<span class="tag ${esc(t)}">${esc(TYPES_SHORT[
 function headRow(){
   return `<div class="bhead">
     <span></span>
+    <span class="num" title="Порядковый номер в текущем списке: по последнему видно, сколько брендов в выбранной категории">#</span>
     <span>Бренд</span>
     <span title="Чем забран бренд: доры держат ≥ 70% видимости — «дорами», ≤ 30% — «не дорами», между — гибрид">Захват</span>
     <span title="Какую долю видимости бренда забрал первый сайт. Близко к 100% — бренд держит кто-то один">Доля лидера</span>
@@ -277,8 +281,8 @@ function headRow(){
 }
 
 /** Одна ячейка ряда: крупное значение сверху, пояснение мелким снизу. */
-function cell(label, top, sub, cls){
-  return `<div class="cell ${cls || ''}" data-l="${esc(label)}">
+function cell(label, top, sub, cls, title){
+  return `<div class="cell ${cls || ''}" data-l="${esc(label)}"${title ? ` title="${esc(title)}"` : ''}>
     <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
 }
 
@@ -332,21 +336,30 @@ function takerCell(b){
   if(!l) return cell('Забирает', '<span class="hint">—</span>', '');
   const who = l.own ? '<span class="tag our">наш</span>' : typeTagShort(l.type);
   // Смена лидера — самое заметное событие бренда: кто-то отобрал верх.
-  const sw = ch.lead_changed
-    ? ` <span class="tag moved-tag" title="С прошлого сбора бренд забирал ${esc(ch.lead_was)}">сменился</span>` : '';
+  // Смена ТИПА — это ротация («захватывал один тип сайтов, стал другой»), смена хоста внутри типа
+  // — просто перестановка. Поэтому две разные плашки, а не одна.
+  const sw = ch.lt_changed
+    ? ` <span class="tag moved-tag" title="Ротация: бренд забирал ${esc(TYPES[ch.lt_was] || ch.lt_was)} (${esc(ch.lead_was)}), стал забирать ${esc(TYPES[l.type] || l.type)}">${esc(TYPES_SHORT[ch.lt_was] || ch.lt_was)} → ${esc(TYPES_SHORT[l.type] || l.type)}</span>`
+    : (ch.lead_changed ? ` <span class="tag moved-tag" title="С прошлого сбора бренд забирал ${esc(ch.lead_was)}">сменился</span>` : '');
   return cell('Забирает', `<b>${esc(l.host)}</b>${sw}`, `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`);
 }
 
 /** Колонка «Мы»: забираем, отстаём или нас нет — это и есть ответ, с чем работать. */
 function usCell(b){
-  const l = b.leader, our = +b.our_share || 0, best = b.our_best, ch = b.changed || {};
-  // «Было X%» важнее пояснения «доры чужие»: если доля была, а сейчас нас нет — бренд потерян.
-  const was = ch.os_delta ? `было ${ch.os_was}%` : '';
+  const l = b.leader, our = +b.our_share || 0, best = b.our_best, ch = b.changed || {}, own = b.own_doors|0;
+  // СКОЛЬКО НАШИХ СТОИТ В БРЕНДЕ — рядом с долей, а не в общей куче мелочей справа: доля отвечает
+  // «сколько забираем», число доров — «чем забираем», и первое без второго не читается.
+  const mine = own ? plural(own, ['наш дор', 'наших дора', 'наших доров']) : '';
   const pos = best ? `${best.best|0}-я` : '';
-  if(l && l.own) return cell('Мы', `<span class="us-win">забираем</span>${delta(ch.os_delta, 'наша доля')}`, [`${our}%`, pos, was].filter(Boolean).join(' · '));
-  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>${delta(ch.os_delta, 'наша доля')}`, [pos, was].filter(Boolean).join(' · '));
+  // «Было X%» в подсказке: в ячейке помещается либо оно, либо число доров, а доров важнее.
+  const was = ch.os_delta ? `Было ${ch.os_was}% в прошлом сборе` : '';
+  if(l && l.own) return cell('Мы', `<span class="us-win">забираем</span>${delta(ch.os_delta, 'наша доля')}`,
+    [`${our}%`, mine, pos].filter(Boolean).join(' · '), '', was);
+  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>${delta(ch.os_delta, 'наша доля')}`,
+    [mine, pos].filter(Boolean).join(' · '), '', was);
+  // Потерянный бренд: доля была, а сейчас нас нет — это и надо увидеть в самой ячейке.
   return cell('Мы', `<span class="us-none">нас нет</span>${delta(ch.os_delta, 'наша доля')}`,
-    was || ((b.counts && b.counts.door|0) > 0 ? 'доры чужие' : ''));
+    ch.os_delta ? `было ${ch.os_was}%` : ((b.counts && b.counts.door|0) > 0 ? 'доры чужие' : ''));
 }
 
 /** Колонка «Ещё»: всё мелкое — одной строкой, а не россыпью плашек. */
@@ -360,7 +373,6 @@ function extrasCell(b){
   const sub = [];
   if((b.networked|0) > 0) sub.push(`сетка ${b.networked|0}`);
   if((b.crossed|0) > 0) sub.push(`пересечений ${b.crossed|0}`);
-  if((b.own_doors|0) > 0) sub.push(`наших доров ${b.own_doors|0}`);
   return cell('Ещё', bits.join(' ') || '<span class="hint">—</span>', esc(sub.join(' · ')));
 }
 
@@ -418,7 +430,16 @@ function brandCharts(trend){
     + chartHtml('Доля доров', 'сколько видимости бренда держат доры', at, rows.map(r => +r.ds || 0), 'var(--c-door)', '%')
     + chartHtml('Наша доля', 'сколько видимости бренда держим мы', at, rows.map(r => +r.os || 0), 'var(--c-our)', '%')
     + chartHtml('Наших доров', 'сколько наших доров стоит в этом бренде', at, rows.map(r => +r.own || 0), 'var(--c-our)', '')
+    + chartHtml('Доров в бренде', 'всего доров — наших и чужих; рядом с «нашими» видно, кто растёт',
+        at, rows.map(r => r.by ? (+r.by.door || 0) : null), 'var(--c-door)', '')
     + '</div></div>';
+}
+
+/** Состав бренда по типам одной строкой: «доры 12 · тематические 5». Пустые типы не показываем. */
+function byText(by){
+  if(!by) return '<span class="hint">—</span>';
+  const parts = Object.keys(TYPES).filter(t => (by[t]|0) > 0).map(t => `${esc(TYPES_SHORT[t] || t)} ${by[t]|0}`);
+  return parts.length ? esc(parts.join(' · ')) : '<span class="hint">—</span>';
 }
 
 /**
@@ -432,13 +453,15 @@ function trendHtml(trend){
     <td><span class="tag ${CAPTURE_TAG[t.cap] || 'other'}">${esc(CAPTURE_SHORT[t.cap] || t.cap)}</span></td>
     <td class="num">${t.ds}%</td>
     <td class="site">${esc(t.lead || '—')}</td>
+    <td>${t.lt ? typeTagShort(t.lt) : '<span class="hint">—</span>'}</td>
     <td class="num">${t.ls}%</td>
     <td class="num">${t.os}%</td>
     <td class="num">${t.own|0}</td>
     <td class="num">${t.sites|0}</td>
+    <td class="ttl">${byText(t.by)}</td>
   </tr>`).join('');
-  return `<div class="qblock"><div class="q">Динамика по сборам <span class="hint">· сверху текущий; снимок пишется в конце каждого сбора</span></div>
-    <table><thead><tr><th>Сбор</th><th>Захват</th><th>Доля доров</th><th>Забирает</th><th>Доля лидера</th><th>Наша доля</th><th>Наших доров</th><th>Сайтов</th></tr></thead>
+  return `<div class="qblock"><div class="q">Динамика по сборам <span class="hint">· сверху текущий; «тип» и «состав» показывают ротацию: кем бренд забирался тогда</span></div>
+    <table><thead><tr><th>Сбор</th><th>Захват</th><th>Доля доров</th><th>Забирает</th><th title="Тип сайта, который забирал бренд в том сборе">Тип</th><th>Доля лидера</th><th>Наша доля</th><th>Наших доров</th><th>Сайтов</th><th title="Сколько каких сайтов было в бренде">Состав</th></tr></thead>
     <tbody>${trs}</tbody></table></div>`;
 }
 
@@ -523,6 +546,7 @@ function matchesOnly(b, only){
   const ch = b.changed || {};
   if(only === 'ch_cap') return !!ch.cap_changed;
   if(only === 'ch_lead') return !!ch.lead_changed;
+  if(only === 'ch_type') return !!ch.lt_changed;
   if(only === 'ch_us_up') return (+ch.os_delta || 0) > 0;
   if(only === 'ch_us_down') return (+ch.os_delta || 0) < 0;
   if(only === 'lead_door') return !!(b.leader && b.leader.type === 'door');
@@ -552,7 +576,7 @@ function render(){
     return sortDesc ? -cmp : cmp;
   });
   $('shownCount').textContent = shown.length === brands.length ? `брендов ${brands.length}` : `показано ${shown.length} из ${brands.length}`;
-  $('brands').innerHTML = shown.length ? headRow() + shown.map(brandHtml).join('') : '';
+  $('brands').innerHTML = shown.length ? headRow() + shown.map((b, i) => brandHtml(b, i + 1)).join('') : '';
   $('status').textContent = shown.length ? '' : (brands.length ? 'Под фильтр ничего не попало' : 'Брендов не найдено');
   document.querySelectorAll('.brand').forEach(el => {
     el.addEventListener('toggle', () => { if(el.open) loadBrand(el, el.dataset.key); });
@@ -607,9 +631,17 @@ async function load(){
     const dt = j.diff_totals || {};
     // ПОЧЕМУ доры помечены нашими: разбивка по причинам. Без неё непонятно, какая метка ловит лишнее.
     const own = j.own || {}, nbases = j.dorgen_bases|0;
+    // СКОЛЬКО НАШИХ И В КАКИХ БРЕНДАХ — прямой ответ одной строкой, а не поиск глазами по списку.
+    const withOurs = brands.filter(b => (b.own_doors|0) > 0);
+    const lead = withOurs.filter(b => b.leader && b.leader.own).length;
+    const ourLine = withOurs.length
+      ? ` Стоим в <a href="#" data-only="own"><b>${withOurs.length}</b></a> брендах из <b>${brands.length}</b>`
+        + (lead ? `, забираем <b>${lead}</b>` : ', не забираем ни одного')
+        + ` (фильтр «только с нашими»).`
+      : ' Ни в одном бренде наших доров нет.';
     $('ownLine').innerHTML = (own.doors|0)
       ? `Наших доров: <b>${own.doors|0}</b> — по списку запущенных доменов из системы запусков (баз в списке: <b>${nbases}</b>).`
-        + ` Другого источника нет: ни меток в HTML, ни офферов, ни скриншотов.`
+        + ourLine
       : (nbases ? `Наших доров в этой выдаче нет (баз в списке: <b>${nbases}</b>).`
                 : 'Список системы запусков пуст — наши сайты не определяются. Нажмите «Обновить наши домены».');
     // Состояние выгрузки из системы запусков: по ней «наш» определяется точнее всего.
@@ -636,7 +668,8 @@ async function load(){
       $('changeLine').innerHTML = `С прошлого сбора (${j.changes_at ? new Date(j.changes_at).toLocaleString('ru-RU') : ''}) `
         + `изменились <b>${c.brands|0}</b> брендов: `
         + chLink('ch_cap', `сменили захват — ${c.cap_changed|0}`) + ` <span class="hint">(в сторону доров ${c.to_doors|0}, от доров ${c.from_doors|0})</span> · `
-        + chLink('ch_lead', `сменился лидер — ${c.lead_changed|0}`) + ' · '
+        + chLink('ch_lead', `сменился лидер — ${c.lead_changed|0}`)
+      + ((c.type_changed|0) ? ` <span class="hint">(ротация типа: ` + chLink('ch_type', String(c.type_changed|0)) + ')</span>' : '') + ' · '
         + chLink('ch_us_up', `наша доля выросла у ${c.our_up|0}`) + ' · '
         + chLink('ch_us_down', `упала у ${c.our_down|0}`)
         + ((c.new|0) || (c.gone|0) ? ` · новых брендов <b>${c.new|0}</b>, пропало <b>${c.gone|0}</b>` : '');
@@ -704,6 +737,14 @@ $('dorgen').addEventListener('click', async () => {
   }
 });
 // Числа в строке «чем забраны бренды» — это и есть фильтр: клик оставляет свою кучу.
+$('ownLine').addEventListener('click', e => {
+  const a = e.target.closest('a[data-only]');
+  if(!a) return;
+  e.preventDefault();
+  $('only').value = a.dataset.only;
+  render();
+  $('brands').scrollIntoView({behavior:'smooth', block:'start'});
+});
 $('changeLine').addEventListener('click', e => {
   const a = e.target.closest('a[data-only]');
   if(!a) return;

@@ -54,6 +54,9 @@ final class SerpHistory
                 'own' => (int) ($brand['own_doors'] ?? 0),
                 'os' => (float) ($brand['our_share'] ?? 0),
                 'fresh' => (int) ($brand['fresh_sites'] ?? 0),
+                // Состав бренда по типам сайтов: по нему видно РОТАЦИЮ — бренд держали доры,
+                // стали держать тематические домены. Пять маленьких чисел на бренд.
+                'by' => array_map('intval', (array) ($brand['counts'] ?? [])),
             ];
         }
 
@@ -145,6 +148,11 @@ final class SerpHistory
             }
             $change = [
                 'is_new' => false,
+                // РОТАЦИЯ ПО ТИПУ: бренд забирал дор, стал забирать тематический домен (или наоборот).
+                // Это не то же, что смена хоста: лидер может смениться внутри одного типа.
+                'lt_was' => (string) ($old['lt'] ?? ''),
+                'lt_changed' => $leader !== null && ($old['lt'] ?? '') !== ''
+                    && (string) $leader['type'] !== (string) $old['lt'],
                 'cap_was' => (string) $old['cap'],
                 'cap_changed' => (string) $old['cap'] !== (string) ($brand['capture'] ?? ''),
                 'cap_dir' => (self::RANK[(string) ($brand['capture'] ?? '')] ?? 0) <=> (self::RANK[(string) $old['cap']] ?? 0),
@@ -161,7 +169,7 @@ final class SerpHistory
             ];
             // Бренд без единого сдвига в список изменений не попадает — иначе фильтр «изменившиеся»
             // покажет всё подряд.
-            if ($change['cap_changed'] || $change['lead_changed']
+            if ($change['cap_changed'] || $change['lead_changed'] || $change['lt_changed']
                 || abs($change['ds_delta']) >= self::EPS || abs($change['os_delta']) >= self::EPS
                 || $change['own_delta'] !== 0 || $change['sites_delta'] !== 0) {
                 $out[$key] = $change;
@@ -186,7 +194,8 @@ final class SerpHistory
     public static function summary(array $changes): array
     {
         $out = ['brands' => 0, 'cap_changed' => 0, 'to_doors' => 0, 'from_doors' => 0,
-            'lead_changed' => 0, 'our_up' => 0, 'our_down' => 0, 'new' => 0, 'gone' => count($changes['gone'] ?? [])];
+            'lead_changed' => 0, 'type_changed' => 0, 'our_up' => 0, 'our_down' => 0,
+            'new' => 0, 'gone' => count($changes['gone'] ?? [])];
         foreach ((array) ($changes['brands'] ?? []) as $c) {
             if (!empty($c['is_new'])) {
                 $out['new']++;
@@ -200,6 +209,9 @@ final class SerpHistory
             }
             if (!empty($c['lead_changed'])) {
                 $out['lead_changed']++;
+            }
+            if (!empty($c['lt_changed'])) {
+                $out['type_changed']++;
             }
             if ((float) $c['os_delta'] >= self::EPS) {
                 $out['our_up']++;
@@ -215,11 +227,11 @@ final class SerpHistory
     public static function summaryText(array $summary): string
     {
         return sprintf(
-            'изменились %d брендов; сменился захват — %d (в сторону доров %d, от доров %d), сменился лидер — %d, '
-            . 'наша доля выросла у %d, упала у %d; новых брендов %d, пропало %d',
+            'изменились %d брендов; сменился захват — %d (в сторону доров %d, от доров %d), сменился лидер — %d '
+            . '(из них сменился ТИП лидера — %d), наша доля выросла у %d, упала у %d; новых брендов %d, пропало %d',
             (int) $summary['brands'], (int) $summary['cap_changed'], (int) $summary['to_doors'],
-            (int) $summary['from_doors'], (int) $summary['lead_changed'], (int) $summary['our_up'],
-            (int) $summary['our_down'], (int) $summary['new'], (int) $summary['gone'],
+            (int) $summary['from_doors'], (int) $summary['lead_changed'], (int) $summary['type_changed'],
+            (int) $summary['our_up'], (int) $summary['our_down'], (int) $summary['new'], (int) $summary['gone'],
         );
     }
 
