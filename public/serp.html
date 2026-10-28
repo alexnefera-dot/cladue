@@ -63,7 +63,7 @@
      по вертикали. Раньше здесь лежала дюжина плашек в одну строку, и каждый бренд приходилось
      разбирать заново — «куча плашек, сложно анализировать». */
   .bhead,.brand>summary{display:grid;gap:12px;align-items:center;
-    grid-template-columns:14px 30px minmax(104px,1.1fr) 150px 104px minmax(126px,1.3fr) 126px 86px minmax(92px,1fr)}
+    grid-template-columns:14px 30px minmax(104px,1.1fr) 152px 100px minmax(120px,1.2fr) 140px 84px minmax(88px,1fr)}
   .num{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
   .bhead{padding:2px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
   .brand>summary{cursor:pointer;padding:10px 14px;list-style:none}
@@ -74,6 +74,8 @@
   .cell{min-width:0;font-size:13px}
   .cell .top{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cell .sub{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Спарклайн — своей строкой под подписью: рядом с текстом он не помещается и лезет в соседнюю колонку. */
+  .cell .spk{margin-top:2px;line-height:0;overflow:hidden}
   /* Доля лидера полоской: один взгляд на колонку — и видно, какие бренды кем-то заняты целиком. */
   .bar{height:7px;border-radius:999px;background:var(--chip);overflow:hidden;margin-top:4px}
   .bar i{display:block;height:100%;background:#4338ca}
@@ -159,6 +161,7 @@
           <option value="changed">по изменениям с прошлого сбора (сайты)</option>
           <option value="ds_delta">по сдвигу доли доров</option>
           <option value="os_delta">по сдвигу нашей доли</option>
+          <option value="streak">по серии падений нашей доли</option>
           <option value="label">по названию</option>
         </select>
       </label>
@@ -184,6 +187,8 @@
             <option value="ch_type">ротация: сменился ТИП лидера</option>
             <option value="ch_us_up">наша доля выросла</option>
             <option value="ch_us_down">наша доля упала</option>
+            <option value="fall">мы падаем 2+ сбора подряд</option>
+            <option value="rise">мы растём 2+ сбора подряд</option>
           </optgroup>
         </select>
       </label>
@@ -281,9 +286,11 @@ function headRow(){
 }
 
 /** Одна ячейка ряда: крупное значение сверху, пояснение мелким снизу. */
-function cell(label, top, sub, cls, title){
+function cell(label, top, sub, cls, title, extra){
+  // `extra` — отдельная строка под подписью: спарклайн шириной 62px не влезает в `.sub` рядом с
+  // текстом, а в одной строке с ним он вылезал в соседнюю колонку.
   return `<div class="cell ${cls || ''}" data-l="${esc(label)}"${title ? ` title="${esc(title)}"` : ''}>
-    <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+    <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}${extra ? `<div class="spk">${extra}</div>` : ''}</div>`;
 }
 
 /** Короткие подписи типов захвата: в колонке «забран дорами» не помещается, а смысл тот же. */
@@ -302,9 +309,47 @@ function captureCell(b){
     + `Порог: ≥ ${CAPTURE_LIMITS.door}% — «дорами», ≤ ${CAPTURE_LIMITS.other}% — «не дорами»`;
   if(ch.cap_changed) title += `. С прошлого сбора: было «${CAPTURE_SHORT[ch.cap_was] || ch.cap_was}»`;
   const moved = ch.cap_changed ? `<span class="moved" title="Бренд сменил тип захвата">${ch.cap_dir > 0 ? '↑' : '↓'}</span> ` : '';
+  // Форма ряда прямо в строке: по списку из сотен брендов видно, куда идёт каждый, не раскрывая его.
+  const sp = b.spark ? spark(b.spark.ds, 'var(--c-door)', 'Доля доров по сборам') : '';
   return cell('Захват',
     `${moved}<span class="tag ${CAPTURE_TAG[c] || 'other'}" title="${esc(title)}">${esc(CAPTURE_SHORT[c] || c)}</span>`,
-    `${share}%${delta(ch.ds_delta, 'доля доров')} · доров ${doors}/${b.sites|0}`);
+    `${share}%${delta(ch.ds_delta, 'доля доров')} · доров ${doors}/${b.sites|0}`, '', '', sp);
+}
+
+/**
+ * СЕРИЯ: сколько сборов ПОДРЯД наша доля идёт в одну сторону. Разовая дельта шумит — бренд дышит
+ * от сбора к сбору; устойчивое падение три сбора кряду это уже не шум, а то, что надо чинить.
+ *
+ * Возвращает +N при росте, −N при падении, 0 если последний шаг в пределах шума.
+ */
+function streakOf(values){
+  const v = (values || []).filter(x => x !== null && x !== undefined);
+  if(v.length < 2) return 0;
+  const EPS = 0.1, step = i => v[i] - v[i - 1];
+  const lastStep = step(v.length - 1);
+  if(Math.abs(lastStep) < EPS) return 0;
+  const up = lastStep > 0;
+  let n = 0;
+  for(let i = v.length - 1; i > 0; i--){
+    const d = step(i);
+    if(Math.abs(d) < EPS || (d > 0) !== up) break;
+    n++;
+  }
+  return up ? n : -n;
+}
+
+/** Серия показывается от ДВУХ сборов подряд: один шаг — это просто дельта, она уже есть рядом. */
+function streakTag(b){
+  const n = b.spark ? streakOf(b.spark.os) : 0;
+  if(Math.abs(n) < 2) return '';
+  const word = plural(Math.abs(n), ['сбор', 'сбора', 'сборов']);
+  return ` <span class="${n > 0 ? 'up' : 'down'}" title="Наша доля ${n > 0 ? 'растёт' : 'падает'} ${word} подряд">`
+    + `${n > 0 ? '↑' : '↓'}${Math.abs(n)}</span>`;
+}
+
+/** Обёртка над общим спарклайном: без ряда ничего не рисуем. */
+function spark(values, color, title){
+  return (typeof sparkHtml === 'function' && values) ? ' ' + sparkHtml(values, color, title) : '';
 }
 
 /**
@@ -347,19 +392,24 @@ function takerCell(b){
 /** Колонка «Мы»: забираем, отстаём или нас нет — это и есть ответ, с чем работать. */
 function usCell(b){
   const l = b.leader, our = +b.our_share || 0, best = b.our_best, ch = b.changed || {}, own = b.own_doors|0;
+  const st = streakTag(b);
+  // Спарклайн нашей доли — только там, где мы хоть когда-то были: ровная линия по нулю это не график.
+  const sp = (b.spark && (b.spark.os || []).some(v => (+v || 0) > 0))
+    ? spark(b.spark.os, 'var(--c-our)', 'Наша доля по сборам') : '';
   // СКОЛЬКО НАШИХ СТОИТ В БРЕНДЕ — рядом с долей, а не в общей куче мелочей справа: доля отвечает
   // «сколько забираем», число доров — «чем забираем», и первое без второго не читается.
   const mine = own ? plural(own, ['наш дор', 'наших дора', 'наших доров']) : '';
   const pos = best ? `${best.best|0}-я` : '';
   // «Было X%» в подсказке: в ячейке помещается либо оно, либо число доров, а доров важнее.
   const was = ch.os_delta ? `Было ${ch.os_was}% в прошлом сборе` : '';
-  if(l && l.own) return cell('Мы', `<span class="us-win">забираем</span>${delta(ch.os_delta, 'наша доля')}`,
-    [`${our}%`, mine, pos].filter(Boolean).join(' · '), '', was);
-  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>${delta(ch.os_delta, 'наша доля')}`,
-    [mine, pos].filter(Boolean).join(' · '), '', was);
+  const title = [was, pos && pos + ' позиция'].filter(Boolean).join(' · ');
+  if(l && l.own) return cell('Мы', `<span class="us-win">забираем</span>${delta(ch.os_delta, 'наша доля')}${st}`,
+    [`${our}%`, mine].filter(Boolean).join(' · '), '', title, sp);
+  if(our > 0) return cell('Мы', `<span class="us-behind">${our}%</span>${delta(ch.os_delta, 'наша доля')}${st}`,
+    mine, '', title, sp);
   // Потерянный бренд: доля была, а сейчас нас нет — это и надо увидеть в самой ячейке.
-  return cell('Мы', `<span class="us-none">нас нет</span>${delta(ch.os_delta, 'наша доля')}`,
-    ch.os_delta ? `было ${ch.os_was}%` : ((b.counts && b.counts.door|0) > 0 ? 'доры чужие' : ''));
+  return cell('Мы', `<span class="us-none">нас нет</span>${delta(ch.os_delta, 'наша доля')}${st}`,
+    ch.os_delta ? `было ${ch.os_was}%` : ((b.counts && b.counts.door|0) > 0 ? 'доры чужие' : ''), '', '', sp);
 }
 
 /** Колонка «Ещё»: всё мелкое — одной строкой, а не россыпью плашек. */
@@ -435,6 +485,28 @@ function brandCharts(trend){
     + '</div></div>';
 }
 
+/**
+ * Пришедшие/ушедшие сайты, СГРУППИРОВАННЫЕ ПО ТИПУ: «пришли: доров 3 — a.ru, b.ru; тематических 1 — …».
+ * Разница в именах показывает движение, разница по типам — ротацию.
+ *
+ * Разбор прошлых сборов хранил только имена: там тип пустой, и такие сайты собираются в «без типа»,
+ * а не теряются.
+ */
+function hostsByType(list, cls, word){
+  if(!list.length) return '';
+  const by = {};
+  list.forEach(it => {
+    const host = typeof it === 'string' ? it : (it.host || '');
+    const type = typeof it === 'string' ? '' : (it.type || '');
+    (by[type] = by[type] || []).push(host);
+  });
+  const order = Object.keys(TYPES).filter(t => by[t]).concat(Object.keys(by).filter(t => !TYPES[t]));
+  const rows = order.map(t => `<div style="margin:3px 0 0 4px">`
+    + `${t ? typeTagShort(t) : '<span class="hint">без типа</span>'} <b>${by[t].length}</b> `
+    + `<span class="hint">${by[t].map(esc).join(', ')}</span></div>`).join('');
+  return `<div style="margin-top:8px"><span class="tag ${cls}">${word} ${list.length}</span>${rows}</div>`;
+}
+
 /** Состав бренда по типам одной строкой: «доры 12 · тематические 5». Пустые типы не показываем. */
 function byText(by){
   if(!by) return '<span class="hint">—</span>';
@@ -499,9 +571,10 @@ function queriesHtml(brand){
   const d = brand.diff;
   let tail = `<div class="qblock"><b>Итого по бренду:</b> ${countsHtml(brand.counts||{})} · всего сайтов ${brand.sites|0}</div>`;
   if(d && ((d.added_hosts||[]).length || (d.removed_hosts||[]).length)){
-    const list = (arr, cls, word) => arr.length
-      ? `<div style="margin-top:6px"><span class="tag ${cls}">${word} ${arr.length}</span> <span class="hint">${arr.map(esc).join(', ')}</span></div>` : '';
-    tail += list(d.added_hosts||[], 'add', 'появились') + list(d.removed_hosts||[], 'gone', 'пропали');
+    tail += '<div class="qblock"><div class="q">Что пришло и что ушло с прошлого сбора '
+      + '<span class="hint">· по типам: лидер меняется редко, а состав топа течёт постоянно — ротация видна здесь</span></div>'
+      + hostsByType(d.added_hosts || [], 'add', 'пришли')
+      + hostsByType(d.removed_hosts || [], 'gone', 'ушли') + '</div>';
   }
   // Динамика идёт сразу за «кто забирает»: это тоже заголовок бренда, а не сноска под выдачей.
   return boardHtml(brand) + brandCharts(brand.trend) + trendHtml(brand.trend) + parts.join('') + tail;
@@ -532,6 +605,8 @@ function sortValue(b, key){
   if(key === 'door_share') return +b.door_share || 0;
   if(key === 'ds_delta') return +((b.changed||{}).ds_delta) || 0;
   if(key === 'os_delta') return +((b.changed||{}).os_delta) || 0;
+  // Сортируем так, чтобы «от большего» показало самые долгие падения первыми.
+  if(key === 'streak') return -(b.spark ? streakOf(b.spark.os) : 0);
   if(key === 'our_share') return +b.our_share || 0;
   if(key in (b.counts || {})) return b.counts[key]|0;
   return b[key]|0;
@@ -549,6 +624,9 @@ function matchesOnly(b, only){
   if(only === 'ch_type') return !!ch.lt_changed;
   if(only === 'ch_us_up') return (+ch.os_delta || 0) > 0;
   if(only === 'ch_us_down') return (+ch.os_delta || 0) < 0;
+  // Устойчивое движение, а не разовая дельта: это и есть «что чинить сегодня».
+  if(only === 'fall') return (b.spark ? streakOf(b.spark.os) : 0) <= -2;
+  if(only === 'rise') return (b.spark ? streakOf(b.spark.os) : 0) >= 2;
   if(only === 'lead_door') return !!(b.leader && b.leader.type === 'door');
   if(only === 'cap_door') return b.capture === 'door';
   if(only === 'cap_mixed') return b.capture === 'mixed';
@@ -673,6 +751,16 @@ async function load(){
         + chLink('ch_us_up', `наша доля выросла у ${c.our_up|0}`) + ' · '
         + chLink('ch_us_down', `упала у ${c.our_down|0}`)
         + ((c.new|0) || (c.gone|0) ? ` · новых брендов <b>${c.new|0}</b>, пропало <b>${c.gone|0}</b>` : '');
+    // СИГНАЛЫ — устойчивое движение, а не один шаг: по ним решают, чем заняться сегодня.
+    const falling = brands.filter(b => b.spark && streakOf(b.spark.os) <= -2).length;
+    const rising = brands.filter(b => b.spark && streakOf(b.spark.os) >= 2).length;
+    if(falling || rising){
+      $('changeLine').innerHTML += ` <b>Подряд:</b> `
+        + (falling ? `<a href="#" data-only="fall"><b>падаем в ${plural(falling, ['бренде', 'брендах', 'брендах'])}</b></a>` : '')
+        + (falling && rising ? ' · ' : '')
+        + (rising ? `<a href="#" data-only="rise"><b>растём в ${rising}</b></a>` : '')
+        + ` (два сбора и больше — это уже не шум).`;
+    }
     }
     overviewCharts(j.overview || []);
     $('updated').textContent = j.diff_at ? 'сравнение от ' + new Date(j.diff_at).toLocaleString('ru-RU') : '';

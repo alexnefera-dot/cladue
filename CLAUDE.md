@@ -1325,6 +1325,37 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testSnapshotKeepsOnlyNumbersNotRows` (the `by` key) and
   `PanelTest::testSerpAnalysisPageAndEndpoint` (`lt_was`/`lt_changed`/`type_changed` over the API,
   and the browser-rendered page carries «тематический → дор», `class="num"`, «Стоим в» and «наш дор»).
+  SPARKLINE, TYPED CHURN AND A SIGNAL (1.48.0) — the three follow-ups the user took up at once.
+  (1) SPARKLINE IN THE ROW, so a list of hundreds reads as «where is the curve going» in one pass
+  without opening anything. `SerpHistory::series($runs, 12)` returns, per brand key, three short
+  chronological arrays (`ds`/`os`/`own`) — numbers only, because this ships inside the brand LIST;
+  a collect the brand was absent from is `null`, so the line breaks instead of dropping to zero.
+  `sparkHtml()` (in `chart.js`, next to the full chart) draws 62×16 with NO axes or labels: scale
+  from ZERO to the series max, a 1.5px line, a dot on the last point, the whole thing in a `<title>`.
+  Zero-based on purpose — 60→70 really is almost flat against its own size, and our 1% against
+  someone's 70% SHOULD hug the floor; that is the answer, not a rendering flaw. The door-share spark
+  sits in «Захват», our-share in «Мы» and only when we were ever non-zero there (a flat zero line is
+  not a chart). Each goes on its OWN line inside the cell (`cell()`'s new `extra` slot): inline next
+  to the sub text a 62px svg overflowed into the neighbouring column, which the rendered screenshot
+  caught.
+  (2) CHURN BY TYPE: `SerpAnalysis::diff()` had the types in hand (`$added`/`$removed` are
+  host => type) and threw them away, keeping `array_keys()`. `withTypes()` now emits
+  `[{host, type}, …]` (still capped at 50), and the opened brand renders «Что пришло и что ушло»
+  grouped by type — «пришли 3: дор 2 … тематический 1 …». That is the rotation the leader does not
+  show: the leader changes rarely, the top churns every collect. A `serp-diff.json` written by an
+  older version holds plain strings; `hostsByType()` treats those as «без типа» rather than losing
+  them.
+  (3) THE SIGNAL is a STREAK, not a delta: `streakOf(values)` counts how many consecutive collects
+  our share moved the same way (±0.1 p.p. is noise, below that the streak ends), returning +N or −N,
+  and it is computed CLIENT-SIDE off the series that already ships — no extra payload. Shown from
+  TWO collects up as a `↓3`/`↑3` tag next to our share (it can never contradict the delta beside it:
+  the streak's sign is the last step's), with filters «мы падаем 2+ сбора подряд» / «растём», a sort
+  «по серии падений» and a clickable «Подряд: падаем в 4 брендах · растём в 2» in `#changeLine`.
+  One step is just the delta, which is already printed right there; two in a row is the thing to fix
+  today. Covered by `SerpHistoryTest::testSeriesFeedTheSparklineInCollectOrder` (order, `null` for an
+  absent brand), `SerpAnalysisTest::testDiffNamesTheTypeOfEachAppearedSite` (+ the two existing diff
+  assertions updated to the new shape) and `PanelTest::testSerpAnalysisPageAndEndpoint` (the series
+  reaches `/api/serp`, and the browser-rendered page carries `class="spark"`).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row

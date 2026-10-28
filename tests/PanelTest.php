@@ -1717,6 +1717,9 @@ final class PanelTest
             Assert::same('theme', $ch['lt_was'], 'каким типом бренд забирался раньше');
             Assert::true($ch['lt_changed'], 'тип лидера сменился');
             Assert::same(1, (int) $j['changes']['type_changed'], 'ротация посчитана отдельно от смены хоста');
+            // Ряд для спарклайна в списке — по строке на сбор, от старых к новым.
+            Assert::same(2, count($byKey['vulkan']['spark']['os']), 'ряд нашей доли по сборам');
+            Assert::same(0.0, (float) $byKey['vulkan']['spark']['os'][0], 'в прошлом сборе нас там не было');
             Assert::true($ch['ds_delta'] > 0, 'доля доров выросла: ' . $ch['ds_delta']);
             Assert::same(1, (int) $j['changes']['lead_changed'], 'итог по изменениям');
             Assert::same(1, (int) $j['changes']['new'], 'бренда «лекс» в прошлом сборе не было');
@@ -1777,6 +1780,7 @@ final class PanelTest
                 Assert::contains('class="num"', $rendered, 'бренды пронумерованы');
                 Assert::contains('Стоим в', $rendered, 'сколько наших и в каких брендах — одной строкой');
                 Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
+                Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
                 // График рисуется на клиенте — проверяем, что он действительно собрался.
                 Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
                 Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');

@@ -339,8 +339,8 @@ final class SerpAnalysisTest
         ]);
         $diff = SerpAnalysis::diff($index, $after);
 
-        Assert::same(['c.grid-c.ru'], $diff['brands']['vulkan']['added_hosts'], 'новый дор бренда');
-        Assert::same(['b.grid-c.ru'], $diff['brands']['vulkan']['removed_hosts'], 'пропавший дор бренда');
+        Assert::same([['host' => 'c.grid-c.ru', 'type' => 'door']], $diff['brands']['vulkan']['added_hosts'], 'новый дор бренда — с типом');
+        Assert::same([['host' => 'b.grid-c.ru', 'type' => 'door']], $diff['brands']['vulkan']['removed_hosts'], 'пропавший дор бренда — с типом');
         Assert::same(1, $diff['brands']['vulkan']['added']['door'], 'разбивка по типу');
         Assert::same(1, $diff['brands']['vulkan']['removed']['door']);
         Assert::false($diff['brands']['vulkan']['is_new'], 'бренд был и раньше');
@@ -352,6 +352,29 @@ final class SerpAnalysisTest
         $gone = SerpAnalysis::diff($index, SerpAnalysis::build([$this->row('лекс казино', 1, 'd.grid-c.ru', 'Лекс', 'казино')]));
         Assert::true($gone['brands']['vulkan']['gone'] ?? false, 'бренд пропал из сбора целиком');
         Assert::same(2, $gone['brands']['vulkan']['removed']['total']);
+    }
+
+    public function testDiffNamesTheTypeOfEachAppearedSite(): void
+    {
+        // Ротация видна не только по лидеру: он меняется редко, а состав топа течёт постоянно.
+        // Поэтому пришедшие и ушедшие приезжают С ТИПОМ, а не просто именами.
+        $prev = SerpAnalysis::index(SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'old-kazino.ru', 'Обзор казино'),
+        ], 10));
+        $now = SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'a.netone.ru'),
+            $this->row('вулкан казино', 2, 'new-kazino.ru', 'Казино обзор'),
+        ], 10);
+
+        $diff = SerpAnalysis::diff($prev, $now)['brands']['vulkan'];
+        $added = [];
+        foreach ($diff['added_hosts'] as $row) {
+            $added[$row['host']] = $row['type'];
+        }
+        Assert::same('door', $added['a.netone.ru'], 'пришёл дор');
+        Assert::same('theme', $added['new-kazino.ru'], 'пришёл тематический домен');
+        Assert::same('old-kazino.ru', $diff['removed_hosts'][0]['host']);
+        Assert::same('theme', $diff['removed_hosts'][0]['type'], 'ушёл тематический');
     }
 
     public function testUnchangedBrandIsNotListedAsChanged(): void

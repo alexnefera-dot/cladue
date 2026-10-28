@@ -28,6 +28,7 @@
   .chart .tp rect{fill:var(--card);stroke:var(--line)}
   .chart .tp text{fill:var(--ink);font-size:11px}
   .chart .tp text.m{fill:var(--muted)}
+  .spark{display:block;vertical-align:-3px}
 `;
   document.head.appendChild(style);
 
@@ -127,6 +128,34 @@
     return d && !isNaN(d) ? d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'}) : '—';
   }
 
+  /**
+   * СПАРКЛАЙН — форма ряда без осей и подписей, размером со строку таблицы: нужен там, где число
+   * уже написано рядом, а узнать надо «растёт или падает», не раскрывая бренд.
+   *
+   * Шкала от НУЛЯ до максимума ряда: ряд 60→70 и правда почти ровный относительно своей величины,
+   * а наша доля в 1% при чужих 70% должна выглядеть прижатой к низу — это и есть ответ.
+   */
+  function sparkHtml(values, color, title){
+    const pts = (values || []).filter(v => v !== null && v !== undefined);
+    if(pts.length < 2) return '';
+    const W = 62, H = 16, pad = 2;
+    const top = Math.max(...pts, 0.0001);
+    const n = values.length;
+    const x = i => pad + i * (W - pad * 2) / (n - 1);
+    const y = v => H - pad - (v / top) * (H - pad * 2);
+    let d = '', pen = false, last = -1;
+    values.forEach((v, i) => {
+      if(v === null || v === undefined){ pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)} `;
+      pen = true; last = i;
+    });
+    const dot = last >= 0 ? `<circle cx="${x(last).toFixed(1)}" cy="${y(values[last]).toFixed(1)}" r="2" fill="${color}"></circle>` : '';
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"`
+      + `${title ? ` aria-label="${esc(title)}"` : ''}><title>${esc(title || '')}</title>`
+      + `<path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></path>${dot}</svg>`;
+  }
+
   window.chartHtml = chartHtml;
+  window.sparkHtml = sparkHtml;
   window.collectLabel = collectLabel;
 })();

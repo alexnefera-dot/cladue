@@ -652,6 +652,10 @@ if ($path === '/api/serp') {
     $changes = $sameTop
         ? \YandexSites\Support\SerpHistory::compare($prevSnap, $analysis)
         : ['brands' => [], 'gone' => []];
+    // Ряды для спарклайнов в списке: короткие, только по тем брендам, что сейчас в разборе.
+    $serpSeries = $sameTop || $prevSnap === null
+        ? \YandexSites\Support\SerpHistory::series($projectDir . '/runs')
+        : [];
     $want = trim((string) ($_GET['brand'] ?? ''));
     if ($want !== '' || isset($_GET['brand'])) {
         foreach ($analysis['brands'] as $brand) {
@@ -677,6 +681,7 @@ if ($path === '/api/serp') {
         $brand['board'] = array_slice($brand['board'] ?? [], 0, 5);
         $brand['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
         $brand['changed'] = $changes['brands'][(string) $brand['key']] ?? null;
+        $brand['spark'] = $serpSeries[(string) $brand['key']] ?? null;
         $list[] = $brand;
     }
     jsonOut([

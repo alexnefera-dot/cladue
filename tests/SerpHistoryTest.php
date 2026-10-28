@@ -203,6 +203,29 @@ final class SerpHistoryTest
         rmdir($runs);
     }
 
+    public function testSeriesFeedTheSparklineInCollectOrder(): void
+    {
+        // Спарклайн едет в СПИСКЕ брендов, поэтому ряд короткий и только из чисел. Порядок —
+        // хронологический: график рисуется слева направо.
+        $runs = $this->runs() . '/series';
+        mkdir($runs, 0777, true);
+        $own = new \YandexSites\Filter\OwnSites(['ourbase.ru']);
+        SerpHistory::record($runs, SerpAnalysis::build([$this->row('вулкан казино', 1, 'official-vulkan.ru')], 10, $own));
+        SerpHistory::record($runs, SerpAnalysis::build([
+            $this->row('вулкан казино', 1, 'kush.ourbase.ru'),
+            $this->row('лекс казино', 1, 'lex-casino.ru'),
+        ], 10, $own));
+
+        $series = SerpHistory::series($runs);
+        Assert::same([0.0, 100.0], array_map('floatval', $series['vulkan']['ds']), 'от старых к новым');
+        Assert::same([0, 1], array_map('intval', $series['vulkan']['own']), 'наш дор появился во втором сборе');
+        // Бренда в первом сборе не было: null, а не ноль — линия должна рваться, а не падать.
+        Assert::same(null, $series['lex']['ds'][0], 'бренда тогда не было');
+        Assert::same(0.0, (float) $series['lex']['ds'][1]);
+        array_map('unlink', glob($runs . '/*') ?: []);
+        rmdir($runs);
+    }
+
     public function testSnapshotKeepsOnlyNumbersNotRows(): void
     {
         // Файл живёт рядом с историей сборов и пишется каждый сбор: строки выдачи или списки хостов

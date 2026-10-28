@@ -590,8 +590,10 @@ final class SerpAnalysis
                 'is_new' => !isset($prev[$key]),
                 'added' => self::countTypes($added),
                 'removed' => self::countTypes($removed),
-                'added_hosts' => array_slice(array_keys($added), 0, 50),
-                'removed_hosts' => array_slice(array_keys($removed), 0, 50),
+                // С ТИПОМ, а не просто именами: ротация видна не только по лидеру — топ течёт
+                // постоянно, и «пришло 3 дора, ушло 2 тематических» и есть эта картина.
+                'added_hosts' => self::withTypes($added),
+                'removed_hosts' => self::withTypes($removed),
             ];
             $sum['added'] += count($added);
             $sum['removed'] += count($removed);
@@ -689,6 +691,23 @@ final class SerpAnalysis
         }
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * Список сайтов с их типом для разницы между сборами (срезан: 50 имён на бренд достаточно,
+     * дальше это уже не чтение, а свалка).
+     *
+     * @param array<string, string> $hosts host => type
+     * @return list<array{host: string, type: string}>
+     */
+    private static function withTypes(array $hosts): array
+    {
+        $out = [];
+        foreach (array_slice($hosts, 0, 50, true) as $host => $type) {
+            $out[] = ['host' => (string) $host, 'type' => (string) $type];
+        }
+
+        return $out;
     }
 
     /**

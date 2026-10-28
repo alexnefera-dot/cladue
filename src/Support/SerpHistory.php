@@ -288,6 +288,40 @@ final class SerpHistory
     }
 
     /**
+     * РЯДЫ ПО КАЖДОМУ БРЕНДУ для спарклайнов в списке — в хронологическом порядке.
+     *
+     * Короткие и только три числа на сбор: ряд едет в списке брендов целиком, а их бывают сотни.
+     * Бренда может не быть в каком-то сборе — тогда в ряду null, и линия рвётся, а не падает в ноль.
+     *
+     * @return array<string, array{ds: list<float|null>, os: list<float|null>, own: list<int|null>}>
+     */
+    public static function series(string $runsDir, int $limit = 12): array
+    {
+        $records = array_reverse(array_slice(self::load($runsDir), 0, $limit));
+        $keys = [];
+        foreach ($records as $record) {
+            foreach ((array) ($record['brands'] ?? []) as $key => $_) {
+                $keys[(string) $key] = true;
+            }
+        }
+        $out = [];
+        foreach (array_keys($keys) as $key) {
+            $ds = [];
+            $os = [];
+            $own = [];
+            foreach ($records as $record) {
+                $b = $record['brands'][$key] ?? null;
+                $ds[] = is_array($b) ? round((float) $b['ds'], 1) : null;
+                $os[] = is_array($b) ? round((float) $b['os'], 1) : null;
+                $own[] = is_array($b) ? (int) $b['own'] : null;
+            }
+            $out[$key] = ['ds' => $ds, 'os' => $os, 'own' => $own];
+        }
+
+        return $out;
+    }
+
+    /**
      * ДИНАМИКА ОДНОГО БРЕНДА по сборам — для раскрытого блока: дата, захват, доля доров, лидер, наша доля.
      * Сборы, в которых бренда не было, пропускаются.
      *
