@@ -656,6 +656,11 @@ if ($path === '/api/serp') {
     $serpSeries = $sameTop || $prevSnap === null
         ? \YandexSites\Support\SerpHistory::series($projectDir . '/runs')
         : [];
+    // Ротация типа за всё окно сборов («был дор, стал тематический» несколько сборов назад).
+    // Считается там же, где и ряды: на другой глубине топа лидер другой, сравнивать нечего.
+    $serpFlips = $sameTop || $prevSnap === null
+        ? \YandexSites\Support\SerpHistory::flips($projectDir . '/runs')
+        : [];
     $want = trim((string) ($_GET['brand'] ?? ''));
     if ($want !== '' || isset($_GET['brand'])) {
         foreach ($analysis['brands'] as $brand) {
@@ -665,6 +670,7 @@ if ($path === '/api/serp') {
                     'brand' => $brand,
                     'diff' => $diff['brands'][$want] ?? null,
                     'changed' => $changes['brands'][$want] ?? null,
+                    'flip' => $serpFlips[$want] ?? null,
                     // Динамика бренда по сборам: дата, захват, доля доров, лидер, наша доля.
                     'trend' => \YandexSites\Support\SerpHistory::trend($projectDir . '/runs', $want),
                 ]);
@@ -682,6 +688,7 @@ if ($path === '/api/serp') {
         $brand['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
         $brand['changed'] = $changes['brands'][(string) $brand['key']] ?? null;
         $brand['spark'] = $serpSeries[(string) $brand['key']] ?? null;
+        $brand['flip'] = $serpFlips[(string) $brand['key']] ?? null;
         $list[] = $brand;
     }
     jsonOut([
@@ -929,9 +936,11 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'serp') {
     $csvChanges = ($csvPrev !== null && (int) ($csvPrev['top'] ?? 0) === $csvTop)
         ? \YandexSites\Support\SerpHistory::compare($csvPrev, $analysis)
         : ['brands' => []];
+    $csvFlips = \YandexSites\Support\SerpHistory::flips($projectDir . '/runs');
     foreach ($analysis['brands'] as $i => $brand) {
         $analysis['brands'][$i]['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
         $analysis['brands'][$i]['changed'] = $csvChanges['brands'][(string) $brand['key']] ?? null;
+        $analysis['brands'][$i]['flip'] = $csvFlips[(string) $brand['key']] ?? null;
     }
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="serp-brands-' . date('Y-m-d') . '.csv"');

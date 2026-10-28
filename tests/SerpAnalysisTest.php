@@ -145,6 +145,15 @@ final class SerpAnalysisTest
         // Десятичная запятая: с точкой Excel с русской локалью видит в колонке текст, а не число.
         Assert::contains('100,0', $lines[1], 'доля доров — числом с запятой');
         Assert::contains(';да;', $lines[1], 'лидер наш — по списку запусков');
+
+        // РОТАЦИЯ ЗА ВСЁ ОКНО СБОРОВ — ради неё выгрузку и фильтруют: «был дор, стал тематический»
+        // видно не из сравнения с прошлым сбором (там такой бренд ничем не отличается от спокойных),
+        // а из всего ряда снимков, поэтому в строке и тип, и сколько сборов назад это случилось.
+        Assert::contains('Сменился тип лидера', $lines[0], 'ротация с прошлого сбора');
+        Assert::contains('Ротация типа за окно', $lines[0]);
+        $analysis['brands'][0]['flip'] = ['from' => 'door', 'to' => 'theme', 'ago' => 3];
+        $withFlip = preg_split('/\r?\n/', SerpAnalysis::brandsCsv($analysis, ';', false)) ?: [];
+        Assert::contains('"доры (поддомены) → тематические домены";3', (string) ($withFlip[1] ?? ''));
     }
 
     public function testShowsWhoTakesTheBrand(): void

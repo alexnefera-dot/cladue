@@ -76,6 +76,9 @@
   .cell .sub{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Спарклайн — своей строкой под подписью: рядом с текстом он не помещается и лезет в соседнюю колонку. */
   .cell .spk{margin-top:2px;line-height:0;overflow:hidden}
+  /* Ротация — тоже своей строкой: рядом с хостом «дор → тематический · 3 сб. назад» обрезалось. */
+  .cell .rot{margin-top:3px;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell .rot .ago{opacity:.75}
   /* Доля лидера полоской: один взгляд на колонку — и видно, какие бренды кем-то заняты целиком. */
   .bar{height:7px;border-radius:999px;background:var(--chip);overflow:hidden;margin-top:4px}
   .bar i{display:block;height:100%;background:#4338ca}
@@ -184,7 +187,10 @@
           <optgroup label="Динамика с прошлого сбора">
             <option value="ch_cap">сменили тип захвата</option>
             <option value="ch_lead">сменился лидер</option>
-            <option value="ch_type">ротация: сменился ТИП лидера</option>
+            <option value="ch_type">ротация: тип сменился с прошлого сбора</option>
+            <option value="ch_type_any">ротация: тип менялся за всё окно сборов</option>
+            <option value="flip_to_theme">ротация: дор → не дор</option>
+            <option value="flip_to_door">ротация: не дор → дор</option>
             <option value="ch_us_up">наша доля выросла</option>
             <option value="ch_us_down">наша доля упала</option>
             <option value="fall">мы падаем 2+ сбора подряд</option>
@@ -287,10 +293,11 @@ function headRow(){
 
 /** Одна ячейка ряда: крупное значение сверху, пояснение мелким снизу. */
 function cell(label, top, sub, cls, title, extra){
-  // `extra` — отдельная строка под подписью: спарклайн шириной 62px не влезает в `.sub` рядом с
-  // текстом, а в одной строке с ним он вылезал в соседнюю колонку.
+  // `extra` — отдельная строка под подписью (спарклайн или подпись ротации) со своей обёрткой:
+  // в одной строке с текстом спарклайн шириной 62px вылезал в соседнюю колонку, а подпись
+  // ротации рядом с хостом обрезалась по многоточию.
   return `<div class="cell ${cls || ''}" data-l="${esc(label)}"${title ? ` title="${esc(title)}"` : ''}>
-    <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}${extra ? `<div class="spk">${extra}</div>` : ''}</div>`;
+    <div class="top">${top}</div>${sub ? `<div class="sub">${sub}</div>` : ''}${extra || ''}</div>`;
 }
 
 /** Короткие подписи типов захвата: в колонке «забран дорами» не помещается, а смысл тот же. */
@@ -347,9 +354,9 @@ function streakTag(b){
     + `${n > 0 ? '↑' : '↓'}${Math.abs(n)}</span>`;
 }
 
-/** Обёртка над общим спарклайном: без ряда ничего не рисуем. */
+/** Обёртка над общим спарклайном: своей строкой в ячейке, без ряда ничего не рисуем. */
 function spark(values, color, title){
-  return (typeof sparkHtml === 'function' && values) ? ' ' + sparkHtml(values, color, title) : '';
+  return (typeof sparkHtml === 'function' && values) ? `<div class="spk">${sparkHtml(values, color, title)}</div>` : '';
 }
 
 /**
@@ -375,18 +382,46 @@ function shareCell(b){
     `<div class="bar${mine}"><i style="width:${Math.max(2, Math.min(100, +l.share || 0))}%"></i></div>`);
 }
 
+/**
+ * Строка ротации в ячейке «Забирает»: «дор → тематический» — какой ТИП сайтов забирал бренд и на
+ * какой сменился. Смотрим ЗА ВСЁ ОКНО СБОРОВ, а не только с прошлого: смену, случившуюся три
+ * сбора назад, иначе найти нечем, а вопрос «был дор, стал тематический» именно про неё. Само
+ * окно считает сервер (`SerpHistory::flips()` → `b.flip`), чтобы правило было одно — и для
+ * страницы, и для выгрузки в CSV.
+ * Свежая смена — яркой плашкой, более ранняя — тихо, с числом сборов назад. Отдельной строкой:
+ * рядом с хостом подпись не помещалась и обрезалась по многоточию.
+ */
+function rotLine(b){
+  const ch = b.changed || {}, l = b.leader || {};
+  if(ch.lt_changed){
+    const t = `Ротация с прошлого сбора: бренд забирал ${TYPES[ch.lt_was] || ch.lt_was} (${ch.lead_was}),`
+      + ` стал забирать ${TYPES[l.type] || l.type}`;
+    return `<div class="rot" title="${esc(t)}"><span class="tag moved-tag">`
+      + `${esc(TYPES_SHORT[ch.lt_was] || ch.lt_was)} → ${esc(TYPES_SHORT[l.type] || l.type)}</span>`
+      + `<span class="ago"> с прошлого сбора</span></div>`;
+  }
+  const f = b.flip || null;
+  if(!f) return '';
+  const ago = plural(f.ago, ['сбор', 'сбора', 'сборов']);
+  const t = `Ротация ${ago} назад: бренд забирал ${TYPES[f.from] || f.from}, стал забирать ${TYPES[f.to] || f.to}`;
+  return `<div class="rot" title="${esc(t)}">`
+    + `${esc(TYPES_SHORT[f.from] || f.from)} → ${esc(TYPES_SHORT[f.to] || f.to)}`
+    + `<span class="ago"> · ${esc(ago)} назад</span></div>`;
+}
+
 /** Колонка «Забирает»: кто первый по видимости и чей он. */
 function takerCell(b){
   const l = b.leader, ch = b.changed || {};
   if(!l) return cell('Забирает', '<span class="hint">—</span>', '');
   const who = l.own ? '<span class="tag our">наш</span>' : typeTagShort(l.type);
-  // Смена лидера — самое заметное событие бренда: кто-то отобрал верх.
-  // Смена ТИПА — это ротация («захватывал один тип сайтов, стал другой»), смена хоста внутри типа
-  // — просто перестановка. Поэтому две разные плашки, а не одна.
-  const sw = ch.lt_changed
-    ? ` <span class="tag moved-tag" title="Ротация: бренд забирал ${esc(TYPES[ch.lt_was] || ch.lt_was)} (${esc(ch.lead_was)}), стал забирать ${esc(TYPES[l.type] || l.type)}">${esc(TYPES_SHORT[ch.lt_was] || ch.lt_was)} → ${esc(TYPES_SHORT[l.type] || l.type)}</span>`
-    : (ch.lead_changed ? ` <span class="tag moved-tag" title="С прошлого сбора бренд забирал ${esc(ch.lead_was)}">сменился</span>` : '');
-  return cell('Забирает', `<b>${esc(l.host)}</b>${sw}`, `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`);
+  // Смена лидера — самое заметное событие бренда: кто-то отобрал верх. Но смена ТИПА лидера — это
+  // ротация, и она идёт своей строкой (`rotLine`), а смена хоста ВНУТРИ одного типа — просто
+  // перестановка, для неё и остаётся плашка «сменился».
+  const sw = (ch.lead_changed && !ch.lt_changed)
+    ? ` <span class="tag moved-tag" title="С прошлого сбора бренд забирал ${esc(ch.lead_was)}">сменился</span>`
+    : '';
+  return cell('Забирает', `<b>${esc(l.host)}</b>${sw}`,
+    `${who} · ключей ${l.keys|0} из ${b.query_count|0} · лучшая ${l.best|0}`, '', '', rotLine(b));
 }
 
 /** Колонка «Мы»: забираем, отстаём или нас нет — это и есть ответ, с чем работать. */
@@ -622,6 +657,11 @@ function matchesOnly(b, only){
   if(only === 'ch_cap') return !!ch.cap_changed;
   if(only === 'ch_lead') return !!ch.lead_changed;
   if(only === 'ch_type') return !!ch.lt_changed;
+  // «Был дор, стал тематический» — ровно этот вопрос, и не только про последний сбор.
+  const fl = b.flip || null;
+  if(only === 'ch_type_any') return !!(fl || ch.lt_changed);
+  if(only === 'flip_to_theme') return !!(fl && fl.from === 'door' && fl.to !== 'door');
+  if(only === 'flip_to_door') return !!(fl && fl.from !== 'door' && fl.to === 'door');
   if(only === 'ch_us_up') return (+ch.os_delta || 0) > 0;
   if(only === 'ch_us_down') return (+ch.os_delta || 0) < 0;
   // Устойчивое движение, а не разовая дельта: это и есть «что чинить сегодня».
@@ -744,14 +784,24 @@ async function load(){
           + `${j.collects|0}).`;
     } else {
       $('changeLine').innerHTML = `С прошлого сбора (${j.changes_at ? new Date(j.changes_at).toLocaleString('ru-RU') : ''}) `
-        + `изменились <b>${c.brands|0}</b> брендов: `
+        + `${(c.brands|0) === 1 ? 'изменился' : 'изменились'} <b>${plural(c.brands|0, ['бренд', 'бренда', 'брендов'])}</b>: `
         + chLink('ch_cap', `сменили захват — ${c.cap_changed|0}`) + ` <span class="hint">(в сторону доров ${c.to_doors|0}, от доров ${c.from_doors|0})</span> · `
         + chLink('ch_lead', `сменился лидер — ${c.lead_changed|0}`)
       + ((c.type_changed|0) ? ` <span class="hint">(ротация типа: ` + chLink('ch_type', String(c.type_changed|0)) + ')</span>' : '') + ' · '
         + chLink('ch_us_up', `наша доля выросла у ${c.our_up|0}`) + ' · '
         + chLink('ch_us_down', `упала у ${c.our_down|0}`)
         + ((c.new|0) || (c.gone|0) ? ` · новых брендов <b>${c.new|0}</b>, пропало <b>${c.gone|0}</b>` : '');
-    // СИГНАЛЫ — устойчивое движение, а не один шаг: по ним решают, чем заняться сегодня.
+    }
+    // СИГНАЛЫ — устойчивое движение, а не один шаг: по ним решают, чем заняться сегодня. Считаются
+    // по РЯДАМ сборов, а не по сравнению с прошлым, поэтому показываются и когда сравнение «было →
+    // стало» недоступно (снимок сделан на другом «топ»).
+    // Ротация за всё окно — отдельным числом: смена типа могла случиться не в последнем сборе, и
+    // тогда плашки «дор → тематический» в строке мало — её ещё надо найти в списке на сотни брендов.
+    const flips = brands.filter(b => b.flip || (b.changed && b.changed.lt_changed)).length;
+    if(flips) $('changeLine').innerHTML += ` <b>Ротация типа</b> (за всё окно сборов, не только с прошлого): `
+      + `<a href="#" data-only="ch_type_any"><b>${plural(flips, ['бренд', 'бренда', 'брендов'])}</b></a>`
+      + ` · <a href="#" data-only="flip_to_theme"><b>дор → не дор</b></a>`
+      + ` · <a href="#" data-only="flip_to_door"><b>не дор → дор</b></a>.`;
     const falling = brands.filter(b => b.spark && streakOf(b.spark.os) <= -2).length;
     const rising = brands.filter(b => b.spark && streakOf(b.spark.os) >= 2).length;
     if(falling || rising){
@@ -760,7 +810,6 @@ async function load(){
         + (falling && rising ? ' · ' : '')
         + (rising ? `<a href="#" data-only="rise"><b>растём в ${rising}</b></a>` : '')
         + ` (два сбора и больше — это уже не шум).`;
-    }
     }
     overviewCharts(j.overview || []);
     $('updated').textContent = j.diff_at ? 'сравнение от ' + new Date(j.diff_at).toLocaleString('ru-RU') : '';

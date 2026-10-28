@@ -293,7 +293,7 @@ final class SerpHistory
      * Короткие и только три числа на сбор: ряд едет в списке брендов целиком, а их бывают сотни.
      * Бренда может не быть в каком-то сборе — тогда в ряду null, и линия рвётся, а не падает в ноль.
      *
-     * @return array<string, array{ds: list<float|null>, os: list<float|null>, own: list<int|null>}>
+     * @return array<string, array{ds: list<float|null>, os: list<float|null>, own: list<int|null>, lt: list<string|null>}>
      */
     public static function series(string $runsDir, int $limit = 12): array
     {
@@ -316,6 +316,47 @@ final class SerpHistory
                 $own[] = is_array($b) ? (int) $b['own'] : null;
             }
             $out[$key] = ['ds' => $ds, 'os' => $os, 'own' => $own];
+        }
+
+        return $out;
+    }
+
+    /**
+     * ПОСЛЕДНЯЯ РОТАЦИЯ ТИПА по каждому бренду — за всё окно сборов, а не только с прошлого.
+     * `compare()` отвечает «сменился ли тип лидера с прошлого сбора», а вопрос «был у бренда дор,
+     * а стал тематический» чаще всего про смену, случившуюся несколько сборов назад: с прошлым
+     * сбором такой бренд уже ничем не отличается от тех, где ничего не менялось.
+     * Считается по снимкам (`lt` — тип сайта, забиравшего бренд в том сборе); сборы, в которых
+     * бренда не было, просто пропускаются — это разрыв в ряду, а не смена типа.
+     *
+     * @return array<string, array{from: string, to: string, ago: int}> ago — сколько сборов назад
+     */
+    public static function flips(string $runsDir, int $limit = 12): array
+    {
+        $records = array_reverse(array_slice(self::load($runsDir), 0, $limit));
+        $last = count($records) - 1;
+        $points = [];
+        foreach ($records as $i => $record) {
+            foreach ((array) ($record['brands'] ?? []) as $key => $brand) {
+                $type = (string) ($brand['lt'] ?? '');
+                if ($type !== '') {
+                    $points[(string) $key][] = ['type' => $type, 'i' => $i];
+                }
+            }
+        }
+        $out = [];
+        foreach ($points as $key => $row) {
+            for ($k = count($row) - 1; $k > 0; $k--) {
+                if ($row[$k]['type'] === $row[$k - 1]['type']) {
+                    continue;
+                }
+                $out[(string) $key] = [
+                    'from' => $row[$k - 1]['type'],
+                    'to' => $row[$k]['type'],
+                    'ago' => $last - $row[$k]['i'] + 1,
+                ];
+                break;
+            }
         }
 
         return $out;

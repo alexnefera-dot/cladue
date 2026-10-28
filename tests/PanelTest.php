@@ -1585,7 +1585,6 @@ final class PanelTest
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
         file_put_contents($runDir . '/settings.json', json_encode([], JSON_UNESCAPED_UNICODE));
         // «Наш» определяется ТОЛЬКО списком из системы запусков — его и кладём в кэш выгрузки.
-        mkdir($dir . '/runs', 0777, true);
         file_put_contents($dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE, (string) json_encode([
             'updated_at' => date(DATE_ATOM), 'date_from' => '2026-10-01', 'date_to' => date('Y-m-d'),
             'bases' => ['grid-x.ru' => ['subdomains' => 3, 'first_seen' => '2026-10-01']],
@@ -1717,6 +1716,12 @@ final class PanelTest
             Assert::same('theme', $ch['lt_was'], 'каким типом бренд забирался раньше');
             Assert::true($ch['lt_changed'], 'тип лидера сменился');
             Assert::same(1, (int) $j['changes']['type_changed'], 'ротация посчитана отдельно от смены хоста');
+            // РОТАЦИЯ ЗА ВСЁ ОКНО СБОРОВ — считается на сервере и приезжает отдельным полем: смена
+            // типа могла случиться не в последнем сборе, и тогда сравнение выше о ней молчит.
+            $flip = $byKey['vulkan']['flip'];
+            Assert::same('theme', $flip['from'], 'бренд забирал тематический домен');
+            Assert::same('door', $flip['to'], 'стал забирать дор');
+            Assert::same(1, (int) $flip['ago'], 'сколько сборов назад это случилось');
             // Ряд для спарклайна в списке — по строке на сбор, от старых к новым.
             Assert::same(2, count($byKey['vulkan']['spark']['os']), 'ряд нашей доли по сборам');
             Assert::same(0.0, (float) $byKey['vulkan']['spark']['os'][0], 'в прошлом сборе нас там не было');
@@ -1746,6 +1751,9 @@ final class PanelTest
             Assert::same(3, count($csvLines), 'шапка и по строке на каждый бренд');
             Assert::contains('Чем забран (прошлый сбор)', $csv, 'колонки «было» в выгрузке');
             Assert::contains('bylo-vulkan.ru', $csv, 'прошлый лидер в выгрузке');
+            Assert::contains('Сменился тип лидера', $csv, 'ротация с прошлого сбора — колонкой');
+            Assert::contains('Ротация типа за окно', $csv, 'и за всё окно сборов, с числом сборов назад');
+            Assert::contains('тематические домены → доры (поддомены)', $csv);
 
             // СТРАНИЦА РИСУЕТСЯ НА КЛИЕНТЕ, и до сих пор её код никто не исполнял: проверка «отдалась
             // по HTTP» проходит и у страницы, которая падает в браузере с ошибкой JS. Открываем её
@@ -1781,6 +1789,8 @@ final class PanelTest
                 Assert::contains('Стоим в', $rendered, 'сколько наших и в каких брендах — одной строкой');
                 Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
                 Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
+                Assert::contains('class="rot"', $rendered, 'ротация типа — своей строкой в ряду бренда');
+                Assert::contains('data-only="flip_to_door"', $rendered, 'по ротации можно отфильтровать список');
                 // График рисуется на клиенте — проверяем, что он действительно собрался.
                 Assert::contains('Средняя доля доров', $rendered, 'график по сборам построен');
                 Assert::contains('Брендов, где мы есть', $rendered, 'динамика наших — отдельным графиком');

@@ -226,6 +226,40 @@ final class SerpHistoryTest
         rmdir($runs);
     }
 
+    public function testFlipsFindTypeRotationInTheWholeWindow(): void
+    {
+        // «Был у бренда дор, а стал тематический» — сравнение с прошлым сбором на такой вопрос не
+        // отвечает: смена чаще всего случилась несколько сборов назад, и с прошлым сбором бренд уже
+        // ничем не отличается от тех, где ничего не менялось. Поэтому смотрим ВСЁ окно снимков.
+        $runs = $this->runs() . '/flips';
+        mkdir($runs, 0777, true);
+        $theme = [$this->row('вулкан казино', 1, 'vulkan-casino.ru')];
+        $door = [$this->row('вулкан казино', 1, 'kush.netone.ru'),
+            $this->row('вулкан казино', 2, 'vulkan-casino.ru')];
+        // Бренд из первого сбора пропадает и возвращается ТЕМ ЖЕ типом: разрыв в ряду — не ротация.
+        SerpHistory::record($runs, SerpAnalysis::build(
+            array_merge($theme, [$this->row('лекс казино', 1, 'lex-casino.ru')]), 10));
+        SerpHistory::record($runs, SerpAnalysis::build($theme, 10));
+        SerpHistory::record($runs, SerpAnalysis::build($door, 10));
+        SerpHistory::record($runs, SerpAnalysis::build(
+            array_merge($door, [$this->row('лекс казино', 1, 'lex-casino.ru')]), 10));
+
+        $flips = SerpHistory::flips($runs);
+        Assert::same('theme', $flips['vulkan']['from'] ?? '', 'бренд забирал тематический домен');
+        Assert::same('door', $flips['vulkan']['to'] ?? '', 'стал забирать дор');
+        Assert::same(2, (int) ($flips['vulkan']['ago'] ?? 0), 'смена случилась два сбора назад');
+        Assert::same(false, isset($flips['lex']), 'пропуск сборов ротацией не считается');
+
+        // Вернулся обратно: показываем ПОСЛЕДНЮЮ ротацию, а не первую найденную в окне.
+        SerpHistory::record($runs, SerpAnalysis::build($theme, 10));
+        $flips = SerpHistory::flips($runs);
+        Assert::same('door', $flips['vulkan']['from'] ?? '');
+        Assert::same('theme', $flips['vulkan']['to'] ?? '');
+        Assert::same(1, (int) ($flips['vulkan']['ago'] ?? 0), 'с прошлого сбора');
+        array_map('unlink', glob($runs . '/*') ?: []);
+        rmdir($runs);
+    }
+
     public function testSnapshotKeepsOnlyNumbersNotRows(): void
     {
         // Файл живёт рядом с историей сборов и пишется каждый сбор: строки выдачи или списки хостов

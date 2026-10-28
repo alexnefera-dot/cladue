@@ -1356,6 +1356,33 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   absent brand), `SerpAnalysisTest::testDiffNamesTheTypeOfEachAppearedSite` (+ the two existing diff
   assertions updated to the new shape) and `PanelTest::testSerpAnalysisPageAndEndpoint` (the series
   reaches `/api/serp`, and the browser-rendered page carries `class="spark"`).
+  WAS IT A DOOR, AND BECAME THEMATIC (1.49.0) — «как понять что был у бренда дор а стал
+  тематический?». The 1.47.0 rotation tag answers that only when the flip happened at the LAST
+  collect: `compare()` is one step wide, so a brand that changed hands three collects ago is
+  indistinguishable from the ones where nothing ever moved — and that is the common case, because the
+  leader changes rarely. `SerpHistory::flips($runsDir, 12)` therefore reads the whole stored window of
+  snapshots (`lt` — the type of the site that took the brand in that collect) and returns, per brand,
+  the MOST RECENT flip `{from, to, ago}`; a collect the brand was absent from is SKIPPED, because a gap
+  in the series is not a change of type. It is computed in PHP and not in the page, so the list, the
+  filters and the CSV cannot disagree: `/api/serp` ships it per brand as `flip` (under the same
+  `sameTop` gate as the sparkline series — at another «топ» the leader is a different site and there is
+  nothing to compare), and `/download?file=serp` merges it into the analysis before `brandsCsv()`.
+  Page: the rotation moved OUT of the leader's line into its OWN line inside «Забирает» (`rotLine()` +
+  `.cell .rot`), because «дор → тематический · 3 сбора назад» next to a host is ellipsised away — a
+  flip at the last collect keeps the bright `moved-tag` plus « с прошлого сбора», an older one is
+  quiet, with the number of collects; the plain «сменился» tag now means only a reshuffle INSIDE one
+  type. `cell()`'s `extra` is no longer the sparkline's own wrapper — `spark()` returns its
+  `<div class="spk">` itself — so a cell's third line can be either. The signals block («Ротация типа …»,
+  «Подряд: …») moved out of the `changes_ok` branch: both read the window, not the last step. The
+  filters `ch_type_any` / `flip_to_theme` / `flip_to_door` and the clickable counts in `#changeLine`
+  read `b.flip`. `brandsCsv()` gains four columns at the end — «Тип лидера (прошлый)» / «Сменился тип
+  лидера» (from `compare()`) and «Ротация типа за окно» / «Сборов назад» (from `flips()`) — empty
+  rather than zero when there is nothing to compare with. Covered by
+  `SerpHistoryTest::testFlipsFindTypeRotationInTheWholeWindow` (two flips in one window — the LAST one
+  wins; a brand that disappears and comes back with the same type is not a rotation),
+  `SerpAnalysisTest::testBrandsCsvCarriesTheSplitAndTheLeader` (the four columns) and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (`flip` over the API, the columns in the downloaded CSV,
+  and `class="rot"` + `data-only="flip_to_door"` in the browser-rendered page).
   FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
   .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
   HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row
