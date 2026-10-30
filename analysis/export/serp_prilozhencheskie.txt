@@ -1,0 +1,56 @@
+ДОМЕНЫ С ANDROID/IOS В ИМЕНИ: КОГО ПОКРЫВАЮТ И НАСКОЛЬКО
+
+  построчный снимок: брендов 141, по ним видна вся выдача
+  сводки по брендам: брендов 165, по ним видны только лидер, наш лучший сайт и лучший дор
+  брендов только в сводках (в снимке их нет): 24
+    1win, 1xbet, 888, Casino X, Cat, Dragon Money, Ezcash, Fonbet, Gama, Lev, Melbet, Pinco, Riobet, Selector, Sol, Vavada, Vodka, Vulkan Prestige, avrorapri, iks, krakenov, mostbetmostbet, slotgame, vulkanroial
+
+ВСЕГО ТАКИХ ДОМЕНОВ НАЙДЕНО: 32; из них строго с android/ios: 7
+  наших среди них: 0 (ни одного)
+
+ПО ПОСТРОЧНОМУ СНИМКУ — полная выдача
+  домен                           брендов  строк  в топ-3  мед.поз  покрытие по брендам
+  betonmobile.ru                        5     11        0        8  Goldfishka 60% (6 из 10), Winline 50% (1 из 2), Casinora 25% (2 из 8), Turbo 14% (1 из 7), Vivaro 5% (1 из 19)
+  android-station.ru                    4     12        3        5  MostBet Bookmaker 80% (4 из 5), 888starz 71% (5 из 7), Betwinner 25% (2 из 8), Spinbetter 10% (1 из 10)
+  android-sklad.ru                      4      9        2        8  Betwinner 50% (4 из 8), MostBet Bookmaker 40% (2 из 5), 888starz 29% (2 из 7), Lilbet 7% (1 из 15)
+  androidworlds.ru                      3      6        4        2  Betwinner 38% (3 из 8), 888starz 29% (2 из 7), MostBet Bookmaker 20% (1 из 5)
+  apkpure.net                           3      3        0        9  Onetap 100% (1 из 1), UP-X 25% (1 из 4), Vivaro 5% (1 из 19)
+  betonmobile.by                        2      9        0        6  Maxline 80% (8 из 10), Betera 12% (1 из 8)
+  play-apk.net                          2      4        0        8  MostBet Bookmaker 60% (3 из 5), 888starz 14% (1 из 7)
+  myandroid-apk.com                     2      4        0        6  MostBet Bookmaker 60% (3 из 5), Betwinner 12% (1 из 8)
+  market-apk.net                        2      2        0        7  UP-X 25% (1 из 4), Gizbo 10% (1 из 10)
+  apkshki.com                           2      2        0       10  MostBet Bookmaker 20% (1 из 5), Brillx 12% (1 из 8)
+  reiting-kazino.web.app                1      7        1        5  Эверум 70% (7 из 10)
+  ramenbet5casino.vercel.app            1      5        5        2  Ramenbet 100% (5 из 5)
+  spinbetter.app                        1      5        3        3  Spinbetter 50% (5 из 10)
+  mobile.marathonbet.ru                 1      4        1        6  Marathon 67% (4 из 6)
+  mostonlineapk.mobi                    1      4        1        5  MostBet Bookmaker 80% (4 из 5)
+  betwinner-android.top                 1      2        0        5  Betwinner 25% (2 из 8)
+  app-mostbt.best                       1      2        1        4  MostBet Bookmaker 40% (2 из 5)
+  mostbk-app.best                       1      2        0        6  MostBet Bookmaker 40% (2 из 5)
+  flagman-casino.vercel.app             1      1        0        5  Flagman 25% (1 из 4)
+  apkvision.org                         1      1        0        8  888starz 14% (1 из 7)
+  lk-new.volnamobile.ru                 1      1        1        1  Волна 14% (1 из 7)
+  volnamobile.ru                        1      1        1        2  Волна 14% (1 из 7)
+  coandroid.com                         1      1        0       10  Gizbo 10% (1 из 10)
+  jt-ico-front-main.vercel.app          1      1        0        9  Jetton 11% (1 из 9)
+  ton.app                               1      1        0       10  Tonplay 14% (1 из 7)
+  mobile.maxline.by                     1      1        1        2  Maxline 10% (1 из 10)
+  intercom-app.elsikora.com             1      1        0        5  Brillx 12% (1 из 8)
+  dbbet.app                             1      1        0        9  Dbbet 10% (1 из 10)
+  androidbaza.ru                        1      1        1        1  MostBet Bookmaker 20% (1 из 5)
+  app-mostbt.pro                        1      1        0        7  MostBet Bookmaker 20% (1 из 5)
+  apkmostbet-apk-7810io.top             1      1        0        4  MostBet Bookmaker 20% (1 из 5)
+
+ПО СВОДКАМ — видно только присутствие в трёх полях, но брендов больше
+  домен                          сбор    бренд                  поле          доля строк   ключей  позиция
+  android-station.ru             10.30   1xbet                  лидер              14.2%  6 из 10        1
+  lk-new.volnamobile.ru          10.30   Volna                  лучший дор          7.5%        —        —
+  lucky-jet-igra.vercel.app      10.30   Jet                    лучший дор          4.7%        —        —
+
+ЧЕГО НЕ БЫЛО ВИДНО В СНИМКЕ: 1 доменов — lucky-jet-igra.vercel.app
+
+ЧТО ОСТАЁТСЯ НЕИЗМЕРЕННЫМ
+  в сводке на бренд приходится около 39 сайтов выдачи, а названы 3 — это 8% состава.
+  по 24 брендам, которых нет в построчном снимке, остальные 92% не видны:
+  там может стоять сколько угодно приложенческих доменов на позициях 2-10.
