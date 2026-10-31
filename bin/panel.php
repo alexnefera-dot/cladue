@@ -710,6 +710,10 @@ if ($path === '/api/serp') {
         'sites' => $analysis['sites'],
         'results' => $analysis['results'],
         'queries' => $analysis['queries'],
+        // Принесла ли выдача отметку переобхода: по нулю здесь страница отличает «свежих нет»
+        // от «источник свежесть не отдал» (results.csv от сбора до 1.42.0 — самый частый случай).
+        'freshness' => $analysis['freshness'] ?? ['rows' => 0, 'total' => 0],
+        'fresh_days' => \YandexSites\Support\Freshness::FRESH_DAYS,
         'top' => $top,
         'types' => \YandexSites\Support\SerpAnalysis::TYPES,
         // Сколько баз в списке и за какой период он выгружен: без этого не понять, почему наших 0.

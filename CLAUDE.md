@@ -1147,6 +1147,22 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testFreshnessSurvivesTheRoundTripThroughResultsCsv`, and `PanelTest::testSerpAnalysisPageAndEndpoint`
   (the leader reaches the API, the list's board is capped at 5) + `testRunJobProducesResults` (the log
   line).
+  DID THE SERP RETURN THE BADGE AT ALL (1.53.0) — the user looked for the «переобход» label («вчера»,
+  «3 ч назад») in their export and found the «Свежесть» column empty in all 2909 door rows. Nothing was
+  broken: the column is read BY NAME from `results.csv`, that file was written by a collect older than
+  1.42.0, and a missing column degrades to '' per row (`csvRows()`: `$at('modtime')` = -1). The failure
+  mode is that «свежих 0» reads as a MEASUREMENT when nothing was measured, so `build()` now counts the
+  rows that carried a stamp into `freshness` = `{rows, total}`, `freshnessText()` renders it for the
+  collect log («Отметка переобхода: пришла у N строк из M» / «выдача не вернула её ни по одной строке …
+  (сбор до 1.42.0 или источник не отдаёт modtime)»), `bin/run-job.php` logs it next to `strongDoorsText()`,
+  `/api/serp` ships `freshness` + `fresh_days`, and `public/serp.html` gives the summary table a row
+  «Отметка переобхода» — the count and a link to the brands with fresh sites, or the amber «выдача её не
+  вернула» with what to do (a NEW collect: «Продолжить сбор» appends to the old header, since
+  `writeRawCsv(append: true)` deliberately does not rewrite it, and the freshness would be lost again).
+  Covered by `SerpAnalysisTest::testCountsWhetherTheSerpReturnedFreshnessAtAll` (a row with a stamp 30
+  days old still counts as «пришла», while `fresh_sites` stays 0 — the two numbers answer different
+  questions) and `PanelTest::testSerpAnalysisPageAndEndpoint` (the field over the API and the amber line
+  in the browser-rendered page).
   WHAT TAKES THE BRAND — DOORS OR NOT (1.43.0) — «разделив бренды на те где захват массово доры а где
   не доры, посчитали их и где гибриды». Split BY VISIBILITY SHARE, never by the number of doors: ten
   doors below the tenth place hold nothing, one door at #1 takes a third of the brand, and counting

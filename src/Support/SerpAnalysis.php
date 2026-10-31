@@ -139,6 +139,7 @@ final class SerpAnalysis
         $now ??= time();
         $brands = [];
         $results = 0;
+        $freshRows = 0;   // строк, по которым выдача отдала отметку переобхода
         $hostBrands = []; // host => [brandKey => true] — сколько РАЗНЫХ брендов держится на домене
         foreach ($rows as $row) {
             $position = (int) ($row['position'] ?? 0);
@@ -164,6 +165,9 @@ final class SerpAnalysis
             // Свежесть документа по выдаче: в results.csv она уже абсолютная (живая выдача переводит
             // «8 ч назад» в метку времени при разборе), поэтому здесь просто читаем.
             $fresh = Freshness::parse((string) ($row['modtime'] ?? ''), $now);
+            if ($fresh !== null) {
+                $freshRows++;
+            }
             $weight = self::CTR[$position] ?? self::CTR_TAIL;
             $brands[$bucket]['queries'][$query][] = [
                 'position' => $position,
@@ -363,6 +367,11 @@ final class SerpAnalysis
             'sites' => count($seenHost),
             'results' => $results,
             'queries' => $queries,
+            // Сколько строк выдачи принесли отметку переобхода («8 ч назад», <modtime>). Ноль здесь
+            // означает не «ничего свежего», а «источник её не отдал» — например, results.csv от сбора
+            // до 1.42.0, где колонки modtime ещё не было. Без этого счётчика «свежих 0» читается
+            // как измерение, хотя измерения не было вовсе.
+            'freshness' => ['rows' => $freshRows, 'total' => $results],
         ];
     }
 
@@ -526,6 +535,29 @@ final class SerpAnalysis
         return 'Берут ли место доры: хотя бы один дор забирает ≥ '
             . self::thresholdText(self::DOOR_SHARE_MIN) . '% в '
             . (int) ($s['brands'] ?? 0) . ' из ' . (int) ($s['of'] ?? 0) . ' брендов';
+    }
+
+    /**
+     * Строка для журнала задания: принесла ли выдача отметку переобхода вообще. Пустая колонка
+     * «Свежесть» на /serp — самый частый вопрос к этому блоку, и ответ на него почти всегда один:
+     * источник её не отдал (или results.csv остался от сбора до 1.42.0). Ноль строк и «нет свежих
+     * сайтов» — разные вещи, поэтому счётчик пишем отдельной строкой.
+     *
+     * @param array<string, mixed> $analysis
+     */
+    public static function freshnessText(array $analysis): string
+    {
+        $f = (array) ($analysis['freshness'] ?? []);
+        $rows = (int) ($f['rows'] ?? 0);
+        $total = (int) ($f['total'] ?? 0);
+        if ($rows === 0) {
+            return 'Отметка переобхода: выдача не вернула её ни по одной строке из ' . $total
+                . ' — колонка «Свежесть» на /serp будет пустой'
+                . ' (сбор до 1.42.0 или источник не отдаёт modtime)';
+        }
+
+        return 'Отметка переобхода: пришла у ' . $rows . ' строк из ' . $total
+            . ' (' . self::thresholdText($total > 0 ? 100 * $rows / $total : 0.0) . '%)';
     }
 
     public static function captureOf(float $doorShare): string

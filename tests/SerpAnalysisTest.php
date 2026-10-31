@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use YandexSites\Filter\OwnSites;
+use YandexSites\Support\Freshness;
 use YandexSites\Support\SerpAnalysis;
 
 final class SerpAnalysisTest
@@ -523,5 +524,28 @@ final class SerpAnalysisTest
         $brand = SerpAnalysis::build($rows, 10, null, $now)['brands'][0];
         Assert::same('8 ч назад', $brand['board'][0]['fresh_label']);
         Assert::same(1, $brand['fresh_sites']);
+    }
+
+    public function testCountsWhetherTheSerpReturnedFreshnessAtAll(): void
+    {
+        // «Свежих 0» и «свежесть вообще не пришла» — разные вещи, и пока их не различали, пустая
+        // колонка «Свежесть» читалась как «в нише нет свежих сайтов». Чаще всего она пустая потому,
+        // что results.csv остался от сбора до 1.42.0, где колонки modtime ещё не было.
+        $now = gmmktime(12, 0, 0, 10, 27, 2026);
+        $rows = [$this->row('вулкан казино', 1, 'leader.ru'), $this->row('вулкан казино', 2, 'second.ru')];
+        $rows[0]['modtime'] = Freshness::stamp($now - 30 * 86400);   // старая страница — но отметка ЕСТЬ
+
+        $with = SerpAnalysis::build($rows, 10, null, $now);
+        Assert::same(1, $with['freshness']['rows'], 'отметка пришла по одной строке из двух');
+        Assert::same(2, $with['freshness']['total']);
+        Assert::same(0, $with['brands'][0]['fresh_sites'], 'свежих сайтов нет — страница месячной давности');
+        Assert::contains('пришла у 1 строк из 2', SerpAnalysis::freshnessText($with));
+
+        // Строки без ключа modtime — ровно то, что отдаёт results.csv прошлых сборов.
+        $old = SerpAnalysis::build([$this->row('вулкан казино', 1, 'leader.ru')], 10, null, $now);
+        Assert::same(0, $old['freshness']['rows']);
+        Assert::same(1, $old['freshness']['total']);
+        Assert::contains('не вернула её ни по одной строке', SerpAnalysis::freshnessText($old),
+            'про пустую колонку сказано прямо, а не «свежих 0»');
     }
 }

@@ -1710,6 +1710,10 @@ final class PanelTest
             Assert::same('kush.grid-x.ru', $byKey['vulkan']['door_best_host'], 'назван сам дор');
             Assert::true($byKey['vulkan']['door_best_own'], 'и что он наш');
             Assert::same(2, (int) $j['strong_doors']['of'], 'счёт по брендам: «без бренда» в нём не участвует');
+            // ОТМЕТКА ПЕРЕОБХОДА: в этой выдаче её нет ни по одной строке, и страница должна сказать
+            // именно это, а не «свежих 0» — иначе пустая колонка читается как измерение.
+            Assert::same(0, (int) $j['freshness']['rows'], 'свежесть по этим строкам не приходила');
+            Assert::true((int) $j['freshness']['total'] > 0, 'а строки разобраны');
 
             // БЫЛО/СТАЛО. Раньше между сборами хранился только список сайтов бренда, и разница
             // отвечала «появилось 3, пропало 1»; числа, по которым принимают решение, не сравнивались.
@@ -1813,6 +1817,9 @@ final class PanelTest
                 Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
                 Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
                 Assert::contains('class="rot"', $rendered, 'ротация типа — своей строкой в ряду бренда');
+                Assert::contains('Отметка переобхода', $rendered, 'строка про свежесть выдачи — в сводке');
+                Assert::contains('выдача её не вернула', $rendered,
+                    'пустая колонка «Свежесть» объяснена прямо, а не показана нулём');
                 Assert::contains('data-only="flip_to_door"', $rendered, 'по ротации можно отфильтровать список');
                 Assert::contains('class="tag our" title="Лучший дор бренда', $rendered, 'в ряду отмечено, что дор забирает ≥ порога');
                 Assert::contains('data-only="strong_door"', $rendered, 'и по этому список тоже фильтруется');
