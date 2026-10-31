@@ -53,6 +53,42 @@ const PERIOD = { monthly: 'мес', yearly: 'год', once: 'разово' };
 const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'BTCUSD': v => '$' + fmt(v),
   'SCHD': v => '$' + fmt(v), 'IVV': v => '$' + fmt(v), 'VHT': v => '$' + fmt(v) };
 
+// Золото котируется за тройскую унцию, а на руках оно в граммах — монетами и слитками.
+// В базе держим унции: бэкенд считает qty × курс и ничего не знает про единицы. Вводить и
+// показывать даём в граммах, унции — рядом в подсказке.
+const OZT_G = 31.1034768;
+const isMassSym = sym => sym === 'XAUUSD';
+const inGrams = oz => (oz || 0) * OZT_G;
+// граммы и цену грамма округлять до целых нельзя: монета на 7,78 г превратилась бы в 8
+const fmtG = g => (Math.round(g * 100) / 100).toLocaleString('ru-RU');
+const ratePrice = sym => ((typeof finData === 'undefined' ? null : finData)?.rates || [])
+  .find(r => r.symbol === sym)?.price ?? null;
+// «50 г», «50» (для золота это граммы), «1.6 oz», «2 унции» → количество в единицах курса
+function parseQty(raw, sym) {
+  const t = String(raw ?? '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!isMassSym(sym)) return parseNum(t);
+  const m = t.match(/^([\d.,]+)(\D*)$/);
+  if (!m) return null;
+  const v = parseNum(m[1]);
+  if (v == null) return null;
+  const u = m[2].replace(/\./g, '');
+  const oz = /^(oz|ozt|унц|унция|унции|унций)/.test(u) ? v
+    : /^(кг|kg|килограмм\w*)$/.test(u) ? v * 1000 / OZT_G
+    : (u === '' || /^(г|гр|грамм|грамма|граммов|g|gr)$/.test(u)) ? v / OZT_G : null;
+  return oz == null ? null : Math.round(oz * 1e6) / 1e6;
+}
+// количество в строке: золото — граммами, остальное как есть
+const qtyText = it => isMassSym(it.rate_symbol)
+  ? (it.qty != null ? `${fmtG(inGrams(it.qty))} г` : '?')
+  : `${it.qty ?? '?'}`;
+const qtyTitle = it => {
+  if (!isMassSym(it.rate_symbol)) return 'количество — клик';
+  const p = ratePrice(it.rate_symbol);
+  return (it.qty != null ? `${it.qty} oz` : 'количество не задано')
+    + (p ? ` · ${fmt(p)} $ за унцию = ${fmtG(p / OZT_G)} $ за грамм` : '')
+    + ' · клик — вписать «50 г» или «1.6 oz»';
+};
+
 window.loadFin = async function () {
   const el = document.getElementById('screen-fin');
   try {
@@ -127,7 +163,7 @@ function portRows(it, depth, ctx) {
       `<span class="sub" title="доля ${shareIn != null ? `${scopeIn} — ${fmt(ctx.parentEur)} € / доля ` : ''}${scopePart} — ${fmt(ctx.total)} €">${
         shareIn != null ? shareIn.toFixed(1) + '% / ' : ''}${sharePart.toFixed(1)}%</span>`;
     const nowCell = it.auto
-      ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
+      ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${qtyText(it)} × курс ${fesc(it.rate_symbol)}${isMassSym(it.rate_symbol) ? ` (${it.qty} oz)` : ''} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
       : editable
         ? `<td class="r num now sep"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}</td>`
         : `<td class="r num now sep">${fmtE(it.eur)}${shareSub}</td>`;
@@ -191,7 +227,7 @@ function portRows(it, depth, ctx) {
       <span class="ed" data-fe="${pfx}:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
       ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
       ${editable && it.region ? `<span class="pill p2" data-fregion="${it.id}" title="регион инвестиции — клик">${fesc(it.region)}</span>` : ''}
-      ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
+      ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}:${fesc(it.rate_symbol)}" data-hint="${isMassSym(it.rate_symbol) ? '50 г или 1.6 oz' : 'количество'}" title="${qtyTitle(it)}">${qtyText(it)} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
     </td>
     ${cells}
@@ -347,7 +383,7 @@ function portCard(it, depth, ctx) {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pCat != null ? `<span class="meta" title="доля внутри своего блока"><b>${pCat.toFixed(1)}% кат.</b></span>` : ''}
        ${pTot != null ? `<span class="meta" title="доля от всего портфеля">${pTot.toFixed(1)}%${pCat != null ? ' общ.' : ' портфеля'}</span>` : ''}
-       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}">${it.qty ?? '?'}×${fesc(it.rate_symbol)}</span>` : ''}`;
+       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}:${fesc(it.rate_symbol)}" data-hint="${isMassSym(it.rate_symbol) ? '50 г или 1.6 oz' : 'количество'}" title="${qtyTitle(it)}">${qtyText(it)}×${fesc(it.rate_symbol)}</span>` : ''}`;
   }
   const addPfx = target ? 'tgtadd' : 'fadd';
   const actions = `
@@ -1578,7 +1614,9 @@ function renderFin() {
   <div class="ratesbar">
     ${d.rates.map(r => `<span class="ratepill">
       <b>${fesc(r.label)}</b>
-      <span class="ed num" data-rate="${fesc(r.symbol)}" title="клик — ввести вручную">${r.price != null ? (RATE_FMT[r.symbol] ?? fmt)(r.price) : '—'}</span>
+      <span class="ed num" data-rate="${fesc(r.symbol)}" title="${isMassSym(r.symbol) && r.price
+        ? `за тройскую унцию · ${fmtG(r.price / OZT_G)} $ за грамм · ` : ''}клик — ввести вручную">${r.price != null ? (RATE_FMT[r.symbol] ?? fmt)(r.price) : '—'}</span>
+      ${isMassSym(r.symbol) && r.price ? `<span class="meta">/oz</span>` : ''}
       ${r.change_pct != null ? `<span class="${r.change_pct >= 0 ? 'up' : 'down'}">${r.change_pct >= 0 ? '▲' : '▼'}${Math.abs(r.change_pct).toFixed(2)}%</span>` : ''}
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
@@ -2146,8 +2184,16 @@ function bindFin() {
       sel.addEventListener('blur', () => window.loadFin());
     }));
   const finEnt = () => 'tgt';   // дерево одно
+  // Количество принимаем текстом: золото вписывают граммами («50 г»), а хранится оно в унциях
   document.querySelectorAll('[data-fqty]').forEach(el =>
-    el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.patch(finEnt(), +el.dataset.fqty, { qty: v }))));
+    el.addEventListener('click', () => {
+      const [id, sym] = el.dataset.fqty.split(':');
+      inlineVal(el, 'text', v => {
+        const q = parseQty(v, sym);
+        if (q == null) { alert(isMassSym(sym) ? 'Не понял сколько: напиши «50 г» или «1.6 oz».' : 'Нужно число.'); return; }
+        return finApi.patch(finEnt(), +id, { qty: q });
+      });
+    }));
   document.querySelectorAll('[data-frate]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.frate;
@@ -2159,7 +2205,15 @@ function bindFin() {
       sel.addEventListener('change', async () => {
         if (sel.value === '__none') await finApi.patch(finEnt(), id, { rate_symbol: null, qty: null });
         else if (sel.value) {
-          const q = parseNum(prompt(`Количество (${sel.value}):`) ?? '');
+          const raw = prompt(isMassSym(sel.value)
+            ? 'Сколько золота? «50 г» или «1.6 oz» — без единицы считаю граммами:'
+            : `Количество (${sel.value}):`);
+          if (raw == null) { window.loadFin(); return; }                       // отменили — не трогаем
+          const q = String(raw).trim() === '' ? null : parseQty(raw, sel.value);   // пусто — тикер без количества
+          if (q == null && String(raw).trim() !== '') {
+            alert(isMassSym(sel.value) ? 'Не понял сколько: напиши «50 г» или «1.6 oz».' : 'Нужно число.');
+            window.loadFin(); return;
+          }
           await finApi.patch(finEnt(), id, { rate_symbol: sel.value, qty: q });
           // курса ещё нет — подтягиваем сразу, чтобы автоцена посчиталась
           const known = finData.rates.find(r => r.symbol === sel.value)?.price;
