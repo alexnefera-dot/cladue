@@ -167,8 +167,10 @@ function portRows(it, depth, ctx) {
     const shareSub = sharePart == null ? '' :
       `<span class="sub" title="доля ${shareIn != null ? `${scopeIn} — ${fmt(ctx.parentEur)} € / доля ` : ''}${scopePart} — ${fmt(ctx.total)} €">${
         shareIn != null ? shareIn.toFixed(1) + '% / ' : ''}${sharePart.toFixed(1)}%</span>`;
+    // У ⚡-позиции валюта тоже своя: курс тикера приходит в долларах, но держать позицию
+    // можно в евро (золото в Европе покупают за него) — тогда автоцена идёт через EURUSD.
     const nowCell = it.auto
-      ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${qtyText(it)} × курс ${fesc(it.rate_symbol)}${isMassSym(it.rate_symbol) ? ` (${it.qty} oz)` : ''} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
+      ? `<td class="r num now sep"><span class="pill btn" data-fcur="${it.id}:${cur}" title="валюта позиции — клик${cur === '€' ? ' · курс тикера в $ пересчитан по EURUSD' : ''}">${cur}</span> ⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${qtyText(it)} × курс ${fesc(it.rate_symbol)}${isMassSym(it.rate_symbol) ? ` (${it.qty} oz)` : ''}${cur === '€' ? ' · в € по EURUSD' : ''} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span>${shareSub}</td>`
       : editable
         ? `<td class="r num now sep"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}</td>`
         : `<td class="r num now sep">${fmtE(it.eur)}${shareSub}</td>`;

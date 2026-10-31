@@ -1648,11 +1648,13 @@ enum Api {
     // считаем главным: пересчитываем под неё количество — привязка остаётся живой.
     static func syncQtyFromValue(_ db: Database, _ table: String, _ id: Int) throws {
         guard ["target_items", "portfolio_items"].contains(table),
-              let r = try db.rows("SELECT value, qty, rate_symbol FROM \(table) WHERE id = ?", [id]).first,
+              let r = try db.rows("SELECT value, qty, rate_symbol, currency FROM \(table) WHERE id = ?", [id]).first,
               let sym = r["rate_symbol"] as? String, numOpt(r["qty"]) != nil, let value = numOpt(r["value"]) else { return }
         let priceRow = try db.rows("SELECT price FROM rates WHERE symbol = ?", [sym]).first
         guard let price = numOpt(priceRow?["price"] ?? nil), price > 0 else { return }
-        try db.run("UPDATE \(table) SET qty = ? WHERE id = ?", [(value / price * 1e6).rounded() / 1e6, id])
+        // сумма вписана в валюте позиции, а курс тикера в долларах — приводим к ней
+        let usd = (r["currency"] as? String) == "€" ? value * (try eurUsdRate(db)) : value
+        try db.run("UPDATE \(table) SET qty = ? WHERE id = ?", [(usd / price * 1e6).rounded() / 1e6, id])
     }
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
@@ -2640,7 +2642,11 @@ enum Api {
         for var r in try db.rows("SELECT * FROM \(table) ORDER BY parent_id NULLS FIRST, ord, id") {
             if let sym = r["rate_symbol"] as? String, numOpt(r["qty"]) != nil {
                 if let price = prices[sym] {
-                    r["value"] = num(r["qty"]) * price; r["currency"] = "$"; r["auto"] = true
+                    // Курсы тикеров приходят в долларах, но валюта позиции — выбор человека:
+                    // золото в Европе покупают за евро. Выбран € — автоцену переводим по EURUSD.
+                    let own = (r["currency"] as? String) == "€" ? "€" : "$"
+                    r["value"] = num(r["qty"]) * price / (own == "€" ? rate : 1)
+                    r["currency"] = own; r["auto"] = true
                 } else { r["no_rate"] = true }
             }
             rows.append(r)
