@@ -12,7 +12,7 @@ let showMonefy = false;
 // Из-за этого правки бэкенда молча не применялись, и цифры «слетали» на перезаходе.
 // NEED_BUILD — дата последней правки native/Pipboy/*.swift: старее → показываем предупреждение.
 // ПРАВИШЬ SWIFT — ОБНОВИ ЭТУ ДАТУ.
-const NEED_BUILD = '2026-10-11';
+const NEED_BUILD = '2026-10-31';
 let finBuild = null;   // { platform, buildDate, … } из /api/version
 
 const finApi = {
@@ -131,6 +131,11 @@ function sideBtn(it) {
   return `<span class="rowbtn${cur === 'act' ? '' : ' on'}" data-fside="${it.id}:${cur}" title="${hint}">⇄</span>`;
 }
 
+// 🔒 Замок: цель позиции равна её текущей сумме и идёт за ней. Нужен там, где добирать
+// нечего — позиция закрыта, и недобор по ней не должен мозолить глаза.
+const lockBtn = it => `<span class="rowbtn${it.closed ? ' on' : ''}" data-fclosed="${it.id}:${it.closed ? 1 : 0}"
+  title="${it.closed ? 'открыть: цель снова задаётся руками' : 'закрыть позицию: цель = текущей сумме, отклонение ноль'}">${it.closed ? '🔒' : '🔓'}</span>`;
+
 function portRows(it, depth, ctx) {
   const target = true;   // экран один
   const pfx = 'tgt';
@@ -185,8 +190,9 @@ function portRows(it, depth, ctx) {
     // цель хранится в валюте позиции; выведенная из процента приходит в € — возвращаем в валюту строки
     const rateRow = ctx?.rate || 1.08;
     // заданную суммой показываем как введена — без круга через евро и обратно
-    const planSumShown = it.planPin === 'eur' && !kidsGoals
-      ? it.target_value
+    // у закрытой позиции цель — её же текущая сумма, а не то, что когда-то вписали
+    const planSumShown = it.closed ? (planRow != null && editable && cur === '$' ? planRow * rateRow : planRow)
+      : it.planPin === 'eur' && !kidsGoals ? it.target_value
       : planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
     // Доли цели — в суммах целей: своего раздела и своей части. Каждая сходится в 100%,
     // поэтому читается как целевая структура. Прежде обе считались от суммы части СЕЙЧАС:
@@ -196,14 +202,23 @@ function portRows(it, depth, ctx) {
     const planPartPct = planRow != null && ctx?.planTotal > 0 ? planRow / ctx.planTotal * 100 : null;
     // Вписать долю можно там, где цель своя: у узла с целями внутри она их сумма, и запись
     // была бы молча проигнорирована.
-    const pctEdit = kidsGoals
-      ? `<span class="derived" title="цель складывается из вложенных — правь доли внутри">${planPartPct != null ? planPartPct.toFixed(1) + '%' : '—'}</span>`
+    const pctEdit = kidsGoals || it.closed
+      ? `<span class="derived" title="${it.closed ? 'позиция закрыта: цель равна текущей сумме' : 'цель складывается из вложенных — правь доли внутри'}">${planPartPct != null ? planPartPct.toFixed(1) + '%' : '—'}</span>`
       : `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fgoalpct="${it.id}:${(ctx?.planWithout?.(it.id) ?? 0).toFixed(2)}:${capT.toFixed(2)}:${rateRow}:${cur}" title="доля в сумме целей ${scopePart} — ${fmt(ctx?.planTotal || 0)} € · клик — вписать долю, цель пересчитается суммой${it.planPin === 'pct' ? ` · пока закреплена долей ${fmt(it.target_pct)}% от суммы части сейчас` : ''}">${planPartPct != null ? planPartPct.toFixed(1) + '%' : '—'}</span>`;
     const pctCell = (planInPct != null ? `<span class="derived" title="доля в цели ${scopeIn} — ${fmt(ctx.parentTarget)} €">${planInPct.toFixed(1)}%</span> / ` : '') + pctEdit;
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
-    const planDiff = it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
-      ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
-    const planCell = `<td class="r num goal sep">${eurCell} <span class="meta">${fesc(editable ? cur : '€')}</span><span class="sub">${pctCell}</span>${planDiff}</td>`;
+    // У закрытого узла цель — его сумма, а цели внутри остались своими: показываем их итог,
+    // иначе строка «✓ в цели» над недобором внутри выглядела бы ошибкой счёта.
+    const planDiff = it.closed
+      ? (it.planKids != null && Math.abs((it.planKids || 0) - (planRow || 0)) >= 1
+        ? `<div class="meta" title="позиция закрыта, поэтому её цель — текущая сумма; цели внутри остались своими">внутри целей ${fmtE(it.planKids)}</div>` : '')
+      : it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
+        ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
+    // Закрытую цель не правят ни суммой, ни долей: она равна «Сейчас» и идёт за ним
+    const goalShown = it.closed
+      ? `<span class="pinned" title="🔒 закрыто: цель равна текущей сумме и идёт за ней — у ⚡ пересчитывается с курсом">🔒 ${fmt(planSumShown)}</span>`
+      : eurCell;
+    const planCell = `<td class="r num goal sep">${goalShown} <span class="meta">${fesc(editable ? cur : '€')}</span><span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
     const dev = planRow != null ? becameEur - planRow : null;   // цель 0 — тоже цель: «здесь не хочу ничего»
@@ -238,6 +253,7 @@ function portRows(it, depth, ctx) {
       ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
       ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${editable ? `<span class="rowbtn${it.digest ? ' on' : ''}" data-fdig="${it.id}:${it.digest ? 1 : 0}" title="${it.digest ? 'убрать из сведения капитала' : 'взять в сведение капитала — свод по географии'}">🎓</span>` : ''}
+      ${lockBtn(it)}
       ${depth === 0 ? sideBtn(it) : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
@@ -392,6 +408,7 @@ function portCard(it, depth, ctx) {
     ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
     ${editable ? `<span class="rowbtn" data-fregion="${it.id}" title="регион инвестиции (SK/UA/AU/EU/WEB)">🌍${it.region ? ' ' + fesc(it.region) : ''}</span>` : ''}
     ${editable ? `<span class="rowbtn${it.digest ? ' on' : ''}" data-fdig="${it.id}:${it.digest ? 1 : 0}" title="${it.digest ? 'убрать из сведения' : 'в сведение капитала'}">🎓</span>` : ''}
+    ${lockBtn(it)}
     ${depth === 0 ? sideBtn(it) : ''}
     <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>`;
   return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
@@ -518,8 +535,12 @@ function secPortfolio(d, s) {
     const setPlan = (n, base) => {
       const kids = n.children || [];
       kids.forEach(c => setPlan(c, base));
+      // 🔒 закрытая позиция: цель равна тому, что в ней сейчас, и идёт за ней — у ⚡-позиций
+      // пересчитывается с курсом. Отсюда отклонение всегда ноль: добирать нечего.
+      // Это сильнее и своей цели, и целей внутри: закрыли — значит вопрос снят.
       // доля считается от своей части портфеля — от того же тотала, что и «Сейчас %»
-      const own = n.target_pct != null ? n.target_pct / 100 * base
+      const own = n.closed ? (n.eur || 0)
+        : n.target_pct != null ? n.target_pct / 100 * base
         : n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value)
         : null;
       const kidsSum = kids.reduce((a, c) => a + (c.planEur || 0), 0);
@@ -527,7 +548,7 @@ function secPortfolio(d, s) {
       n.planKids = kids.length ? kidsSum : null;
       // Цель листа неприкосновенна: родитель на неё не влияет. Если внутри цели заданы —
       // цель узла это их сумма, своя используется только когда внутри целей нет.
-      n.planEur = kidsHave ? kidsSum : (own != null ? own : null);
+      n.planEur = n.closed ? own : kidsHave ? kidsSum : (own != null ? own : null);
       n.planOwn = own;                                                                   // своя, даже если не в ходу
       n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
@@ -1694,6 +1715,21 @@ function inlineVal(el, type, onSave) {
   input.addEventListener('blur', save);
 }
 
+// Переключатель-флаг у позиции. Сборка, не знающая колонку, молча отбросит поле и ответит
+// 200 — кнопка выглядела бы сломанной. Поэтому перечитываем позицию и говорим, если не легло.
+const findNode = (ns, id) => (ns || []).reduce((f, n) => f || (n.id === id ? n : findNode(n.children, id)), null);
+async function toggleFlag(data, field, what) {
+  const [id, on] = String(data).split(':');
+  const want = on === '1' ? 0 : 1;
+  const r = await finApi.patch('tgt', +id, { [field]: want });
+  if (r && !r.ok) { alert(`Не сохранилось (${r.status}).`); return; }
+  const node = findNode((await finApi.list()).targetPortfolio, +id);
+  if (node && (node[field] ? 1 : 0) !== want)
+    alert(`Не записалось: ${what}. Приложение собрано до этой правки бэкенда`
+      + ' — пересобери в Xcode (⌘R), после этого запишется.');
+  window.loadFin();
+}
+
 function bindFin() {
   const $ = id => document.getElementById(id);
   document.querySelectorAll('[data-fsec]').forEach(el =>
@@ -1998,20 +2034,9 @@ function bindFin() {
       });
     }));
   document.querySelectorAll('[data-fdig]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const [id, on] = el.dataset.fdig.split(':');
-      const want = on === '1' ? 0 : 1;
-      const r = await finApi.patch('tgt', +id, { digest: want });
-      if (r && !r.ok) { alert(`Не сохранилось (${r.status}).`); return; }
-      // Сборка, не знающая колонку digest, молча отбросит поле и ответит 200 — кнопка выглядела
-      // бы сломанной: «шапочка» не снимается и не ставится. Проверяем, что флаг реально лёг.
-      const find = (ns, i) => (ns || []).reduce((f, n) => f || (n.id === i ? n : find(n.children, i)), null);
-      const node = find((await finApi.list()).targetPortfolio, +id);
-      if (node && (node.digest ? 1 : 0) !== want)
-        alert(`Отметка «в сведение капитала» не ${want ? 'поставилась' : 'снялась'}: приложение собрано`
-          + ' до этой правки бэкенда — пересобери в Xcode (⌘R), после этого запишется.');
-      window.loadFin();
-    }));
+    el.addEventListener('click', () => toggleFlag(el.dataset.fdig, 'digest', 'отметка в сведение капитала')));
+  document.querySelectorAll('[data-fclosed]').forEach(el =>
+    el.addEventListener('click', () => toggleFlag(el.dataset.fclosed, 'closed', 'замок на позиции')));
   // блок верхнего уровня переезжает между частями: активы ⇄ пассивы
   document.querySelectorAll('[data-fside]').forEach(el =>
     el.addEventListener('click', async () => {

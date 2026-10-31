@@ -82,7 +82,7 @@ test('если сборка молча отбросила флаг — гово�
   const els = f.bindFrom(f.ctx.secDigest([marked()]));
   await els[0]._click();
   assert.equal(f.alerts.length, 1, 'кнопка не сработала, а пользователю ничего не сказали');
-  assert.match(f.alerts[0], /не снялась/);
+  assert.match(f.alerts[0], /отметка в сведение капитала/);
   assert.match(f.alerts[0], /Xcode/, 'не названо, что лечится пересборкой');
 
   // свежий бэкенд: флаг снят — молчим

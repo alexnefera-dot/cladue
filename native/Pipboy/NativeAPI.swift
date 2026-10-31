@@ -51,6 +51,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // Капитал — только act и safe. Прежние значения переносим разово.
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN side TEXT NOT NULL DEFAULT 'act'")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest INTEGER NOT NULL DEFAULT 0")   // 🎓 позиция идёт в сведение капитала (свод по географии)
+        // 🔒 позиция закрыта: цель равна текущей сумме и идёт за ней (у ⚡ — за курсом),
+        // поэтому отклонение всегда ноль и позиция не числится недобранной
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN closed INTEGER NOT NULL DEFAULT 0")
         // Правка суммы внутри свода: своё значение и то, каким было «Сейчас» в момент правки.
         // Как только «Сейчас» меняется, правка перестаёт действовать — свод берёт главную сумму.
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest_value REAL")
@@ -110,7 +113,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("DROP TABLE IF EXISTS target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0, passive INTEGER NOT NULL DEFAULT 0, digest INTEGER NOT NULL DEFAULT 0, digest_value REAL, digest_base REAL)")
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0, passive INTEGER NOT NULL DEFAULT 0, digest INTEGER NOT NULL DEFAULT 0, digest_value REAL, digest_base REAL, closed INTEGER NOT NULL DEFAULT 0)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
         // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
@@ -1522,12 +1525,12 @@ enum Api {
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time", "waiting"],
-        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base", "closed"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base"],
+        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base", "closed"],
         "move": ["from_id", "to_id", "amount", "to_note"],
         "hist": ["name", "amount", "currency", "note", "excluded", "parent_id", "ord"],
         "save": ["name", "target", "pct_min", "pct_max", "currency", "day", "note", "ord", "archived"],
