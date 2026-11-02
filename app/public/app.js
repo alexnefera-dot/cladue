@@ -944,12 +944,89 @@ window.preflightOk = async function (id) {
   return confirm(`🛫 Pre-flight «${n.title}» — перед закрытием проверь:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
 };
 
+// ===== Выгрузка в системный Календарь (а оттуда в Google) =====
+// Пишем в календарь, выбранный человеком. Если это календарь гугл-аккаунта, добавленного
+// в системный Календарь, события дальше уезжают в Google сами — без OAuth и сервера.
+const CS_KINDS = [['tasks', 'задачи с датой'], ['obligations', 'платежи по обязательствам'],
+  ['birthdays', 'дни рождения']];
+
+function calSyncCard(cs) {
+  if (!cs) return '';            // старая сборка без выгрузки — молчим, а не показываем мёртвый блок
+  const head = '<div class="meta">📅 КАЛЕНДАРЬ · ЗАДАЧИ В GOOGLE</div>';
+  if (cs.access !== 'granted') return `
+    <div class="card">${head}
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="pill btn ok" id="csAccess">разрешить доступ к Календарю</span>
+        ${cs.access === 'denied' ? '<span class="meta">доступ запрещён — включи Pipboy в Системных настройках → Конфиденциальность → Календари</span>' : ''}
+      </div>
+      <div class="meta">события пишутся в системный Календарь; если в нём есть твой гугл-аккаунт,
+        macOS сама отправит их в Google — пароли и токены никуда не вводятся</div>
+    </div>`;
+  const cals = cs.calendars || [];
+  return `
+    <div class="card">${head}
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="pill btn ${cs.on ? 'ok' : ''}" id="csOn">${cs.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
+        <span class="pill btn" id="csRun" title="прогнать сейчас — обычно не нужно, правки уезжают сами">↻ выгрузить сейчас</span>
+      </div>
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="meta">календарь:</span>
+        <select id="csCal">
+          <option value="">— выбери календарь —</option>
+          ${cals.map(c => `<option value="${esc(c.id)}"${c.id === cs.calendar ? ' selected' : ''}>${esc(c.title)}${c.source ? ' · ' + esc(c.source) : ''}${c.google ? ' ☁' : ''}</option>`).join('')}
+        </select>
+        ${cals.length ? '' : '<span class="meta">нет календарей, куда можно писать</span>'}
+      </div>
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="meta">что выгружать:</span>
+        ${CS_KINDS.map(([k, label]) => `<span class="pill btn ${cs.kinds?.[k] ? 'ok' : ''}" data-cskind="${k}">${label}</span>`).join('')}
+      </div>
+      <div class="meta">${cs.last ? 'последний прогон: ' + esc(cs.last) + ' (добавлено ~изменено −убрано)' : 'ещё не выгружалось'}</div>
+      <div class="meta">односторонне: правки в Google обратно не приезжают. Трогаем только свои события —
+        закрыл задачу, и она уходит из календаря сама</div>
+    </div>`;
+}
+
+function bindCalSync(box, cs) {
+  if (!cs) return;
+  const post = (path, body) => fetch('/api/calsync' + path, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(x => x.json());
+  box.querySelector('#csAccess')?.addEventListener('click', async () => {
+    const r = await post('/access');
+    if (r.access !== 'granted') alert('Доступ не выдан. Системные настройки → Конфиденциальность → Календари → Pipboy.');
+    window.loadSettings();
+  });
+  box.querySelector('#csOn')?.addEventListener('click', async () => {
+    if (!cs.on && !cs.calendar) { alert('Сначала выбери календарь, куда выгружать.'); return; }
+    await post('/settings', { on: cs.on ? 0 : 1 });
+    window.loadSettings();
+  });
+  box.querySelector('#csCal')?.addEventListener('change', async e => {
+    await post('/settings', { calendar: e.target.value });
+    window.loadSettings();
+  });
+  box.querySelectorAll('[data-cskind]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const k = el.dataset.cskind;
+      await post('/settings', { kinds: { [k]: cs.kinds?.[k] ? 0 : 1 } });
+      window.loadSettings();
+    }));
+  box.querySelector('#csRun')?.addEventListener('click', async () => {
+    const r = await post('/run');
+    alert(r.error ? r.error
+      : `В календарь: добавлено ${r.added}, изменено ${r.updated}, убрано ${r.removed} (всего ${r.total})`
+        + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
+    window.loadSettings();
+  });
+}
+
 // ===== Настройки: корзина, экспорт, бэкап =====
 window.loadSettings = async function () {
-  const [rows, info, ver] = await Promise.all([
+  const [rows, info, ver, cs] = await Promise.all([
     fetch('/api/trash').then(x => x.json()),
     fetch('/api/info').then(x => x.json()).catch(() => ({})),
     fetch('/api/version').then(x => x.json()).catch(() => ({})),
+    fetch('/api/calsync').then(x => x.json()).catch(() => null),   // нет в этой сборке — блока не будет
   ]);
   document.getElementById('screen-settings').innerHTML = `
   <h2 style="margin-bottom:2px">Настройки</h2>
@@ -1022,6 +1099,7 @@ window.loadSettings = async function () {
       <div class="meta" id="syncStatus">авто работает в фоне при открытии · первый раз нажми «синхронизировать» на обоих устройствах и сверь код</div>
       <div class="meta">правки сходятся двусторонне · ничего не уходит в облако</div>
     </div>` : ''}
+    ${calSyncCard(cs)}
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="auditBtn">проверить, где пусто</span>
@@ -1032,6 +1110,7 @@ window.loadSettings = async function () {
   </div>`;
 
   const box = document.getElementById('screen-settings');
+  bindCalSync(box, cs);
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
@@ -1208,6 +1287,11 @@ document.getElementById('searchbox').addEventListener('input', e => {
 });
 
 load();
+
+// Выгрузка в системный Календарь: раз за запуск догоняем то, что менялось, пока приложение
+// было закрыто (например, приехало синхроном с телефона). Выключена выгрузка или нет
+// доступа — запрос ничего не делает, поэтому состояние заранее не спрашиваем.
+fetch('/api/calsync/run', { method: 'POST' }).catch(() => {});
 
 // ===== Быстрый захват: плавающая кнопка (＋) + лист с опц. датой/разделом → в Цели =====
 (() => {

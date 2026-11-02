@@ -5,6 +5,9 @@ import Network
 #if canImport(AppKit)
 import AppKit
 #endif
+#if canImport(EventKit)
+import EventKit
+#endif
 
 // ЭТАП 1 — нативный слой чтения.
 // WKURLSchemeHandler перехватывает запросы интерфейса (тот же фронт из app/public)
@@ -54,6 +57,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // 🔒 позиция закрыта: цель равна текущей сумме и идёт за ней (у ⚡ — за курсом),
         // поэтому отклонение всегда ноль и позиция не числится недобранной
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN closed INTEGER NOT NULL DEFAULT 0")
+        // ключ «вид:id» → id события в системном Календаре: по нему правим и удаляем своё
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
         // Правка суммы внутри свода: своё значение и то, каким было «Сейчас» в момент правки.
         // Как только «Сейчас» меняется, правка перестаёт действовать — свод берёт главную сумму.
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest_value REAL")
@@ -312,7 +317,13 @@ enum Api {
 
     static func handle(method: String, path: String, query: String?, body: [String: Any]?, db: Database) throws -> (Data, Int) {
         if method == "GET" { return try get(path: path, query: query, db: db) }
-        return try write(method: method, path: path, body: body ?? [:], db: db)
+        let res = try write(method: method, path: path, body: body ?? [:], db: db)
+        // задачи, платежи и дни рождения уезжают в календарь сразу после правки: сверка идёт
+        // по хешу, поэтому, когда менять нечего, прогон не делает ни одного обращения к нему
+        #if canImport(EventKit)
+        if CalendarSync.touches(path) { CalendarSync.runIfOn(db) }
+        #endif
+        return res
     }
 
     static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
@@ -331,6 +342,9 @@ enum Api {
             return (try json(["ideas": ideas, "log": log, "today": localToday()]), 200)
         }
         // ----- Сферы -----
+        #if canImport(EventKit)
+        if path == "/api/calsync" { return (try json(CalendarSync.state(db)), 200) }
+        #endif
         if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
         if path == "/api/reports/spheres" { return (try json(try reportSpheres(db, queryValue(query, "period") ?? "month")), 200) }
@@ -541,6 +555,33 @@ enum Api {
 
     // ===== ЗАПИСЬ (Этап 2). Пока — узлы целей; остальные разделы добавляем срезами. =====
     static func write(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int) {
+        #if canImport(EventKit)
+        // ----- Выгрузка в системный Календарь -----
+        if method == "POST", path == "/api/calsync/access" {
+            // запрос разрешения показывает системное окно и отвечает в своём потоке;
+            // обработчик живёт не на main, поэтому ждать семафором тут безопасно
+            let sem = DispatchSemaphore(value: 0)
+            var st = CalendarSync.accessState
+            CalendarSync.requestAccess { s in st = s; sem.signal() }
+            _ = sem.wait(timeout: .now() + 120)
+            _ = st
+            return (try json(CalendarSync.state(db)), 200)
+        }
+        if method == "POST", path == "/api/calsync/settings" {
+            if body["on"] != nil { try setSetting(db, "cal_sync_on", intval(body["on"]) != 0 ? "1" : "0") }
+            if let c = body["calendar"] as? String { try setSetting(db, "cal_sync_calendar", c) }
+            if let k = body["kinds"] as? [String: Any] {
+                for (name, key) in CalendarSync.kinds where k[name] != nil {
+                    try setSetting(db, key, intval(k[name]) != 0 ? "1" : "0")
+                }
+            }
+            CalendarSync.runIfOn(db)
+            return (try json(CalendarSync.state(db)), 200)
+        }
+        if method == "POST", path == "/api/calsync/run" {
+            return (try json(try CalendarSync.run(db)), 200)
+        }
+        #endif
         // ----- Сферы: привязка/дефолты/автонастройка -----
         if method == "POST", path == "/api/spheres/assign" {
             guard let kind = body["kind"] as? String, let id = numOpt(body["id"]).map({ Int($0) }) else { return (try json(["error": "kind/id required"]), 400) }
@@ -4200,3 +4241,240 @@ final class SyncService: ObservableObject {
         }
     }
 }
+
+// MARK: - Выгрузка в системный Календарь (и дальше в Google)
+#if canImport(EventKit)
+// Пишем события в выбранный календарь системного Календаря. Если это календарь
+// гугл-аккаунта, добавленного в Календарь на Маке, система сама отправляет их в Google —
+// без OAuth, токенов, Google Cloud проекта и сервера. Выгрузка односторонняя: правки,
+// сделанные в Google, обратно не приезжают.
+// Трогаем только свои события: их идентификаторы лежат в cal_sync, ключ — «вид:id».
+// Поэтому правка задачи обновляет событие, а не плодит второе, а снятая задача его убирает.
+enum CalendarSync {
+    static let store = EKEventStore()
+    static let kinds = ["tasks": "cal_sync_tasks", "obligations": "cal_sync_obligations",
+                        "birthdays": "cal_sync_birthdays"]
+    private static let kOn = "cal_sync_on", kCal = "cal_sync_calendar", kLast = "cal_sync_last"
+
+    // ----- доступ
+    static var accessState: String {
+        let st = EKEventStore.authorizationStatus(for: .event)
+        if st == .notDetermined { return "notDetermined" }
+        if st == .denied || st == .restricted { return "denied" }
+        return "granted"   // authorized / fullAccess / writeOnly
+    }
+    // Просим полный доступ, а не «только запись»: свои события надо перечитывать, чтобы
+    // править и удалять их. С write-only нам бы отказали в чтении, и пошли бы дубли.
+    static func requestAccess(_ done: @escaping (String) -> Void) {
+        if #available(macOS 14.0, iOS 17.0, *) {
+            store.requestFullAccessToEvents { _, _ in done(accessState) }
+        } else {
+            store.requestAccess(to: .event) { _, _ in done(accessState) }
+        }
+    }
+    // календари, куда можно писать; «google» — подсказка интерфейсу, какой из них гугловый
+    static func calendars() -> [[String: Any]] {
+        guard accessState == "granted" else { return [] }
+        return store.calendars(for: .event).filter { $0.allowsContentModifications }.map { c in
+            let src = c.source?.title ?? ""
+            let low = src.lowercased()
+            return ["id": c.calendarIdentifier, "title": c.title, "source": src,
+                    "google": low.contains("google") || low.contains("gmail") || src.contains("@")]
+        }
+    }
+
+    // ----- состояние для экрана настроек
+    static func state(_ db: Database) -> [String: Any] {
+        var on: [String: Any] = [:]
+        for (name, key) in kinds { on[name] = get(db, key) != "0" }   // по умолчанию выгружаем всё
+        return ["access": accessState, "on": get(db, kOn) == "1",
+                "calendar": str(get(db, kCal)), "calendars": calendars(),
+                "kinds": on, "last": str(get(db, kLast))]
+    }
+
+    // ----- что должно быть в календаре
+    private struct Item {
+        let key: String, title: String, date: String
+        let time: String?      // nil — событие на весь день
+        let recur: String?     // monthly | yearly | nil
+        let note: String
+        var hash: String { "\(title)|\(date)|\(time ?? "-")|\(recur ?? "-")" }
+    }
+
+    private static func wanted(_ db: Database) throws -> [Item] {
+        var out: [Item] = []
+        // Задачи с датой: только открытые и только в окне «неделя назад … год вперёд» —
+        // старое в календаре не нужно, а бесконечное будущее раздувало бы выгрузку.
+        if get(db, kinds["tasks"]!) != "0" {
+            for t in try db.rows("""
+                SELECT id, title, due_date, due_time FROM nodes
+                WHERE kind = 'task' AND is_category = 0 AND due_date IS NOT NULL AND due_date <> ''
+                  AND (status IS NULL OR status NOT IN ('done','accepted'))
+                  AND due_date >= date('now','localtime','-7 days')
+                  AND due_date <= date('now','localtime','+1 year')
+                """) {
+                let title = (t["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty, let d = t["due_date"] as? String else { continue }
+                out.append(Item(key: "task:\(iv(t["id"]))", title: title, date: d,
+                                time: nonEmpty(t["due_time"]), recur: nil, note: "Pipboy · задача"))
+            }
+        }
+        // Платежи: повтор отдаём правилом, чтобы в календаре был один ряд, а не 12 событий.
+        // Когда платёж отмечен оплаченным, next_date съезжает вперёд — и ряд съезжает с ним.
+        if get(db, kinds["obligations"]!) != "0" {
+            for o in try db.rows("""
+                SELECT id, name, amount, currency, period, next_date, due_time FROM obligations
+                WHERE next_date IS NOT NULL AND next_date <> ''
+                """) {
+                let name = (o["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty, let d = o["next_date"] as? String else { continue }
+                let per = o["period"] as? String ?? "monthly"
+                let curName = o["currency"] as? String ?? "€"
+                let sum = dbl(o["amount"]).map { " — \(Int($0.rounded())) \(curName)" } ?? ""
+                out.append(Item(key: "ob:\(iv(o["id"]))", title: "◈ \(name)\(sum)", date: d,
+                                time: nonEmpty(o["due_time"]),
+                                recur: per == "monthly" ? "monthly" : (per == "yearly" ? "yearly" : nil),
+                                note: "Pipboy · платёж"))
+            }
+        }
+        // Дни рождения: одно событие на человека с годовым повтором, от ближайшей даты
+        if get(db, kinds["birthdays"]!) != "0" {
+            let today = (get1(db, "SELECT date('now','localtime') AS d", "d") as? String) ?? ""
+            for p in try db.rows("SELECT id, name, birthday FROM people WHERE birthday IS NOT NULL AND birthday <> ''") {
+                guard let b = p["birthday"] as? String,
+                      let r = b.range(of: "[0-9]{2}-[0-9]{2}$", options: .regularExpression) else { continue }
+                let name = (p["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty, let year = Int(today.prefix(4)) else { continue }
+                let mmdd = String(b[r])
+                let date = "\(year)-\(mmdd)" >= today ? "\(year)-\(mmdd)" : "\(year + 1)-\(mmdd)"
+                out.append(Item(key: "bd:\(iv(p["id"]))", title: "🎂 \(name)", date: date,
+                                time: nil, recur: "yearly", note: "Pipboy · день рождения"))
+            }
+        }
+        return out
+    }
+
+    // ----- сам прогон
+    @discardableResult
+    static func run(_ db: Database) throws -> [String: Any] {
+        guard get(db, kOn) == "1" else { return ["error": "выгрузка выключена"] }
+        guard accessState == "granted" else { return ["error": "нет доступа к Календарю"] }
+        guard let id = get(db, kCal), let cal = store.calendar(withIdentifier: id) else {
+            return ["error": "календарь не выбран или больше не существует"]
+        }
+        try db.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
+        var have: [String: (id: String, hash: String)] = [:]
+        for r in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
+            if let k = r["key"] as? String, let e = r["event_id"] as? String {
+                have[k] = (e, r["hash"] as? String ?? "")
+            }
+        }
+        let items = try wanted(db)
+        var added = 0, updated = 0, removed = 0
+        var errors: [String] = []
+        for it in items {
+            let known = have[it.key]
+            let found = known.flatMap { store.event(withIdentifier: $0.id) }
+            if found != nil && known?.hash == it.hash { continue }       // не менялось — не трогаем
+            let ev = found ?? EKEvent(eventStore: store)
+            fill(ev, it, cal)
+            do {
+                try store.save(ev, span: .futureEvents, commit: true)
+                try db.run("""
+                    INSERT INTO cal_sync(key, event_id, hash, updated_at)
+                    VALUES(?,?,?,datetime('now','localtime'))
+                    ON CONFLICT(key) DO UPDATE SET event_id = excluded.event_id,
+                      hash = excluded.hash, updated_at = excluded.updated_at
+                    """, [it.key, ev.eventIdentifier ?? "", it.hash])
+                if found == nil { added += 1 } else { updated += 1 }
+            } catch { errors.append("\(it.title): \(error)") }
+        }
+        // чего в списке больше нет (сделано, удалено, выключен вид) — убираем из календаря
+        let live = Set(items.map { $0.key })
+        for (k, v) in have where !live.contains(k) {
+            if let ev = store.event(withIdentifier: v.id) {
+                do { try store.remove(ev, span: .futureEvents, commit: true); removed += 1 }
+                catch { errors.append("удаление: \(error)") }
+            }
+            try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
+        }
+        let when = (get1(db, "SELECT datetime('now','localtime') AS t", "t") as? String) ?? ""
+        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) −\(removed)")
+        return ["added": added, "updated": updated, "removed": removed,
+                "total": items.count, "errors": errors]
+    }
+
+    // Тихий прогон — на старте и после правок. Ошибки в консоль: ломать ответ API из-за
+    // календаря нельзя, правка данных важнее выгрузки.
+    static func runIfOn(_ db: Database) {
+        guard get(db, kOn) == "1", accessState == "granted" else { return }
+        do { _ = try run(db) } catch { NSLog("CalendarSync: \(error)") }
+    }
+    // правки каких разделов стоит выгружать сразу
+    static func touches(_ path: String) -> Bool {
+        // сам /api/calsync сюда не входит: его маршруты прогоняют выгрузку сами
+        path.hasPrefix("/api/nodes") || path.hasPrefix("/api/people")
+            || path.hasPrefix("/api/fin/obligations")
+    }
+
+    private static func fill(_ ev: EKEvent, _ it: Item, _ cal: EKCalendar) {
+        ev.calendar = cal
+        ev.title = it.title
+        ev.notes = it.note
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone.current
+        let p = it.date.split(separator: "-").compactMap { Int($0) }
+        var comp = DateComponents()
+        comp.year = p.count > 0 ? p[0] : 2000
+        comp.month = p.count > 1 ? p[1] : 1
+        comp.day = p.count > 2 ? p[2] : 1
+        if let t = it.time {
+            let tp = t.split(separator: ":").compactMap { Int($0) }
+            comp.hour = tp.count > 0 ? tp[0] : 9
+            comp.minute = tp.count > 1 ? tp[1] : 0
+            let start = c.date(from: comp) ?? Date()
+            ev.isAllDay = false
+            ev.startDate = start
+            ev.endDate = start.addingTimeInterval(30 * 60)   // получасовой слот: это напоминание, а не встреча
+        } else {
+            comp.hour = 0; comp.minute = 0
+            let start = c.date(from: comp) ?? Date()
+            ev.isAllDay = true
+            ev.startDate = start
+            ev.endDate = start
+        }
+        (ev.recurrenceRules ?? []).forEach { ev.removeRecurrenceRule($0) }
+        if let r = it.recur {
+            ev.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: r == "monthly" ? .monthly : .yearly,
+                                                  interval: 1, end: nil))
+        }
+    }
+
+    // ----- мелкие помощники (у Api свои, но они private)
+    private static func get(_ db: Database, _ key: String) -> String? {
+        ((try? db.rows("SELECT value FROM settings WHERE key = ?", [key]))?.first?["value"]) as? String
+    }
+    private static func get1(_ db: Database, _ sql: String, _ col: String) -> Any? {
+        (try? db.rows(sql))?.first?[col]
+    }
+    private static func str(_ s: String?) -> Any { s.map { $0 as Any } ?? NSNull() }
+    private static func nonEmpty(_ v: Any?) -> String? {
+        guard let s = v as? String, !s.isEmpty else { return nil }
+        return s
+    }
+    private static func iv(_ v: Any?) -> Int {
+        if let i = v as? Int { return i }
+        if let n = v as? NSNumber { return n.intValue }
+        if let d = v as? Double { return Int(d) }
+        if let s = v as? String { return Int(s) ?? 0 }
+        return 0
+    }
+    private static func dbl(_ v: Any?) -> Double? {
+        if let d = v as? Double { return d }
+        if let i = v as? Int { return Double(i) }
+        if let n = v as? NSNumber { return n.doubleValue }
+        if let s = v as? String { return Double(s) }
+        return nil
+    }
+}
+#endif

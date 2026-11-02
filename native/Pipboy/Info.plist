@@ -31,6 +31,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Pipboy выгружает твои задачи, платежи и дни рождения в выбранный календарь — чтобы они были видны в Календаре и в Google.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Pipboy выгружает твои задачи, платежи и дни рождения в выбранный календарь — чтобы они были видны в Календаре и в Google.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Pipboy синхронизирует данные между Mac и iPhone напрямую по локальной сети — без облака.</string>
 	<key>NSBonjourServices</key>
