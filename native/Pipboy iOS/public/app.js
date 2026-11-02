@@ -986,7 +986,6 @@ function calSyncCard(cs) {
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="pill btn ${cs.on ? 'ok' : ''}" id="csOn">${cs.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
         <span class="pill btn" id="csRun" title="прогнать сейчас — обычно не нужно, правки уезжают сами">↻ выгрузить сейчас</span>
-        <span class="pill btn danger" id="csPurge" title="удалить из календаря все события, которые создал Pipboy">✕ убрать всё из календаря</span>
       </div>
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="meta">календарь:</span>
@@ -1050,6 +1049,14 @@ function bindCalSync(box, cs) {
   box.querySelector('#csOn')?.addEventListener('click', async () => {
     if (!cs.on && !cs.calendar) { alert('Сначала выбери календарь, куда выгружать.'); return; }
     await post('/settings', { on: cs.on ? 0 : 1 });
+    // Выключили — предлагаем убрать выгруженное здесь же: иначе события останутся висеть,
+    // а прогон, который их убирал бы, больше не запускается. Отдельной кнопки для этого
+    // держать не стоит — она нужна ровно в этот момент.
+    if (cs.on && confirm('Выгрузка выключена. Убрать из календаря события, которые уже выгружены?')) {
+      const r = await post('/purge');
+      alert(r.error ? r.error : `Убрано событий: ${r.removed}.`
+        + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
+    }
     window.loadSettings();
   });
   box.querySelector('#csCal')?.addEventListener('change', async e => {
@@ -1062,13 +1069,6 @@ function bindCalSync(box, cs) {
       await post('/settings', { kinds: { [k]: cs.kinds?.[k] ? 0 : 1 } });
       window.loadSettings();
     }));
-  box.querySelector('#csPurge')?.addEventListener('click', async () => {
-    if (!confirm('Удалить из календаря все события, которые создал Pipboy? Чужие события не тронутся.')) return;
-    const r = await post('/purge');
-    alert(r.error ? r.error : `Убрано событий: ${r.removed}.`
-      + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
-    window.loadSettings();
-  });
   box.querySelector('#csRun')?.addEventListener('click', async () => {
     const r = await post('/run');
     alert(csReport(r));
@@ -1104,7 +1104,6 @@ function gTasksCard(gt) {
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="pill btn ${gt.on ? 'ok' : ''}" id="gtOn">${gt.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
         <span class="pill btn" id="gtRun">↻ выгрузить сейчас</span>
-        <span class="pill btn danger" id="gtPurge" title="удалить из Google все задачи, которые создал Pipboy">✕ убрать всё из Google</span>
         <span class="pill btn danger" id="gtOff" title="забыть доступ к Google">отключить</span>
       </div>
       <div class="task" style="border:0;flex-wrap:wrap">
@@ -1137,6 +1136,10 @@ function bindGTasks(box, gt) {
   box.querySelector('#gtOn')?.addEventListener('click', async () => {
     if (!gt.on && !gt.list) { alert('Сначала выбери список задач.'); return; }
     await post('/settings', { on: gt.on ? 0 : 1 });
+    if (gt.on && confirm('Выгрузка выключена. Убрать из Google задачи, которые уже выгружены?')) {
+      const r = await post('/purge');
+      alert(r.error ? r.error : `Убрано задач: ${r.removed}.`);
+    }
     window.loadSettings();
   });
   box.querySelector('#gtList')?.addEventListener('change', async e => {
@@ -1146,12 +1149,6 @@ function bindGTasks(box, gt) {
   box.querySelector('#gtOff')?.addEventListener('click', async () => {
     if (!confirm('Забыть доступ к Google? Задачи, уже уехавшие в Google, останутся на месте.')) return;
     await post('/disconnect');
-    window.loadSettings();
-  });
-  box.querySelector('#gtPurge')?.addEventListener('click', async () => {
-    if (!confirm('Удалить из Google Tasks все задачи, которые создал Pipboy?')) return;
-    const r = await post('/purge');
-    alert(r.error ? r.error : `Убрано задач: ${r.removed}.`);
     window.loadSettings();
   });
   box.querySelector('#gtRun')?.addEventListener('click', async () => {

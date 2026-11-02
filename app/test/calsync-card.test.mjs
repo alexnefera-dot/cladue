@@ -159,20 +159,35 @@ test('вернулся в приложение — догоняем, но не �
   assert.equal(ping(), 2, 'через десять минут догнать уже надо');
 });
 
-test('есть чем убрать то, что уже выгружено', async () => {
+test('выключил выгрузку — предлагаем убрать выгруженное', async () => {
+  // Отдельной красной кнопки для чистки нет: она нужна ровно в этот момент, а потом
+  // только мозолит глаза. Выключили и согласились — убираем своё из календаря.
   const app = loadApp();
   app.ctx.confirm = () => true;
-  const { nodes } = app.bind(ON);
-  await nodes['#csPurge']._click();
-  assert.equal(app.post().url, '/api/calsync/purge', 'нечем убрать события из календаря');
+  await app.bind(ON).nodes['#csOn']._click();
+  assert.equal(app.post().url, '/api/calsync/purge', 'выключили, а выгруженное осталось висеть');
 
+  // отказался — ничего не трогаем
+  const keep = loadApp();
+  keep.ctx.confirm = () => false;
+  await keep.bind(ON).nodes['#csOn']._click();
+  assert.equal(keep.post().url, '/api/calsync/settings', 'убрали события, хотя человек отказался');
+
+  // включение чистку не предлагает вовсе
+  const on = loadApp();
+  on.ctx.confirm = () => true;
+  await on.bind({ ...ON, on: false }).nodes['#csOn']._click();
+  assert.equal(on.post().url, '/api/calsync/settings', 'при включении предложили что-то удалить');
+});
+
+test('то же у Google Tasks: выключил — предложили убрать задачи', async () => {
   const g = loadApp();
   g.ctx.confirm = () => true;
-  const box = { querySelector: sel => (sel === '#gtPurge' ? g.gtNode : null), querySelectorAll: () => [] };
-  g.gtNode = { dataset: {}, addEventListener(ev, fn) { g.gtNode['_' + ev] = fn; } };
+  const node = { dataset: {}, addEventListener(ev, fn) { node['_' + ev] = fn; } };
+  const box = { querySelector: sel => (sel === '#gtOn' ? node : null), querySelectorAll: () => [] };
   vm.runInContext('bindGTasks(__box, __gt)', Object.assign(g.ctx, { __box: box, __gt: GT_ON }));
-  await g.gtNode._click();
-  assert.equal(g.post().url, '/api/gtasks/purge', 'нечем убрать задачи из Google');
+  await node._click();
+  assert.equal(g.post().url, '/api/gtasks/purge', 'задачи остались в Google после выключения');
 });
 
 // В списке — календари системного Календаря. Пока гугл-аккаунт не добавлен в macOS,
@@ -254,7 +269,6 @@ test('Google Tasks: после связи — список задач и сос�
   assert.match(html, /последний прогон: 2026-11-02 12:00/, 'нет итога прошлого прогона');
   assert.match(html, /не дублируются событиями/, 'не сказано, что задачи не уедут дважды');
   assert.match(html, /только дата/, 'не предупредили, что времени у задач Google нет');
-  assert.match(html, /id="gtPurge"/, 'нечем убрать из Google то, что уже выгружено');
 });
 
 test('Google Tasks: блока нет на сборке без него', () => {
