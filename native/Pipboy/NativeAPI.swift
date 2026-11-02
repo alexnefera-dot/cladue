@@ -592,6 +592,9 @@ enum Api {
         if method == "POST", path == "/api/calsync/run" {
             return (try json(try CalendarSync.run(db)), 200)
         }
+        if method == "POST", path == "/api/calsync/purge" {
+            return (try json(try CalendarSync.purge(db)), 200)
+        }
         #endif
         #if canImport(AuthenticationServices)
         // ----- Google Tasks -----
@@ -615,6 +618,7 @@ enum Api {
             return (try json(GoogleTasks.state(db)), 200)
         }
         if method == "POST", path == "/api/gtasks/run" { return (try json(try GoogleTasks.run(db)), 200) }
+        if method == "POST", path == "/api/gtasks/purge" { return (try json(try GoogleTasks.purge(db)), 200) }
         #endif
         // ----- Сферы: привязка/дефолты/автонастройка -----
         if method == "POST", path == "/api/spheres/assign" {
@@ -4408,7 +4412,9 @@ enum CalendarSync {
         }
         try db.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
         var have: [String: (id: String, hash: String)] = [:]
-        for r in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
+        // Таблица связок общая с Google Tasks: без фильтра их строки считались бы
+        // осиротевшими и стирались, а задачи уехали бы в Google по второму разу.
+        for r in try db.rows("SELECT key, event_id, hash FROM cal_sync WHERE key NOT LIKE 'gt:%'") {
             if let k = r["key"] as? String, let e = r["event_id"] as? String {
                 have[k] = (e, r["hash"] as? String ?? "")
             }
@@ -4457,6 +4463,24 @@ enum CalendarSync {
         return ["added": added, "updated": updated, "removed": removed,
                 "total": items.count, "found": found, "calendar": cal.title,
                 "source": cal.source?.title ?? "", "errors": errors]
+    }
+
+    // Убрать из календаря всё, что мы создали: нужно, когда выгрузку выключают совсем
+    // или задачи переехали в Google Tasks, а события от них остались висеть.
+    @discardableResult
+    static func purge(_ db: Database) throws -> [String: Any] {
+        guard accessState == "granted" else { return ["error": "нет доступа к Календарю"] }
+        var removed = 0
+        var errors: [String] = []
+        for r in try db.rows("SELECT key, event_id FROM cal_sync WHERE key NOT LIKE 'gt:%'") {
+            guard let k = r["key"] as? String, let id = r["event_id"] as? String else { continue }
+            if let ev = store.event(withIdentifier: id) {
+                do { try store.remove(ev, span: .futureEvents, commit: true); removed += 1 }
+                catch { errors.append("\(ev.title ?? k): \(error)") }
+            }
+            try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
+        }
+        return ["removed": removed, "errors": errors]
     }
 
     // Тихий прогон — на старте и после правок. Ошибки в консоль: ломать ответ API из-за
@@ -4708,6 +4732,21 @@ enum GoogleTasks {
     static func runIfOn(_ db: Database) {
         guard get(db, kOn) == "1" else { return }
         do { _ = try run(db) } catch { NSLog("GoogleTasks: \(error)") }
+    }
+
+    // Убрать из Google всё, что мы туда положили (связь при этом остаётся)
+    @discardableResult
+    static func purge(_ db: Database) throws -> [String: Any] {
+        guard let list = get(db, kList), !list.isEmpty else { return ["error": "список задач не выбран"] }
+        guard token(db) != nil else { return ["error": "связь с Google потеряна — подключись заново"] }
+        var removed = 0
+        for r in try db.rows("SELECT key, event_id FROM cal_sync WHERE key LIKE 'gt:%'") {
+            guard let k = r["key"] as? String, let id = r["event_id"] as? String else { continue }
+            _ = api(db, "DELETE", "/lists/\(list)/tasks/\(id)")
+            removed += 1
+            try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
+        }
+        return ["removed": removed, "errors": [String]()]
     }
 
     // ----- HTTP

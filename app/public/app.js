@@ -986,6 +986,7 @@ function calSyncCard(cs) {
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="pill btn ${cs.on ? 'ok' : ''}" id="csOn">${cs.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
         <span class="pill btn" id="csRun" title="прогнать сейчас — обычно не нужно, правки уезжают сами">↻ выгрузить сейчас</span>
+        <span class="pill btn danger" id="csPurge" title="удалить из календаря все события, которые создал Pipboy">✕ убрать всё из календаря</span>
       </div>
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="meta">календарь:</span>
@@ -1061,6 +1062,13 @@ function bindCalSync(box, cs) {
       await post('/settings', { kinds: { [k]: cs.kinds?.[k] ? 0 : 1 } });
       window.loadSettings();
     }));
+  box.querySelector('#csPurge')?.addEventListener('click', async () => {
+    if (!confirm('Удалить из календаря все события, которые создал Pipboy? Чужие события не тронутся.')) return;
+    const r = await post('/purge');
+    alert(r.error ? r.error : `Убрано событий: ${r.removed}.`
+      + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
+    window.loadSettings();
+  });
   box.querySelector('#csRun')?.addEventListener('click', async () => {
     const r = await post('/run');
     alert(csReport(r));
@@ -1096,6 +1104,7 @@ function gTasksCard(gt) {
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="pill btn ${gt.on ? 'ok' : ''}" id="gtOn">${gt.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
         <span class="pill btn" id="gtRun">↻ выгрузить сейчас</span>
+        <span class="pill btn danger" id="gtPurge" title="удалить из Google все задачи, которые создал Pipboy">✕ убрать всё из Google</span>
         <span class="pill btn danger" id="gtOff" title="забыть доступ к Google">отключить</span>
       </div>
       <div class="task" style="border:0;flex-wrap:wrap">
@@ -1137,6 +1146,12 @@ function bindGTasks(box, gt) {
   box.querySelector('#gtOff')?.addEventListener('click', async () => {
     if (!confirm('Забыть доступ к Google? Задачи, уже уехавшие в Google, останутся на месте.')) return;
     await post('/disconnect');
+    window.loadSettings();
+  });
+  box.querySelector('#gtPurge')?.addEventListener('click', async () => {
+    if (!confirm('Удалить из Google Tasks все задачи, которые создал Pipboy?')) return;
+    const r = await post('/purge');
+    alert(r.error ? r.error : `Убрано задач: ${r.removed}.`);
     window.loadSettings();
   });
   box.querySelector('#gtRun')?.addEventListener('click', async () => {
@@ -1430,10 +1445,20 @@ document.getElementById('searchbox').addEventListener('input', e => {
 
 load();
 
-// Выгрузка в системный Календарь: раз за запуск догоняем то, что менялось, пока приложение
-// было закрыто (например, приехало синхроном с телефона). Выключена выгрузка или нет
-// доступа — запрос ничего не делает, поэтому состояние заранее не спрашиваем.
-fetch('/api/calsync/run', { method: 'POST' }).catch(() => {});
+// Выгрузка в календарь и в Google Tasks идёт сама после каждой правки задач, платежей и
+// людей. Здесь — догоняем то, что менялось мимо нас: пока приложение было закрыто, приехало
+// синхроном с телефона или просто наступил следующий день. Выключено или нет доступа —
+// запросы ничего не делают, поэтому состояние заранее не спрашиваем.
+const syncPing = { at: 0 };
+function pingExports(force) {
+  const now = Date.now();
+  if (!force && now - syncPing.at < 10 * 60 * 1000) return;   // не чаще раза в 10 минут
+  syncPing.at = now;
+  fetch('/api/calsync/run', { method: 'POST' }).catch(() => {});
+  fetch('/api/gtasks/run', { method: 'POST' }).catch(() => {});
+}
+pingExports(true);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pingExports(); });
 
 // ===== Быстрый захват: плавающая кнопка (＋) + лист с опц. датой/разделом → в Цели =====
 (() => {

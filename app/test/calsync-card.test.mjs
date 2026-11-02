@@ -59,7 +59,7 @@ function loadApp(opt = {}) {
   };
   const mk = () => { const n = { dataset: {}, addEventListener(ev, fn) { n['_' + ev] = fn; } }; return n; };
   // на старте app.js сам пингует /api/calsync/run — нас интересует последний запрос, а не он
-  const post = () => calls.filter(c => c.method === 'POST' && String(c.url).includes('/api/calsync')).at(-1);
+  const post = () => calls.filter(c => c.method === 'POST' && /\/api\/(calsync|gtasks)/.test(String(c.url))).at(-1);
   return { ctx, card, bind, calls, alerts, post, screen, renderSettings };
 }
 
@@ -120,7 +120,7 @@ test('выгрузку не включить, пока не выбран кал�
   const app = loadApp();
   const { nodes } = app.bind({ ...ON, on: false, calendar: null });
   await nodes['#csOn']._click();
-  assert.equal(app.post().url, '/api/calsync/run', 'включили выгрузку некуда');   // только стартовый пинг
+  assert.ok(!app.calls.some(c => String(c.url).includes('/settings')), 'включили выгрузку некуда');
   assert.match(app.alerts[0] || '', /выбери календарь/, 'молча ничего не сделали');
 
   const ok = loadApp();
@@ -142,10 +142,37 @@ test('смена календаря в списке сохраняется ср�
   assert.deepEqual(app.post().body, { calendar: 'c2' }, 'выбор календаря не сохранился');
 });
 
-test('на старте выгрузка догоняется сама, без кнопок', () => {
+test('на старте обе выгрузки догоняются сами, без кнопок', () => {
   const app = loadApp();
-  const pings = app.calls.filter(c => c.method === 'POST' && c.url === '/api/calsync/run');
-  assert.equal(pings.length, 1, 'при запуске не догоняем то, что менялось при закрытом приложении');
+  const ping = u => app.calls.filter(c => c.method === 'POST' && c.url === u).length;
+  assert.equal(ping('/api/calsync/run'), 1, 'при запуске не догоняем календарь');
+  assert.equal(ping('/api/gtasks/run'), 1, 'при запуске не догоняем Google Tasks');
+});
+
+test('вернулся в приложение — догоняем, но не чаще раза в 10 минут', () => {
+  const app = loadApp();
+  const ping = () => app.calls.filter(c => c.method === 'POST' && c.url === '/api/gtasks/run').length;
+  app.ctx.pingExports();                       // сразу после старта — рано, пропускаем
+  assert.equal(ping(), 1, 'дёргаем выгрузку на каждый возврат в окно');
+  vm.runInContext('syncPing.at = Date.now() - 11 * 60 * 1000', app.ctx);   // const — только так
+  app.ctx.pingExports();
+  assert.equal(ping(), 2, 'через десять минут догнать уже надо');
+});
+
+test('есть чем убрать то, что уже выгружено', async () => {
+  const app = loadApp();
+  app.ctx.confirm = () => true;
+  const { nodes } = app.bind(ON);
+  await nodes['#csPurge']._click();
+  assert.equal(app.post().url, '/api/calsync/purge', 'нечем убрать события из календаря');
+
+  const g = loadApp();
+  g.ctx.confirm = () => true;
+  const box = { querySelector: sel => (sel === '#gtPurge' ? g.gtNode : null), querySelectorAll: () => [] };
+  g.gtNode = { dataset: {}, addEventListener(ev, fn) { g.gtNode['_' + ev] = fn; } };
+  vm.runInContext('bindGTasks(__box, __gt)', Object.assign(g.ctx, { __box: box, __gt: GT_ON }));
+  await g.gtNode._click();
+  assert.equal(g.post().url, '/api/gtasks/purge', 'нечем убрать задачи из Google');
 });
 
 // В списке — календари системного Календаря. Пока гугл-аккаунт не добавлен в macOS,
@@ -227,6 +254,7 @@ test('Google Tasks: после связи — список задач и сос�
   assert.match(html, /последний прогон: 2026-11-02 12:00/, 'нет итога прошлого прогона');
   assert.match(html, /не дублируются событиями/, 'не сказано, что задачи не уедут дважды');
   assert.match(html, /только дата/, 'не предупредили, что времени у задач Google нет');
+  assert.match(html, /id="gtPurge"/, 'нечем убрать из Google то, что уже выгружено');
 });
 
 test('Google Tasks: блока нет на сборке без него', () => {
