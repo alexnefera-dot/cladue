@@ -1163,6 +1163,28 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   days old still counts as «пришла», while `fresh_sites` stays 0 — the two numbers answer different
   questions) and `PanelTest::testSerpAnalysisPageAndEndpoint` (the field over the API and the amber line
   in the browser-rendered page).
+  WHICH OF THE THREE REASONS (1.54.0) — the user did the new collect and still read «выдача её не
+  вернула»: one sentence covered three different failures, and the one they most likely hit is not even
+  about the data. `public/serp.html` is READ FROM DISK per request while the panel PROCESS keeps the code
+  it started with, so right after `setup.php --update` the page is new and `/api/serp` is old — the field
+  is simply absent and the page said «выдача не вернула», pointing at the collect instead of at the
+  un-restarted panel. The row therefore distinguishes: `j.freshness` MISSING → «панель отвечает старым
+  кодом · перезапустите»; `rows > 0` → the count; `rows === 0 && column === false` → «в файле сбора нет
+  колонки» (written by a pre-1.42.0 version, or appended to an old header by «Продолжить сбор»);
+  otherwise → «источник не отдаёт», naming it. `SerpAnalysis::csvHasModtime($file)` reads ONLY the header
+  (results.csv is hundreds of MB), `/api/serp` ships `freshness.column` + `freshness.source` (from
+  `settings.json`), and `freshnessText($analysis, ?bool $column, string $source)` writes the matching
+  sentence into the collect log, where `bin/run-job.php` passes the source plus «, режим live» for
+  XMLStock. `--check-freshness[=FILE]` (default `runs/current/results.csv`) answers the same question from
+  the CLI, independent of the panel's state: file, rows, «Колонка modtime в заголовке: есть/НЕТ», rows
+  with a stamp, the reason, and exit code 1 when there is no freshness. The chain itself is proven end to
+  end rather than argued about: the fake server's `<doc>` carries `<modtime>20260101T000000</modtime>`,
+  and `PanelTest::testRunJobProducesResults` now asserts that stamp reaches `results.csv` and that the log
+  says «Отметка переобхода: пришла у N строк» — so a future break shows up as a failing test, not as a
+  user staring at an empty column. Also covered by
+  `SerpAnalysisTest::testSeesWhetherResultsCsvEvenHasTheFreshnessColumn`,
+  `IntegrationTest::testCheckFreshnessExplainsAnEmptyColumn` (all three CLI cases) and the page assertion
+  «источник не отдаёт» in `PanelTest::testSerpAnalysisPageAndEndpoint`.
   WHAT TAKES THE BRAND — DOORS OR NOT (1.43.0) — «разделив бренды на те где захват массово доры а где
   не доры, посчитали их и где гибриды». Split BY VISIBILITY SHARE, never by the number of doors: ten
   doors below the tenth place hold nothing, one door at #1 takes a third of the brand, and counting

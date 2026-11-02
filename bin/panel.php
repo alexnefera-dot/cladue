@@ -710,9 +710,12 @@ if ($path === '/api/serp') {
         'sites' => $analysis['sites'],
         'results' => $analysis['results'],
         'queries' => $analysis['queries'],
-        // Принесла ли выдача отметку переобхода: по нулю здесь страница отличает «свежих нет»
-        // от «источник свежесть не отдал» (results.csv от сбора до 1.42.0 — самый частый случай).
-        'freshness' => $analysis['freshness'] ?? ['rows' => 0, 'total' => 0],
+        // Принесла ли выдача отметку переобхода. Ноль строк сам по себе ничего не объясняет, поэтому
+        // рядом едут `column` (есть ли вообще колонка modtime в results.csv — её нет у сбора прошлой
+        // версии) и `source`: это РАЗНЫЕ причины с разным лечением.
+        'freshness' => ($analysis['freshness'] ?? ['rows' => 0, 'total' => 0])
+            + ['column' => \YandexSites\Support\SerpAnalysis::csvHasModtime($csv),
+               'source' => (string) ($saved['source'] ?? '')],
         'fresh_days' => \YandexSites\Support\Freshness::FRESH_DAYS,
         'top' => $top,
         'types' => \YandexSites\Support\SerpAnalysis::TYPES,

@@ -1235,7 +1235,17 @@ while (true) {
             $logger->info(SerpAnalysis::strongDoorsText($serp) . ' — вкладка «Разбор выдачи»');
             // Пришла ли вообще отметка переобхода («8 ч назад»): пустая колонка «Свежесть» на /serp
             // почти всегда значит, что источник её не отдал, а не что свежих сайтов нет.
-            $logger->info(SerpAnalysis::freshnessText($serp));
+            // Ноль отметок бывает по двум разным причинам, и лечатся они по-разному: нет колонки в
+            // results.csv (файл писала прошлая версия) или источник её просто не отдаёт.
+            $srcLabel = (string) $config->get('source');
+            if ($srcLabel === 'xmlstock' && (string) $config->get('xmlstock.mode') === 'live') {
+                $srcLabel .= ', режим live';
+            }
+            $logger->info(SerpAnalysis::freshnessText(
+                $serp,
+                SerpAnalysis::csvHasModtime($runDir . '/results.csv'),
+                $srcLabel,
+            ));
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
             }

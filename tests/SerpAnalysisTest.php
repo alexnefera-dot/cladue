@@ -545,7 +545,39 @@ final class SerpAnalysisTest
         $old = SerpAnalysis::build([$this->row('вулкан казино', 1, 'leader.ru')], 10, null, $now);
         Assert::same(0, $old['freshness']['rows']);
         Assert::same(1, $old['freshness']['total']);
-        Assert::contains('не вернула её ни по одной строке', SerpAnalysis::freshnessText($old),
-            'про пустую колонку сказано прямо, а не «свежих 0»');
+        Assert::contains('ни одна из 1 строк её не принесла', SerpAnalysis::freshnessText($old, true, 'xmlstock'),
+            'колонка есть — значит причина в источнике, и он назван');
+        Assert::contains('источник: xmlstock', SerpAnalysis::freshnessText($old, true, 'xmlstock'));
+        // А вот когда колонки нет вовсе — причина другая и лечение другое: не источник, а старый файл.
+        Assert::contains('нет колонки modtime', SerpAnalysis::freshnessText($old, false, 'xmlstock'),
+            'две причины нулевой свежести не должны звучать одинаково');
+    }
+
+    public function testSeesWhetherResultsCsvEvenHasTheFreshnessColumn(): void
+    {
+        // Пустая «Свежесть» бывает по двум причинам: файл сбора записан прошлой версией (колонки нет)
+        // или источник отметку не отдал (колонка есть, значения пустые). Отличает их только заголовок.
+        $dir = sys_get_temp_dir() . '/yandex-sites-modtime-' . uniqid();
+        mkdir($dir, 0777, true);
+        try {
+            $old = $dir . '/old.csv';
+            file_put_contents($old, "query;page;position;host;url;title;snippet;result\n"
+                . "вулкан;1;1;a.ru;https://a.ru/;Т;С;selected\n");
+            Assert::false(SerpAnalysis::csvHasModtime($old), 'в сборе прошлой версии колонки нет');
+
+            $new = $dir . '/new.csv';
+            (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([[
+                'result' => new \YandexSites\Model\SearchResult('вулкан', 0, 1, 'https://a.ru/', 'a.ru', 'Титул'),
+                'reason' => null,
+            ]], $new);
+            Assert::true(SerpAnalysis::csvHasModtime($new), 'нынешний writeRawCsv колонку пишет всегда');
+
+            Assert::false(SerpAnalysis::csvHasModtime($dir . '/нет-такого.csv'), 'нет файла — нет колонки');
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $f) {
+                unlink($f);
+            }
+            rmdir($dir);
+        }
     }
 }

@@ -22,8 +22,10 @@ use YandexSites\Search\RestApiFetcher;
 use YandexSites\Search\XmlApiFetcher;
 use YandexSites\Search\XmlResponseParser;
 use YandexSites\Search\XmlStockFetcher;
+use YandexSites\Support\Freshness;
 use YandexSites\Support\Logger;
 use YandexSites\Support\QueryList;
+use YandexSites\Support\SerpAnalysis;
 use YandexSites\Visit\CurlDriver;
 use YandexSites\Visit\DriverInterface;
 use YandexSites\Visit\PageVisitor;
@@ -34,16 +36,16 @@ use YandexSites\Visit\PlaywrightDriver;
  */
 final class Application
 {
-    public const VERSION = '1.53.0';
+    public const VERSION = '1.54.0';
 
     /**
      * Дата кода этой версии (ГГГГ-ММ-ДД). Панель показывает её в шапке, setup.php --update печатает после
      * обновления, --version — в консоли: по ней видно, что стоит именно новая сборка. Менять вместе с VERSION.
      */
-    public const VERSION_DATE = '2026-10-31';
+    public const VERSION_DATE = '2026-11-02';
 
     /** Опции, принимающие значение (остальные — флаги). */
-    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'xmlstock-mode', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
+    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'xmlstock-mode', 'proxies', 'proxy', 'parse-html', 'check-freshness', 'visit-driver', 'variants', 'user-agent', 'save-html'];
     private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'check-proxies', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
     private const SHORT_OPTIONS = ['q' => 'query', 'c' => 'config', 'o' => 'out', 'v' => 'verbose', 'h' => 'help'];
 
@@ -94,6 +96,11 @@ final class Application
         }
         if (isset($opts['parse-html'])) {
             return $this->parseHtmlFile((string) $opts['parse-html']);
+        }
+        if (isset($opts['check-freshness'])) {
+            $arg = (string) $opts['check-freshness'];
+
+            return $this->checkFreshness($arg !== '' && $arg !== '1' ? $arg : 'runs/current/results.csv');
         }
 
         $level = isset($opts['quiet']) ? Logger::QUIET : (isset($opts['verbose']) ? Logger::VERBOSE : Logger::NORMAL);
@@ -356,6 +363,51 @@ final class Application
     /**
      * Отладка разбора живой выдачи: разобрать сохранённую HTML-страницу и показать результаты.
      */
+    /**
+     * Почему колонка «Свежесть» пустая — ответ по файлу сбора, без панели и без нового сбора.
+     * Причины разные («файл писала прошлая версия» и «источник отметку не отдаёт»), а выглядят
+     * одинаково — нулём, поэтому разбираем заголовок и сами значения.
+     */
+    private function checkFreshness(string $path): int
+    {
+        if (!is_file($path)) {
+            throw new UsageException("файл не найден: $path (укажите путь: --check-freshness=runs/current/results.csv)");
+        }
+        $hasColumn = SerpAnalysis::csvHasModtime($path);
+        $rows = 0;
+        $withStamp = 0;
+        $sample = [];
+        foreach (SerpAnalysis::csvRows($path) as $row) {
+            $rows++;
+            $stamp = (string) ($row['modtime'] ?? '');
+            if ($stamp === '') {
+                continue;
+            }
+            $withStamp++;
+            if (count($sample) < 3) {
+                $sample[] = $row['host'] . ' — ' . Freshness::label(Freshness::parse($stamp), time());
+            }
+        }
+        $out = [
+            'Файл: ' . $path,
+            'Строк выдачи: ' . $rows,
+            'Колонка modtime в заголовке: ' . ($hasColumn ? 'есть' : 'НЕТ'),
+            'Строк с отметкой переобхода: ' . $withStamp,
+        ];
+        if (!$hasColumn) {
+            $out[] = 'Причина: файл записан версией до 1.42.0 либо строки дописаны к старому заголовку'
+                . ' («Продолжить сбор» его не переписывает). Нужен НОВЫЙ сбор на обновлённом коде.';
+        } elseif ($withStamp === 0) {
+            $out[] = 'Причина: колонка есть, но источник не вернул отметку ни по одной строке.'
+                . ' Яндекс.XML (api, xmlstock в режиме xml) её отдаёт; живая выдача и xmlstock в режиме live — не всегда.';
+        } else {
+            $out[] = 'Свежесть собирается: ' . implode('; ', $sample);
+        }
+        fwrite(STDOUT, implode(PHP_EOL, $out) . PHP_EOL);
+
+        return $hasColumn && $withStamp > 0 ? 0 : 1;
+    }
+
     private function parseHtmlFile(string $path): int
     {
         if (!is_file($path)) {
@@ -614,6 +666,9 @@ final class Application
 
         Прочее:
           --parse-html=FILE     разобрать сохранённую HTML-страницу выдачи и показать результаты (отладка)
+          --check-freshness[=FILE]
+                                почему пустая колонка «Свежесть»: есть ли в results.csv колонка
+                                modtime и сколько строк принесли отметку (по умолчанию runs/current/results.csv)
           --dry-run             показать запросы и настройки, ничего не запрашивать
           -v, --verbose         подробный вывод (все результаты по мере получения)
           --quiet               только ошибки

@@ -296,6 +296,42 @@ final class IntegrationTest
         Assert::contains('https://okna-moskva.ru/plastikovye-okna/', $parse['out']);
     }
 
+    public function testCheckFreshnessExplainsAnEmptyColumn(): void
+    {
+        // Пустая «Свежесть» на /serp проверяется и без панели: одна команда по файлу сбора говорит,
+        // какая из двух причин сработала — старый файл или источник, который отметку не отдаёт.
+        $dir = sys_get_temp_dir() . '/yandex-sites-fresh-cli-' . uniqid();
+        mkdir($dir, 0777, true);
+        try {
+            $old = $dir . '/old.csv';
+            file_put_contents($old, "query;page;position;host;url;title;snippet;result\n"
+                . "вулкан;1;1;a.ru;https://a.ru/;Т;С;selected\n");
+            $r = $this->cli(['--check-freshness=' . $old]);
+            Assert::same(1, $r['code'], 'свежести нет — код возврата ненулевой');
+            Assert::contains('Колонка modtime в заголовке: НЕТ', $r['out']);
+            Assert::contains('файл записан версией до 1.42.0', $r['out']);
+
+            $new = $dir . '/new.csv';
+            file_put_contents($new, "query;page;position;host;url;title;snippet;result;modtime\n"
+                . "вулкан;1;1;a.ru;https://a.ru/;Т;С;selected;\n"
+                . "вулкан;1;2;b.ru;https://b.ru/;Т;С;selected;20261101T090000\n");
+            $r = $this->cli(['--check-freshness=' . $new]);
+            Assert::same(0, $r['code'], $r['err']);
+            Assert::contains('Строк с отметкой переобхода: 1', $r['out']);
+
+            $empty = $dir . '/empty.csv';
+            file_put_contents($empty, "query;page;position;host;url;title;snippet;result;modtime\n"
+                . "вулкан;1;1;a.ru;https://a.ru/;Т;С;selected;\n");
+            $r = $this->cli(['--check-freshness=' . $empty]);
+            Assert::contains('источник не вернул отметку', $r['out'], 'колонка есть — причина другая');
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $f) {
+                unlink($f);
+            }
+            rmdir($dir);
+        }
+    }
+
     public function testSiteChecker(): void
     {
         $port = FakeServer::port();

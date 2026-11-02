@@ -545,19 +545,25 @@ final class SerpAnalysis
      *
      * @param array<string, mixed> $analysis
      */
-    public static function freshnessText(array $analysis): string
+    public static function freshnessText(array $analysis, ?bool $column = null, string $source = ''): string
     {
         $f = (array) ($analysis['freshness'] ?? []);
         $rows = (int) ($f['rows'] ?? 0);
         $total = (int) ($f['total'] ?? 0);
-        if ($rows === 0) {
-            return 'Отметка переобхода: выдача не вернула её ни по одной строке из ' . $total
-                . ' — колонка «Свежесть» на /serp будет пустой'
-                . ' (сбор до 1.42.0 или источник не отдаёт modtime)';
+        $from = $source !== '' ? ' (источник: ' . $source . ')' : '';
+        if ($rows > 0) {
+            return 'Отметка переобхода: пришла у ' . $rows . ' строк из ' . $total
+                . ' (' . self::thresholdText($total > 0 ? 100 * $rows / $total : 0.0) . '%)' . $from;
+        }
+        // Колонки нет вообще — файл писала версия до 1.42.0 либо новые строки дописаны к старому
+        // заголовку («Продолжить сбор»). Тогда дело не в источнике, и сказать надо именно это.
+        if ($column === false) {
+            return 'Отметка переобхода: в results.csv нет колонки modtime — файл сбора записан прошлой'
+                . ' версией или дописан к старому заголовку. Колонка «Свежесть» будет пустой до нового сбора';
         }
 
-        return 'Отметка переобхода: пришла у ' . $rows . ' строк из ' . $total
-            . ' (' . self::thresholdText($total > 0 ? 100 * $rows / $total : 0.0) . '%)';
+        return 'Отметка переобхода: колонка есть, но ни одна из ' . $total
+            . ' строк её не принесла' . $from . ' — этот источник её не отдаёт';
     }
 
     public static function captureOf(float $doorShare): string
@@ -849,6 +855,32 @@ final class SerpAnalysis
         }
 
         return ['brands' => $byBrand, 'totals' => $sum, 'compared_at' => date(DATE_ATOM)];
+    }
+
+    /**
+     * Есть ли в results.csv колонка свежести. Отвечает на вопрос, который «ноль отметок» сам по себе
+     * не различает: файл записан старым кодом (колонки нет вообще) или источник не отдал ни одной
+     * отметки (колонка есть, значения пустые). Лечение у этих случаев разное, поэтому и говорим о них
+     * разными словами. Читаем только заголовок — файл бывает в сотни мегабайт.
+     */
+    public static function csvHasModtime(string $file): bool
+    {
+        $fh = is_file($file) ? @fopen($file, 'r') : false;
+        if ($fh === false) {
+            return false;
+        }
+        try {
+            $first = fgets($fh);
+            if ($first === false) {
+                return false;
+            }
+            $first = (string) preg_replace('/^\xEF\xBB\xBF/', '', $first);
+            $delimiter = substr_count($first, ';') >= substr_count($first, ',') ? ';' : ',';
+
+            return in_array('modtime', str_getcsv(rtrim($first, "\r\n"), $delimiter, '"', ''), true);
+        } finally {
+            fclose($fh);
+        }
     }
 
     /**
