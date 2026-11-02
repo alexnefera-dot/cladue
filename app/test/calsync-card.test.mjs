@@ -10,7 +10,7 @@ import vm from 'node:vm';
 
 const SRC = fileURLToPath(new URL('../public/app.js', import.meta.url));
 
-function loadApp() {
+function loadApp(opt = {}) {
   const calls = [], alerts = [];
   const el = () => ({ addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {}, select() {},
     classList: { add() {}, remove() {}, contains: () => false, toggle() {} }, dataset: {}, style: {},
@@ -20,20 +20,30 @@ function loadApp() {
     document: { getElementById: () => el(), querySelector: () => el(), querySelectorAll: () => [],
       createElement: el, addEventListener() {}, body: el(), head: el(), documentElement: el() },
     console, localStorage: {}, sessionStorage: {},
-    fetch: async (url, opt) => {
-      calls.push({ method: opt?.method || 'GET', url, body: opt?.body && JSON.parse(opt.body) });
-      return { ok: true, status: 200, text: async () => '',
-        json: async () => ({ nodes: [], links: [], added: 2, updated: 1, removed: 0, total: 3, errors: [] }) };
+    fetch: async (url, o) => {
+      calls.push({ method: o?.method || 'GET', url, body: o?.body && JSON.parse(o.body) });
+      const u = String(url);
+      // старая сборка отвечает на незнакомый путь 500 с валидным JSON — это не «нет доступа»
+      const body = u.startsWith('/api/trash') ? []
+        : (u.startsWith('/api/calsync') && opt.oldBuild) ? { error: 'Unsupported(path: "/api/calsync")' }
+        : { nodes: [], links: [], added: 2, updated: 1, removed: 0, total: 3, errors: [] };
+      return { ok: !(u.startsWith('/api/calsync') && opt.oldBuild), status: 200, text: async () => '',
+        json: async () => body };
     },
     alert: m => alerts.push(String(m)), confirm: () => false, prompt: () => null,
     matchMedia: () => ({ matches: false }), setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {},
     requestAnimationFrame: () => 0, location: { protocol: 'http:', hash: '' },
     navigator: { userAgent: 'node' }, CSS: { escape: s => s },
   };
+  if (opt.native) ctx.webkit = { messageHandlers: {} };   // внутри приложения, а не в браузере
+  const screen = el();
+  screen.querySelector = () => el();   // настройки вешают обработчики на свои кнопки — отдаём заглушки
+  ctx.document.getElementById = id => (id === 'screen-settings' ? screen : el());
   ctx.window = ctx; ctx.globalThis = ctx; ctx.self = ctx;
   vm.createContext(ctx);
   vm.runInContext(readFileSync(SRC, 'utf8'), ctx, { filename: 'app.js' });
-  ctx.loadSettings = () => {};                       // перерисовку экрана в тесте не гоняем
+  const renderSettings = ctx.loadSettings;            // настоящая отрисовка — для сквозной проверки
+  ctx.loadSettings = () => {};                        // а обработчикам перерисовку не даём
   const card = state => vm.runInContext('calSyncCard(__cs)', Object.assign(ctx, { __cs: state }));
   // живые кнопки блока: поднимаем из разметки и отдаём обработчикам, как это делает экран
   const bind = state => {
@@ -50,7 +60,7 @@ function loadApp() {
   const mk = () => { const n = { dataset: {}, addEventListener(ev, fn) { n['_' + ev] = fn; } }; return n; };
   // на старте app.js сам пингует /api/calsync/run — нас интересует последний запрос, а не он
   const post = () => calls.filter(c => c.method === 'POST' && String(c.url).includes('/api/calsync')).at(-1);
-  return { ctx, card, bind, calls, alerts, post };
+  return { ctx, card, bind, calls, alerts, post, screen, renderSettings };
 }
 
 const ON = {
@@ -79,8 +89,22 @@ test('без доступа к Календарю — только кнопка 
   assert.match(denied, /Системных настройках/, 'при запрете не сказано, где его снять');
 });
 
-test('сборка без выгрузки: блока нет вовсе', () => {
-  assert.equal(loadApp().card(null), '', 'на старой сборке показали мёртвый блок');
+test('нет выгрузки: в браузере тихо, в приложении — причина и что делать', () => {
+  assert.equal(loadApp().card(null), '', 'в браузере, где календаря нет, показали блок');
+  const inApp = loadApp({ native: true }).card(null);
+  assert.match(inApp, /пересобери\s+приложение в Xcode/, 'в приложении блок пропал молча');
+  assert.ok(!inApp.includes('csAccess'), 'предлагаем кнопку доступа, которой в сборке ещё нет');
+});
+
+test('ответ старой сборки не читается как «доступ не выдан»', async () => {
+  // 500 с {error} раньше принимался за состояние: рисовалась кнопка доступа, а она отправляла
+  // в системные настройки, где Pipboy и не может появиться — тупик
+  const app = loadApp({ native: true, oldBuild: true });
+  await app.renderSettings().catch(() => {});   // экран вешает обработчики на свои кнопки — нам важна разметка
+  const html = app.screen.innerHTML;
+  assert.match(html, /пересобери\s+приложение в Xcode/, 'не сказано, почему выгрузки нет');
+  assert.ok(!html.includes('разрешить доступ к Календарю'),
+    'кнопка доступа на сборке без выгрузки — тупик: в настройках системы Pipboy не появится');
 });
 
 test('тумблер вида шлёт именно своё переключение', async () => {

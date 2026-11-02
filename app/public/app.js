@@ -951,16 +951,25 @@ const CS_KINDS = [['tasks', 'задачи с датой'], ['obligations', 'пл
   ['birthdays', 'дни рождения']];
 
 function calSyncCard(cs) {
-  if (!cs) return '';            // старая сборка без выгрузки — молчим, а не показываем мёртвый блок
   const head = '<div class="meta">📅 КАЛЕНДАРЬ · ЗАДАЧИ В GOOGLE</div>';
+  // В браузере календаря нет вовсе; в приложении молчать нельзя — иначе непонятно,
+  // куда делась выгрузка, и человек идёт искать Pipboy в настройках системы, где его
+  // ещё нет: macOS показывает приложение в «Календарях» только после его запроса.
+  if (!cs) return inNativeApp ? `
+    <div class="card">${head}
+      <div class="meta">в этой сборке выгрузки ещё нет — сверь дату сборки выше и пересобери
+        приложение в Xcode (⌘R). После пересборки здесь появится кнопка доступа: именно она
+        и добавляет Pipboy в Системные настройки → Конфиденциальность → Календари</div>
+    </div>` : '';
   if (cs.access !== 'granted') return `
     <div class="card">${head}
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="pill btn ok" id="csAccess">разрешить доступ к Календарю</span>
         ${cs.access === 'denied' ? '<span class="meta">доступ запрещён — включи Pipboy в Системных настройках → Конфиденциальность → Календари</span>' : ''}
       </div>
-      <div class="meta">события пишутся в системный Календарь; если в нём есть твой гугл-аккаунт,
-        macOS сама отправит их в Google — пароли и токены никуда не вводятся</div>
+      <div class="meta">${cs.access === 'denied' ? '' : 'в списке «Календари» системных настроек Pipboy появится только после этой кнопки — macOS добавляет туда приложение в момент запроса. '}события
+        пишутся в системный Календарь; если в нём есть твой гугл-аккаунт, macOS сама отправит
+        их в Google — пароли и токены никуда не вводятся</div>
     </div>`;
   const cals = cs.calendars || [];
   return `
@@ -993,6 +1002,10 @@ function bindCalSync(box, cs) {
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(x => x.json());
   box.querySelector('#csAccess')?.addEventListener('click', async () => {
     const r = await post('/access');
+    if (!r || !r.access) {   // маршрута нет — значит приложение собрано до выгрузки
+      alert('Эта сборка ещё без выгрузки в календарь — пересобери приложение в Xcode (⌘R).');
+      return;
+    }
     if (r.access !== 'granted') alert('Доступ не выдан. Системные настройки → Конфиденциальность → Календари → Pipboy.');
     window.loadSettings();
   });
@@ -1026,7 +1039,9 @@ window.loadSettings = async function () {
     fetch('/api/trash').then(x => x.json()),
     fetch('/api/info').then(x => x.json()).catch(() => ({})),
     fetch('/api/version').then(x => x.json()).catch(() => ({})),
-    fetch('/api/calsync').then(x => x.json()).catch(() => null),   // нет в этой сборке — блока не будет
+    // 500 от старой сборки — тоже валидный JSON с error, поэтому состоянием считаем
+    // только ответ, в котором есть access: иначе «нет выгрузки» читалось бы как «нет доступа»
+    fetch('/api/calsync').then(x => x.json()).then(r => (r && r.access) ? r : null).catch(() => null)
   ]);
   document.getElementById('screen-settings').innerHTML = `
   <h2 style="margin-bottom:2px">Настройки</h2>
