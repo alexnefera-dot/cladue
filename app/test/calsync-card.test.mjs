@@ -183,3 +183,26 @@ test('аккаунт виден, а писать некуда — это дру�
   assert.match(none, /Интернет-аккаунты → Google/, 'не сказано, как добавить аккаунт');
   assert.match(none, /сейчас Календарь видит: iCloud/, 'не видно, какие аккаунты есть на самом деле');
 });
+
+// Итог прогона — единственное, по чему видно, что произошло: пустой календарь сам
+// не расскажет, нечего было выгружать, всё уже лежало или сервер не принял.
+test('итог прогона различает «нечего», «всё уже там» и обычную выгрузку', () => {
+  const r = s => loadApp().ctx.csReport(s);
+  const nothing = r({ added: 0, updated: 0, removed: 0, total: 0, found: { tasks: 0, obligations: 0, birthdays: 0 } });
+  assert.match(nothing, /Выгружать нечего/, 'пустой прогон не объяснён');
+  assert.match(nothing, /задач с датой: 0, платежей: 0, дней рождения: 0/, 'не видно, чего именно не нашлось');
+
+  const same = r({ added: 0, updated: 0, removed: 0, total: 7, calendar: 'Pipboy', source: 'alex@gmail.com',
+    found: { tasks: 5, obligations: 2, birthdays: 0 } });
+  assert.match(same, /Всё уже на месте в «Pipboy» · alex@gmail.com/, 'не сказано, где именно всё лежит');
+  assert.match(same, /включена галочкой в приложении Календарь/, 'не подсказано, почему событий не видно');
+
+  const done = r({ added: 5, updated: 1, removed: 0, total: 6, calendar: 'Pipboy', source: 'alex@gmail.com',
+    found: { tasks: 4, obligations: 2, birthdays: 0 } });
+  assert.match(done, /В «Pipboy» · alex@gmail.com: добавлено 5, изменено 1, убрано 0/, 'не видно, что уехало');
+  assert.match(done, /в течение минуты/, 'не сказано, что в Google не мгновенно');
+
+  assert.match(r({ error: 'календарь не выбран или больше не существует' }), /не выбран/, 'ошибка проглочена');
+  assert.match(r({ added: 1, updated: 0, removed: 0, total: 1, found: {}, errors: ['Налог: отказ'] }),
+    /Не получилось:\nНалог: отказ/, 'отказы сервера не показаны');
+});

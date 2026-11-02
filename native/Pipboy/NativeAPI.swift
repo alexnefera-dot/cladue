@@ -4411,9 +4411,17 @@ enum CalendarSync {
             try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
         }
         let when = (get1(db, "SELECT datetime('now','localtime') AS t", "t") as? String) ?? ""
-        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) −\(removed)")
+        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) −\(removed) · \(cal.title)")
+        // Разбор по видам: без него «ничего не появилось» не отличить от «нечего выгружать»
+        var found: [String: Int] = ["tasks": 0, "obligations": 0, "birthdays": 0]
+        for it in items {
+            if it.key.hasPrefix("task:") { found["tasks"]! += 1 }
+            else if it.key.hasPrefix("ob:") { found["obligations"]! += 1 }
+            else if it.key.hasPrefix("bd:") { found["birthdays"]! += 1 }
+        }
         return ["added": added, "updated": updated, "removed": removed,
-                "total": items.count, "errors": errors]
+                "total": items.count, "found": found, "calendar": cal.title,
+                "source": cal.source?.title ?? "", "errors": errors]
     }
 
     // Тихий прогон — на старте и после правок. Ошибки в консоль: ломать ответ API из-за
@@ -4453,7 +4461,9 @@ enum CalendarSync {
             let start = c.date(from: comp) ?? Date()
             ev.isAllDay = true
             ev.startDate = start
-            ev.endDate = start
+            // конец в тот же день, но не нулевой длины: событие нулевой длины CalDAV-сервер
+            // (а Google ходит именно по нему) может отвергнуть молча
+            ev.endDate = start.addingTimeInterval(23 * 3600 + 59 * 60)
         }
         (ev.recurrenceRules ?? []).forEach { ev.removeRecurrenceRule($0) }
         if let r = it.recur {

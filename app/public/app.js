@@ -1015,6 +1015,24 @@ function calSyncCard(cs) {
     </div>`;
 }
 
+// Итог прогона человеческим текстом: «ничего не появилось» надо отличать от «нечего
+// выгружать» и от «сервер не принял» — иначе остаётся только гадать, глядя в пустой календарь.
+function csReport(r) {
+  if (!r || r.error) return r?.error || 'Выгрузка не ответила.';
+  const f = r.found || {};
+  const parts = [['tasks', 'задач с датой'], ['obligations', 'платежей'], ['birthdays', 'дней рождения']]
+    .map(([k, n]) => `${n}: ${f[k] ?? 0}`).join(', ');
+  const where = r.calendar ? `«${r.calendar}»${r.source ? ' · ' + r.source : ''}` : 'календарь';
+  const errs = (r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : '';
+  if (!r.total) return `Выгружать нечего — ${parts}.\n\nПроверь, что нужные виды включены и что у задач`
+    + ' проставлены даты (в окно идут открытые задачи от недели назад до года вперёд).' + errs;
+  if (!r.added && !r.updated && !r.removed)
+    return `Всё уже на месте в ${where}: ${parts}.\n\nЕсли в календаре их не видно — проверь,`
+      + ' что группа этого аккаунта включена галочкой в приложении Календарь.' + errs;
+  return `В ${where}: добавлено ${r.added}, изменено ${r.updated}, убрано ${r.removed}.\nНашлось — ${parts}.`
+    + '\n\nВ Google события уезжают из системного Календаря в течение минуты.' + errs;
+}
+
 function bindCalSync(box, cs) {
   if (!cs) return;
   const post = (path, body) => fetch('/api/calsync' + path, { method: 'POST',
@@ -1045,9 +1063,7 @@ function bindCalSync(box, cs) {
     }));
   box.querySelector('#csRun')?.addEventListener('click', async () => {
     const r = await post('/run');
-    alert(r.error ? r.error
-      : `В календарь: добавлено ${r.added}, изменено ${r.updated}, убрано ${r.removed} (всего ${r.total})`
-        + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
+    alert(csReport(r));
     window.loadSettings();
   });
 }
