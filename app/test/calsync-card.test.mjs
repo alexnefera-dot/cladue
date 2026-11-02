@@ -147,3 +147,24 @@ test('на старте выгрузка догоняется сама, без �
   const pings = app.calls.filter(c => c.method === 'POST' && c.url === '/api/calsync/run');
   assert.equal(pings.length, 1, 'при запуске не догоняем то, что менялось при закрытом приложении');
 });
+
+// В списке — календари системного Календаря. Пока гугл-аккаунт не добавлен в macOS,
+// гугловых там нет, и по названию «Домашний · iCloud» об этом не догадаться.
+const ICLOUD = [{ id: 'c1', title: 'Домашний', source: 'iCloud', google: false },
+  { id: 'c2', title: 'Рабочий', source: 'iCloud', google: false }];
+
+test('гугл-календаря в системе нет — говорим, как его туда добавить', () => {
+  const html = loadApp().card({ ...ON, calendar: null, calendars: ICLOUD });
+  assert.match(html, /Интернет-аккаунты → Google/, 'не сказано, откуда возьмётся гугл-календарь');
+  assert.match(html, /в iCloud писать тоже можно/i, 'не сказано, что выбор iCloud — рабочий вариант');
+});
+
+test('выбран не гугловый календарь — предупреждаем, что в Google не уедет', () => {
+  const warn = loadApp().card({ ...ON, calendar: 'c1', calendars: ICLOUD });
+  assert.match(warn, /выбран «Домашний» · iCloud/, 'не названо, что именно выбрано');
+  assert.match(warn, /в Google не попадут/, 'молча пишем мимо Google');
+
+  const google = loadApp().card(ON);   // в ON выбран гугловый c1
+  assert.ok(!google.includes('в Google не попадут'), 'ругаемся на правильный выбор');
+  assert.ok(!google.includes('Интернет-аккаунты → Google'), 'учим добавлять аккаунт, который уже есть');
+});

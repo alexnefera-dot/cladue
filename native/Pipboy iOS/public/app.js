@@ -972,6 +972,11 @@ function calSyncCard(cs) {
         их в Google — пароли и токены никуда не вводятся</div>
     </div>`;
   const cals = cs.calendars || [];
+  // В списке ровно то, что знает системный Календарь. Гугловых там не будет, пока аккаунт
+  // не добавлен в Интернет-аккаунты, — а без этого события в Google не уедут, и это надо
+  // сказать прямо: по названию «Домашний · iCloud» догадаться нельзя.
+  const chosen = cals.find(c => c.id === cs.calendar);
+  const noGoogle = cals.length > 0 && !cals.some(c => c.google);
   return `
     <div class="card">${head}
       <div class="task" style="border:0;flex-wrap:wrap">
@@ -986,6 +991,12 @@ function calSyncCard(cs) {
         </select>
         ${cals.length ? '' : '<span class="meta">нет календарей, куда можно писать</span>'}
       </div>
+      ${noGoogle ? `<div class="meta">гугл-календаря в списке нет — системный Календарь о нём не знает.
+        Чтобы события уезжали в Google: Системные настройки → Интернет-аккаунты → Google → включить
+        «Календари», один раз открыть приложение Календарь и вернуться сюда. В iCloud писать тоже можно —
+        события будут на Маке и iPhone, просто не в Google</div>` : ''}
+      ${chosen && !chosen.google ? `<div class="meta">выбран «${esc(chosen.title)}»${chosen.source ? ' · ' + esc(chosen.source) : ''} —
+        это не гугл-календарь: события останутся на Маке и iPhone и в Google не попадут</div>` : ''}
       <div class="task" style="border:0;flex-wrap:wrap">
         <span class="meta">что выгружать:</span>
         ${CS_KINDS.map(([k, label]) => `<span class="pill btn ${cs.kinds?.[k] ? 'ok' : ''}" data-cskind="${k}">${label}</span>`).join('')}
