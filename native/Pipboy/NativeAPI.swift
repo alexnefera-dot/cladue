@@ -4342,13 +4342,15 @@ enum GoogleTasks {
     // из Google, только если у себя её с прошлой выгрузки не трогали. А закрытие однозначно:
     // отметил галочкой в Google — значит сделано, закрываем и у себя тем же путём, что кнопкой
     // в приложении (у повторяющейся задачи он не закрывает, а двигает срок вперёд).
-    private static func pull(_ db: Database, _ list: String) throws -> (closed: Int, moved: Int) {
+    private static func pull(_ db: Database, _ list: String) throws -> (closed: Int, moved: Int, deleted: Int) {
         var remote: [String: [String: Any]] = [:]
         var page: String?
         var pages = 0
         var whole = true     // список прочитан целиком — иначе «пропавшее» может быть недочитанным
         repeat {
-            let q = "/lists/\(list)/tasks?showCompleted=true&showHidden=true&maxResults=100"
+            // showDeleted — чтобы отличить «удалил» от «пропала из этого списка»: второе бывает
+            // при переносе задачи в другой список Google, и удалять по нему план нельзя
+            let q = "/lists/\(list)/tasks?showCompleted=true&showHidden=true&showDeleted=true&maxResults=100"
                 + (page.map { "&pageToken=\($0)" } ?? "")
             guard let r = api(db, "GET", q) else { whole = false; break }
             for t in (r["items"] as? [[String: Any]]) ?? [] {
@@ -4358,17 +4360,25 @@ enum GoogleTasks {
             pages += 1
         } while page != nil && pages < 20
         if page != nil { whole = false }
-        guard !remote.isEmpty else { return (0, 0) }
+        guard !remote.isEmpty else { return (0, 0, 0) }
 
-        var closed = 0, moved = 0
+        var closed = 0, moved = 0, dropped = 0
         for row in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
             guard let key = row["key"] as? String, key.hasPrefix("gt:"),
                   let taskId = row["event_id"] as? String,
                   let node = Int(key.dropFirst(3)) else { continue }
             guard let t = remote[taskId] else {
-                // Удалили в Google. План живёт здесь, поэтому не удаляем у себя, а рвём связку:
-                // выгрузка ниже положит задачу обратно. Рвём только если список прочитан целиком.
+                // Из списка пропала, но удалённой не помечена — скорее всего перенесли в другой
+                // список Google. План живёт здесь: рвём связку, и выгрузка положит задачу обратно.
                 if whole { try? db.run("DELETE FROM cal_sync WHERE key = ?", [key]) }
+                continue
+            }
+            if (t["deleted"] as? Bool) == true {
+                // Удалил в Google — удаляем и здесь. Не насмерть: узел уезжает в корзину
+                // приложения и 30 дней восстанавливается, как при обычном удалении.
+                _ = try? Api.deleteNode(db, id: node)
+                try? db.run("DELETE FROM cal_sync WHERE key = ?", [key])
+                dropped += 1
                 continue
             }
             guard let local = try db.rows("SELECT status, due_date FROM nodes WHERE id = ?", [node]).first else { continue }
@@ -4389,7 +4399,7 @@ enum GoogleTasks {
                 moved += 1
             }
         }
-        return (closed, moved)
+        return (closed, moved, dropped)
     }
 
     // ----- выгрузка: открытые задачи с датой
@@ -4401,7 +4411,7 @@ enum GoogleTasks {
         try db.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
         // Сначала забираем правки из Google, потом выгружаем — так выгрузка уже видит
         // закрытые и перенесённые задачи и не спорит с ними.
-        let back = takeBack ? try pull(db, list) : (closed: 0, moved: 0)
+        let back = takeBack ? try pull(db, list) : (closed: 0, moved: 0, deleted: 0)
         var have: [String: (id: String, hash: String)] = [:]
         for r in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
             if let k = r["key"] as? String, let e = r["event_id"] as? String {
@@ -4459,10 +4469,11 @@ enum GoogleTasks {
         }
         let when = (get1(db, "SELECT datetime('now','localtime') AS t", "t") as? String) ?? ""
         try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) ✓\(closed) −\(removed)"
-            + (back.closed + back.moved > 0 ? " · из Google: ✓\(back.closed) ⇄\(back.moved)" : ""))
+            + (back.closed + back.moved + back.deleted > 0
+               ? " · из Google: ✓\(back.closed) ⇄\(back.moved) −\(back.deleted)" : ""))
         return ["added": added, "updated": updated, "closed": closed, "removed": removed,
                 "total": want.count, "backClosed": back.closed, "backMoved": back.moved,
-                "errors": errors]
+                "backDeleted": back.deleted, "errors": errors]
     }
 
     static func runIfOn(_ db: Database) {

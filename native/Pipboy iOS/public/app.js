@@ -987,8 +987,10 @@ function gTasksCard(gt) {
         и здесь, перенёс там дату — переедет и здесь. Если дату менял и там и тут, главной
         остаётся эта: Pipboy — база планирования, Google — отслеживание.
         Правки отсюда уезжают сразу, обратные приезжают при запуске, при возврате в окно
-        и по кнопке. Удалил задачу в Google — она вернётся: план живёт здесь, закрывать надо
-        галочкой. У задач Google есть только дата — время не переносится</div>
+        и по кнопке. Удаление тоже обоюдное: удалил в Google — уедет в корзину здесь
+        (30 дней на восстановление). А если просто перенёс задачу в другой список Google,
+        она вернётся сюда же — это не удаление. У задач Google есть только дата, время
+        не переносится</div>
     </div>`;
 }
 
@@ -1032,8 +1034,9 @@ function bindGTasks(box, gt) {
 function gtReport(r) {
   if (!r || r.error) return r?.error || 'Выгрузка не ответила.';
   const errs = (r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : '';
-  const back = (r.backClosed || r.backMoved)
-    ? `\nИз Google принято: закрыто ${r.backClosed || 0}, перенесено ${r.backMoved || 0}.` : '';
+  const back = (r.backClosed || r.backMoved || r.backDeleted)
+    ? `\nИз Google принято: закрыто ${r.backClosed || 0}, перенесено ${r.backMoved || 0},`
+      + ` удалено ${r.backDeleted || 0}.` : '';
   if (!r.total && !r.closed && !r.removed && !back)
     return 'Выгружать нечего: открытых задач с датой нет (в окно идут задачи от недели назад до года вперёд).' + errs;
   if (!r.added && !r.updated && !r.closed && !r.removed)

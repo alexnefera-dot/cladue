@@ -120,8 +120,10 @@ test('Google Tasks: итог прогона читается человеком'
 
 test('итог прогона показывает и то, что приехало из Google', () => {
   const r = s => loadApp().ctx.gtReport(s);
-  assert.match(r({ total: 4, added: 0, updated: 0, closed: 0, removed: 0, backClosed: 2, backMoved: 1 }),
-    /Из Google принято: закрыто 2, перенесено 1/, 'обратные правки не показаны');
+  assert.match(r({ total: 4, added: 0, updated: 0, closed: 0, removed: 0, backClosed: 2, backMoved: 1, backDeleted: 3 }),
+    /Из Google принято: закрыто 2, перенесено 1, удалено 3/, 'обратные правки не показаны');
+  assert.match(r({ total: 0, added: 0, updated: 0, closed: 0, removed: 0, backDeleted: 1 }),
+    /удалено 1/, 'удаление из Google потерялось');
   // закрытие в Google при пустой выгрузке — не «выгружать нечего», а настоящая работа
   assert.match(r({ total: 0, added: 0, updated: 0, closed: 0, removed: 0, backClosed: 1, backMoved: 0 }),
     /Из Google принято: закрыто 1/, 'приём из Google потерялся за «нечего выгружать»');
@@ -136,8 +138,9 @@ test('в блоке сказано, что синхрон двусторонни
   assert.match(html, /Pipboy — база планирования/, 'не названо, чья дата главнее при споре');
 });
 
-test('в блоке сказано, что удалённая в Google задача вернётся', () => {
+test('в блоке сказано, что удаление обоюдное, а перенос — нет', () => {
   const html = loadApp().ctx.gTasksCard(GT_ON);
-  assert.match(html, /Удалил задачу в Google — она вернётся/, 'молчим про то, что удаление не считается');
-  assert.match(html, /закрывать надо\s+галочкой/, 'не сказано, как закрыть правильно');
+  assert.match(html, /удалил в Google — уедет в корзину здесь/, 'не сказано, что удаление обоюдное');
+  assert.match(html, /30 дней на восстановление/, 'не сказано, что удаление обратимо');
+  assert.match(html, /перенёс задачу в другой список Google,\s+она вернётся/, 'перенос не отделён от удаления');
 });
