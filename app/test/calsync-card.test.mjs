@@ -206,3 +206,38 @@ test('итог прогона различает «нечего», «всё уж
   assert.match(r({ added: 1, updated: 0, removed: 0, total: 1, found: {}, errors: ['Налог: отказ'] }),
     /Не получилось:\nНалог: отказ/, 'отказы сервера не показаны');
 });
+
+// ===== Google Tasks: настоящие задачи с галочкой =====
+const GT_ON = { client: '123-abc.apps.googleusercontent.com', linked: true, on: true, list: 'L1',
+  lists: [{ id: 'L1', title: 'Мои задачи' }, { id: 'L2', title: 'Работа' }], last: '2026-11-02 12:00 · +4 ~0 ✓1 −0' };
+
+test('Google Tasks: без связи — Client ID и как его получить', () => {
+  const html = loadApp().ctx.gTasksCard({ client: '', linked: false, lists: [] });
+  assert.match(html, /id="gtClient"/, 'некуда вписать Client ID');
+  assert.match(html, /Google Tasks API/, 'не сказано, какой API включать');
+  assert.match(html, /Bundle ID <b>com.pipboy.app<\/b>/, 'не назван Bundle ID для клиента');
+  assert.match(html, /каждые 7 дней/, 'не предупредили про режим Testing');
+  assert.ok(!html.includes('gtRun'), 'предлагаем выгружать до подключения');
+});
+
+test('Google Tasks: после связи — список задач и состояние', () => {
+  const html = loadApp().ctx.gTasksCard(GT_ON);
+  assert.match(html, /<option value="L1" selected>Мои задачи</, 'выбранный список не отмечен');
+  assert.match(html, /выгрузка включена/, 'состояние выгрузки не видно');
+  assert.match(html, /последний прогон: 2026-11-02 12:00/, 'нет итога прошлого прогона');
+  assert.match(html, /не дублируются событиями/, 'не сказано, что задачи не уедут дважды');
+  assert.match(html, /только дата/, 'не предупредили, что времени у задач Google нет');
+});
+
+test('Google Tasks: блока нет на сборке без него', () => {
+  assert.equal(loadApp().ctx.gTasksCard(null), '', 'показали блок там, где маршрута нет');
+});
+
+test('Google Tasks: итог прогона читается человеком', () => {
+  const r = s => loadApp().ctx.gtReport(s);
+  assert.match(r({ total: 0, added: 0, updated: 0, closed: 0, removed: 0 }), /Выгружать нечего/);
+  assert.match(r({ total: 5, added: 0, updated: 0, closed: 0, removed: 0 }), /Всё уже в Google: задач 5/);
+  assert.match(r({ total: 5, added: 4, updated: 0, closed: 1, removed: 0 }),
+    /добавлено 4, изменено 0, закрыто 1, удалено 0/, 'не видно, что именно уехало');
+  assert.match(r({ error: 'список задач не выбран' }), /список задач не выбран/);
+});

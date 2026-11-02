@@ -8,6 +8,9 @@ import AppKit
 #if canImport(EventKit)
 import EventKit
 #endif
+#if canImport(AuthenticationServices)
+import AuthenticationServices
+#endif
 
 // ЭТАП 1 — нативный слой чтения.
 // WKURLSchemeHandler перехватывает запросы интерфейса (тот же фронт из app/public)
@@ -323,6 +326,9 @@ enum Api {
         #if canImport(EventKit)
         if CalendarSync.touches(path) { CalendarSync.runIfOn(db) }
         #endif
+        #if canImport(AuthenticationServices)
+        if path.hasPrefix("/api/nodes") { GoogleTasks.runIfOn(db) }
+        #endif
         return res
     }
 
@@ -344,6 +350,11 @@ enum Api {
         // ----- Сферы -----
         #if canImport(EventKit)
         if path == "/api/calsync" { return (try json(CalendarSync.state(db)), 200) }
+        #endif
+        #if canImport(AuthenticationServices)
+        if path == "/api/gtasks" { return (try json(GoogleTasks.state(db)), 200) }
+        #endif
+        #if canImport(EventKit)
         #endif
         if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
@@ -581,6 +592,29 @@ enum Api {
         if method == "POST", path == "/api/calsync/run" {
             return (try json(try CalendarSync.run(db)), 200)
         }
+        #endif
+        #if canImport(AuthenticationServices)
+        // ----- Google Tasks -----
+        if method == "POST", path == "/api/gtasks/settings" {
+            if let c = body["client"] as? String { try setSetting(db, "gt_client", c.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            if let l = body["list"] as? String { try setSetting(db, "gt_list", l) }
+            if body["on"] != nil { try setSetting(db, "gt_on", intval(body["on"]) != 0 ? "1" : "0") }
+            GoogleTasks.runIfOn(db)
+            return (try json(GoogleTasks.state(db)), 200)
+        }
+        if method == "POST", path == "/api/gtasks/connect" {
+            // окно входа показывает система; обработчик живёт не на main, ждать здесь безопасно
+            let sem = DispatchSemaphore(value: 0)
+            var res: [String: Any] = ["error": "вход не ответил"]
+            GoogleTasks.connect(db) { r in res = r; sem.signal() }
+            _ = sem.wait(timeout: .now() + 300)
+            return (try json(res), 200)
+        }
+        if method == "POST", path == "/api/gtasks/disconnect" {
+            GoogleTasks.disconnect(db)
+            return (try json(GoogleTasks.state(db)), 200)
+        }
+        if method == "POST", path == "/api/gtasks/run" { return (try json(try GoogleTasks.run(db)), 200) }
         #endif
         // ----- Сферы: привязка/дефолты/автонастройка -----
         if method == "POST", path == "/api/spheres/assign" {
@@ -4314,7 +4348,8 @@ enum CalendarSync {
         var out: [Item] = []
         // Задачи с датой: только открытые и только в окне «неделя назад … год вперёд» —
         // старое в календаре не нужно, а бесконечное будущее раздувало бы выгрузку.
-        if get(db, kinds["tasks"]!) != "0" {
+        // задачи ушли в Google Tasks — событиями их дублировать не надо
+        if get(db, kinds["tasks"]!) != "0" && get(db, "gt_on") != "1" {
             for t in try db.rows("""
                 SELECT id, title, due_date, due_time FROM nodes
                 WHERE kind = 'task' AND is_category = 0 AND due_date IS NOT NULL AND due_date <> ''
@@ -4487,6 +4522,254 @@ enum CalendarSync {
         guard let s = v as? String, !s.isEmpty else { return nil }
         return s
     }
+    private static func iv(_ v: Any?) -> Int {
+        if let i = v as? Int { return i }
+        if let n = v as? NSNumber { return n.intValue }
+        if let d = v as? Double { return Int(d) }
+        if let s = v as? String { return Int(s) ?? 0 }
+        return 0
+    }
+    private static func dbl(_ v: Any?) -> Double? {
+        if let d = v as? Double { return d }
+        if let i = v as? Int { return Double(i) }
+        if let n = v as? NSNumber { return n.doubleValue }
+        if let s = v as? String { return Double(s) }
+        return nil
+    }
+}
+#endif
+
+// MARK: - Google Tasks: настоящие задачи с галочкой
+#if canImport(AuthenticationServices)
+// Календарь Google хранит только события. «Пункты с кружком», которые закрываются галочкой, —
+// это Google Tasks: отдельный сервис со своим API, системный Календарь его не отдаёт вовсе.
+// Поэтому ходим в Tasks API сами. OAuth-клиент создаёт владелец аккаунта и вписывает Client ID
+// в настройках: в репозитории его нет и быть не должно. Вход — системным окном, с PKCE и без
+// client_secret (так и задуман тип «установленное приложение»). refresh-токен лежит в
+// зашифрованной базе: она же ездит синхроном между твоими устройствами.
+enum GoogleTasks {
+    private static let kClient = "gt_client", kList = "gt_list", kOn = "gt_on"
+    private static let kRefresh = "gt_refresh", kLast = "gt_last"
+    private static var access: (token: String, until: Date)?
+
+    // ----- состояние для экрана настроек
+    static func state(_ db: Database) -> [String: Any] {
+        let linked = !((get(db, kRefresh) ?? "").isEmpty)
+        return ["client": get(db, kClient) ?? "", "linked": linked, "on": get(db, kOn) == "1",
+                "list": str(get(db, kList)), "lists": linked ? lists(db) : [], "last": str(get(db, kLast))]
+    }
+
+    // ----- вход
+    private final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
+        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            #if os(macOS)
+            return NSApplication.shared.windows.first ?? NSWindow()
+            #else
+            return ASPresentationAnchor()
+            #endif
+        }
+    }
+    private static let anchor = Anchor()
+
+    static func connect(_ db: Database, _ done: @escaping ([String: Any]) -> Void) {
+        let client = (get(db, kClient) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard client.hasSuffix(".apps.googleusercontent.com") else {
+            done(["error": "сначала впиши Client ID вида 123-abc.apps.googleusercontent.com"]); return
+        }
+        // У клиента типа iOS/macOS адрес возврата — тот же id наоборот; системное окно входа
+        // ловит его само, регистрировать схему в Info.plist не требуется.
+        let scheme = "com.googleusercontent.apps."
+            + client.replacingOccurrences(of: ".apps.googleusercontent.com", with: "")
+        let verifier = rand64()
+        let challenge = b64url(Data(SHA256.hash(data: Data(verifier.utf8))))
+        var comp = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
+        comp?.queryItems = [
+            URLQueryItem(name: "client_id", value: client),
+            URLQueryItem(name: "redirect_uri", value: scheme + ":/oauth2redirect"),
+            URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "scope", value: "https://www.googleapis.com/auth/tasks"),
+            URLQueryItem(name: "code_challenge", value: challenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
+            URLQueryItem(name: "access_type", value: "offline"),
+            URLQueryItem(name: "prompt", value: "consent")]
+        guard let url = comp?.url else { done(["error": "не собрался адрес входа"]); return }
+        DispatchQueue.main.async {
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: scheme) { back, err in
+                guard let back,
+                      let code = URLComponents(url: back, resolvingAgainstBaseURL: false)?
+                          .queryItems?.first(where: { $0.name == "code" })?.value else {
+                    done(["error": "вход не завершён: \(err?.localizedDescription ?? "код не получен")"]); return
+                }
+                let r = tokenCall(["grant_type": "authorization_code", "code": code,
+                                   "client_id": client, "code_verifier": verifier,
+                                   "redirect_uri": scheme + ":/oauth2redirect"])
+                guard let refresh = r?["refresh_token"] as? String else {
+                    let why = (r?["error_description"] as? String) ?? (r?["error"] as? String) ?? "ответ без refresh_token"
+                    done(["error": "Google не выдал долгий ключ: \(why)"]); return
+                }
+                try? Api.setSetting(db, kRefresh, refresh)
+                if let a = r?["access_token"] as? String {
+                    access = (a, Date().addingTimeInterval((dbl(r?["expires_in"]) ?? 3600) - 60))
+                }
+                done(["linked": true, "lists": lists(db)])
+            }
+            session.presentationContextProvider = anchor
+            session.start()
+        }
+    }
+
+    static func disconnect(_ db: Database) {
+        access = nil
+        try? Api.setSetting(db, kRefresh, "")
+        try? Api.setSetting(db, kOn, "0")
+    }
+
+    // ----- списки задач аккаунта
+    static func lists(_ db: Database) -> [[String: Any]] {
+        let r = api(db, "GET", "/users/@me/lists?maxResults=100")
+        return ((r?["items"] as? [[String: Any]]) ?? []).map {
+            ["id": $0["id"] ?? "", "title": $0["title"] ?? ""]
+        }
+    }
+
+    // ----- выгрузка: открытые задачи с датой
+    @discardableResult
+    static func run(_ db: Database) throws -> [String: Any] {
+        guard get(db, kOn) == "1" else { return ["error": "выгрузка в Google Tasks выключена"] }
+        guard let list = get(db, kList), !list.isEmpty else { return ["error": "список задач не выбран"] }
+        guard token(db) != nil else { return ["error": "связь с Google потеряна — подключись заново"] }
+        try db.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
+        var have: [String: (id: String, hash: String)] = [:]
+        for r in try db.rows("SELECT key, event_id, hash FROM cal_sync WHERE key LIKE 'gt:%'") {
+            if let k = r["key"] as? String, let e = r["event_id"] as? String {
+                have[k] = (e, r["hash"] as? String ?? "")
+            }
+        }
+        // то же окно, что у событий: открытые задачи с датой, неделя назад … год вперёд
+        var want: [(key: String, title: String, due: String, hash: String)] = []
+        for t in try db.rows("""
+            SELECT id, title, due_date FROM nodes
+            WHERE kind = 'task' AND is_category = 0 AND due_date IS NOT NULL AND due_date <> ''
+              AND (status IS NULL OR status NOT IN ('done','accepted'))
+              AND due_date >= date('now','localtime','-7 days')
+              AND due_date <= date('now','localtime','+1 year')
+            """) {
+            let title = (t["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, let d = t["due_date"] as? String else { continue }
+            want.append((key: "gt:\(iv(t["id"]))", title: title, due: d, hash: "\(title)|\(d)|\(list)"))
+        }
+        var added = 0, updated = 0, closed = 0, removed = 0
+        var errors: [String] = []
+        for w in want {
+            let known = have[w.key]
+            if known != nil && known?.hash == w.hash { continue }
+            // у Google Tasks срок — только дата, времени в них нет вовсе
+            let body: [String: Any] = ["title": w.title, "due": w.due + "T00:00:00.000Z", "notes": "Pipboy"]
+            let r = known == nil
+                ? api(db, "POST", "/lists/\(list)/tasks", body)
+                : api(db, "PATCH", "/lists/\(list)/tasks/\(known!.id)", body)
+            guard let id = (r?["id"] as? String) ?? known?.id, r?["error"] == nil else {
+                errors.append("\(w.title): \(describe(r))"); continue
+            }
+            try db.run("""
+                INSERT INTO cal_sync(key, event_id, hash, updated_at)
+                VALUES(?,?,?,datetime('now','localtime'))
+                ON CONFLICT(key) DO UPDATE SET event_id = excluded.event_id,
+                  hash = excluded.hash, updated_at = excluded.updated_at
+                """, [w.key, id, w.hash])
+            if known == nil { added += 1 } else { updated += 1 }
+        }
+        // Пропала из списка: если запись в базе ещё есть — значит её закрыли, и в Google
+        // честнее отметить галочкой, а не удалять. Если записи нет — удалена, убираем.
+        let live = Set(want.map { $0.key })
+        for (k, v) in have where !live.contains(k) {
+            let id = Int(k.dropFirst(3)) ?? -1
+            let alive = !((try? db.rows("SELECT id FROM nodes WHERE id = ?", [id]))?.isEmpty ?? true)
+            if alive {
+                _ = api(db, "PATCH", "/lists/\(list)/tasks/\(v.id)", ["status": "completed"])
+                closed += 1
+            } else {
+                _ = api(db, "DELETE", "/lists/\(list)/tasks/\(v.id)")
+                removed += 1
+            }
+            try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
+        }
+        let when = (get1(db, "SELECT datetime('now','localtime') AS t", "t") as? String) ?? ""
+        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) ✓\(closed) −\(removed)")
+        return ["added": added, "updated": updated, "closed": closed, "removed": removed,
+                "total": want.count, "errors": errors]
+    }
+
+    static func runIfOn(_ db: Database) {
+        guard get(db, kOn) == "1" else { return }
+        do { _ = try run(db) } catch { NSLog("GoogleTasks: \(error)") }
+    }
+
+    // ----- HTTP
+    private static func token(_ db: Database) -> String? {
+        if let a = access, a.until > Date() { return a.token }
+        guard let refresh = get(db, kRefresh), !refresh.isEmpty,
+              let client = get(db, kClient), !client.isEmpty else { return nil }
+        let r = tokenCall(["grant_type": "refresh_token", "refresh_token": refresh, "client_id": client])
+        guard let a = r?["access_token"] as? String else { return nil }
+        access = (a, Date().addingTimeInterval((dbl(r?["expires_in"]) ?? 3600) - 60))
+        return a
+    }
+    private static func tokenCall(_ form: [String: String]) -> [String: Any]? {
+        guard let url = URL(string: "https://oauth2.googleapis.com/token") else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 25)
+        req.httpMethod = "POST"
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        req.httpBody = form.map { "\($0.key)=\(enc($0.value))" }.joined(separator: "&").data(using: .utf8)
+        return syncJSON(req)
+    }
+    @discardableResult
+    private static func api(_ db: Database, _ method: String, _ path: String,
+                            _ body: [String: Any]? = nil) -> [String: Any]? {
+        guard let t = token(db), let url = URL(string: "https://tasks.googleapis.com/tasks/v1" + path) else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 25)
+        req.httpMethod = method
+        req.setValue("Bearer " + t, forHTTPHeaderField: "Authorization")
+        if let body {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        }
+        return syncJSON(req)
+    }
+    private static func syncJSON(_ req: URLRequest) -> [String: Any]? {
+        var out: [String: Any]?
+        let sem = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: req) { d, _, _ in
+            if let d { out = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any] }
+            sem.signal()
+        }.resume()
+        _ = sem.wait(timeout: .now() + 30)
+        return out
+    }
+    private static func describe(_ r: [String: Any]?) -> String {
+        guard let e = r?["error"] as? [String: Any] else { return "нет ответа" }
+        return (e["message"] as? String) ?? "ошибка Google"
+    }
+
+    // ----- мелочи
+    private static func rand64() -> String {
+        let abc = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+        return String((0..<64).map { _ in abc[Int.random(in: 0..<abc.count)] })
+    }
+    private static func b64url(_ d: Data) -> String {
+        d.base64EncodedString().replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+    }
+    private static func enc(_ s: String) -> String {
+        s.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? s
+    }
+    private static func get(_ db: Database, _ key: String) -> String? {
+        ((try? db.rows("SELECT value FROM settings WHERE key = ?", [key]))?.first?["value"]) as? String
+    }
+    private static func get1(_ db: Database, _ sql: String, _ col: String) -> Any? {
+        (try? db.rows(sql))?.first?[col]
+    }
+    private static func str(_ s: String?) -> Any { s.map { $0 as Any } ?? NSNull() }
     private static func iv(_ v: Any?) -> Int {
         if let i = v as? Int { return i }
         if let n = v as? NSNumber { return n.intValue }

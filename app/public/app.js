@@ -1068,15 +1068,105 @@ function bindCalSync(box, cs) {
   });
 }
 
+// ===== Google Tasks: задачи с галочкой, а не события =====
+// Календарь Google хранит только события; «пункты с кружком» — это отдельный сервис Tasks,
+// и ходить в него можно только своим OAuth-клиентом. Client ID создаёт владелец аккаунта
+// и вписывает сюда: в коде его нет.
+function gTasksCard(gt) {
+  if (!gt) return '';
+  const head = '<div class="meta">☑ GOOGLE TASKS · ЗАДАЧИ С ГАЛОЧКОЙ</div>';
+  if (!gt.linked) return `
+    <div class="card">${head}
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <input id="gtClient" placeholder="Client ID: 123-abc.apps.googleusercontent.com" style="flex:1;min-width:280px"
+          value="${esc(gt.client || '')}">
+        <span class="pill btn ok" id="gtConnect">подключить Google</span>
+      </div>
+      <div class="meta">Где взять Client ID: console.cloud.google.com → новый проект → APIs &amp; Services →
+        включить <b>Google Tasks API</b> → OAuth consent screen (External, добавь себя в Test users)
+        → Credentials → Create credentials → OAuth client ID → тип <b>iOS</b>, Bundle ID <b>com.pipboy.app</b>.
+        Секрет не нужен: у такого клиента его нет</div>
+      <div class="meta">пока приложение в режиме Testing, Google отзывает доступ каждые 7 дней — чтобы
+        не переподключаться, опубликуй его там же (Publish app), предупреждение о непроверенном
+        приложении можно пройти</div>
+    </div>`;
+  const lists = gt.lists || [];
+  return `
+    <div class="card">${head}
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="pill btn ${gt.on ? 'ok' : ''}" id="gtOn">${gt.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
+        <span class="pill btn" id="gtRun">↻ выгрузить сейчас</span>
+        <span class="pill btn danger" id="gtOff" title="забыть доступ к Google">отключить</span>
+      </div>
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="meta">список задач:</span>
+        <select id="gtList">
+          <option value="">— выбери список —</option>
+          ${lists.map(l => `<option value="${esc(l.id)}"${l.id === gt.list ? ' selected' : ''}>${esc(l.title)}</option>`).join('')}
+        </select>
+        ${lists.length ? '' : '<span class="meta">списков не видно — проверь, что Tasks API включён в проекте</span>'}
+      </div>
+      <div class="meta">${gt.last ? 'последний прогон: ' + esc(gt.last) + ' (добавлено ~изменено ✓закрыто −удалено)' : 'ещё не выгружалось'}</div>
+      <div class="meta">пока это включено, задачи не дублируются событиями в календаре.
+        У задач Google есть только дата — время из задачи не переносится. Закрыл у себя —
+        в Google отмечается галочкой; удалил — исчезает</div>
+    </div>`;
+}
+
+function bindGTasks(box, gt) {
+  if (!gt) return;
+  const post = (path, body) => fetch('/api/gtasks' + path, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(x => x.json());
+  box.querySelector('#gtConnect')?.addEventListener('click', async () => {
+    const id = (box.querySelector('#gtClient')?.value || '').trim();
+    if (!id) { alert('Впиши Client ID из Google Cloud Console.'); return; }
+    await post('/settings', { client: id });
+    const r = await post('/connect');
+    if (r.error) alert(r.error);
+    window.loadSettings();
+  });
+  box.querySelector('#gtOn')?.addEventListener('click', async () => {
+    if (!gt.on && !gt.list) { alert('Сначала выбери список задач.'); return; }
+    await post('/settings', { on: gt.on ? 0 : 1 });
+    window.loadSettings();
+  });
+  box.querySelector('#gtList')?.addEventListener('change', async e => {
+    await post('/settings', { list: e.target.value });
+    window.loadSettings();
+  });
+  box.querySelector('#gtOff')?.addEventListener('click', async () => {
+    if (!confirm('Забыть доступ к Google? Задачи, уже уехавшие в Google, останутся на месте.')) return;
+    await post('/disconnect');
+    window.loadSettings();
+  });
+  box.querySelector('#gtRun')?.addEventListener('click', async () => {
+    alert(gtReport(await post('/run')));
+    window.loadSettings();
+  });
+}
+
+// Итог прогона: пустой список в Google сам не расскажет, нечего было выгружать или не дошло
+function gtReport(r) {
+  if (!r || r.error) return r?.error || 'Выгрузка не ответила.';
+  const errs = (r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : '';
+  if (!r.total && !r.closed && !r.removed)
+    return 'Выгружать нечего: открытых задач с датой нет (в окно идут задачи от недели назад до года вперёд).' + errs;
+  if (!r.added && !r.updated && !r.closed && !r.removed)
+    return `Всё уже в Google: задач ${r.total}.` + errs;
+  return `В Google Tasks: добавлено ${r.added}, изменено ${r.updated}, закрыто ${r.closed}, удалено ${r.removed}`
+    + ` (всего задач с датой ${r.total}).` + errs;
+}
+
 // ===== Настройки: корзина, экспорт, бэкап =====
 window.loadSettings = async function () {
-  const [rows, info, ver, cs] = await Promise.all([
+  const [rows, info, ver, cs, gt] = await Promise.all([
     fetch('/api/trash').then(x => x.json()),
     fetch('/api/info').then(x => x.json()).catch(() => ({})),
     fetch('/api/version').then(x => x.json()).catch(() => ({})),
     // 500 от старой сборки — тоже валидный JSON с error, поэтому состоянием считаем
     // только ответ, в котором есть access: иначе «нет выгрузки» читалось бы как «нет доступа»
-    fetch('/api/calsync').then(x => x.json()).then(r => (r && r.access) ? r : null).catch(() => null)
+    fetch('/api/calsync').then(x => x.json()).then(r => (r && r.access) ? r : null).catch(() => null),
+    fetch('/api/gtasks').then(x => x.json()).then(r => (r && 'linked' in r) ? r : null).catch(() => null)
   ]);
   document.getElementById('screen-settings').innerHTML = `
   <h2 style="margin-bottom:2px">Настройки</h2>
@@ -1150,6 +1240,7 @@ window.loadSettings = async function () {
       <div class="meta">правки сходятся двусторонне · ничего не уходит в облако</div>
     </div>` : ''}
     ${calSyncCard(cs)}
+    ${gTasksCard(gt)}
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="auditBtn">проверить, где пусто</span>
@@ -1161,6 +1252,7 @@ window.loadSettings = async function () {
 
   const box = document.getElementById('screen-settings');
   bindCalSync(box, cs);
+  bindGTasks(box, gt);
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
