@@ -944,138 +944,6 @@ window.preflightOk = async function (id) {
   return confirm(`🛫 Pre-flight «${n.title}» — перед закрытием проверь:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
 };
 
-// ===== Выгрузка в системный Календарь (а оттуда в Google) =====
-// Пишем в календарь, выбранный человеком. Если это календарь гугл-аккаунта, добавленного
-// в системный Календарь, события дальше уезжают в Google сами — без OAuth и сервера.
-const CS_KINDS = [['tasks', 'задачи с датой'], ['obligations', 'платежи по обязательствам'],
-  ['birthdays', 'дни рождения']];
-
-function calSyncCard(cs) {
-  const head = '<div class="meta">📅 КАЛЕНДАРЬ · ЗАДАЧИ В GOOGLE</div>';
-  // В браузере календаря нет вовсе; в приложении молчать нельзя — иначе непонятно,
-  // куда делась выгрузка, и человек идёт искать Pipboy в настройках системы, где его
-  // ещё нет: macOS показывает приложение в «Календарях» только после его запроса.
-  if (!cs) return inNativeApp ? `
-    <div class="card">${head}
-      <div class="meta">в этой сборке выгрузки ещё нет — сверь дату сборки выше и пересобери
-        приложение в Xcode (⌘R). После пересборки здесь появится кнопка доступа: именно она
-        и добавляет Pipboy в Системные настройки → Конфиденциальность → Календари</div>
-    </div>` : '';
-  if (cs.access !== 'granted') return `
-    <div class="card">${head}
-      <div class="task" style="border:0;flex-wrap:wrap">
-        <span class="pill btn ok" id="csAccess">разрешить доступ к Календарю</span>
-        ${cs.access === 'denied' ? '<span class="meta">доступ запрещён — включи Pipboy в Системных настройках → Конфиденциальность → Календари</span>' : ''}
-      </div>
-      <div class="meta">${cs.access === 'denied' ? '' : 'в списке «Календари» системных настроек Pipboy появится только после этой кнопки — macOS добавляет туда приложение в момент запроса. '}события
-        пишутся в системный Календарь; если в нём есть твой гугл-аккаунт, macOS сама отправит
-        их в Google — пароли и токены никуда не вводятся</div>
-    </div>`;
-  const cals = cs.calendars || [];
-  // В списке ровно то, что знает системный Календарь. Гугловых там не будет, пока аккаунт
-  // не добавлен в Интернет-аккаунты, — а без этого события в Google не уедут, и это надо
-  // сказать прямо: по названию «Домашний · iCloud» догадаться нельзя.
-  const chosen = cals.find(c => c.id === cs.calendar);
-  const noGoogle = cals.length > 0 && !cals.some(c => c.google);
-  // Аккаунт в системе есть, а писать некуда — отдельный случай: в Google бывают только
-  // read-only календари (праздники, дни рождения), и тогда выбирать действительно нечего.
-  const srcs = cs.sources || [];
-  const googleSrc = srcs.find(x => /google|gmail|@/i.test(x));
-  return `
-    <div class="card">${head}
-      <div class="task" style="border:0;flex-wrap:wrap">
-        <span class="pill btn ${cs.on ? 'ok' : ''}" id="csOn">${cs.on ? 'выгрузка включена' : 'выгрузка выключена'}</span>
-        <span class="pill btn" id="csRun" title="прогнать сейчас — обычно не нужно, правки уезжают сами">↻ выгрузить сейчас</span>
-      </div>
-      <div class="task" style="border:0;flex-wrap:wrap">
-        <span class="meta">календарь:</span>
-        <select id="csCal">
-          <option value="">— выбери календарь —</option>
-          ${cals.map(c => `<option value="${esc(c.id)}"${c.id === cs.calendar ? ' selected' : ''}>${esc(c.title)}${c.source ? ' · ' + esc(c.source) : ''}${c.google ? ' ☁' : ''}</option>`).join('')}
-        </select>
-        ${cals.length ? '' : '<span class="meta">нет календарей, куда можно писать</span>'}
-      </div>
-      ${noGoogle && googleSrc ? `<div class="meta">аккаунт «${esc(googleSrc)}» системный Календарь уже видит,
-        но ни одного календаря из него, куда можно писать, нет. Открой приложение Календарь → Настройки →
-        Аккаунты → ${esc(googleSrc)} и включи там календари (праздники и дни рождения — только для чтения,
-        в них писать нельзя). Если аккаунт добавлен прямо сейчас — перезапусти Pipboy, список обновится</div>` : ''}
-      ${noGoogle && !googleSrc ? `<div class="meta">гугл-календаря в списке нет — системный Календарь о нём не знает.
-        Чтобы события уезжали в Google: Системные настройки → Интернет-аккаунты → Google → включить
-        «Календари», один раз открыть приложение Календарь и вернуться сюда. В iCloud писать тоже можно —
-        события будут на Маке и iPhone, просто не в Google${srcs.length ? ` · сейчас Календарь видит: ${esc(srcs.join(', '))}` : ''}</div>` : ''}
-      ${chosen && !chosen.google ? `<div class="meta">выбран «${esc(chosen.title)}»${chosen.source ? ' · ' + esc(chosen.source) : ''} —
-        это не гугл-календарь: события останутся на Маке и iPhone и в Google не попадут</div>` : ''}
-      <div class="task" style="border:0;flex-wrap:wrap">
-        <span class="meta">что выгружать:</span>
-        ${CS_KINDS.map(([k, label]) => `<span class="pill btn ${cs.kinds?.[k] ? 'ok' : ''}" data-cskind="${k}">${label}</span>`).join('')}
-      </div>
-      <div class="meta">${cs.last ? 'последний прогон: ' + esc(cs.last) + ' (добавлено ~изменено −убрано)' : 'ещё не выгружалось'}</div>
-      <div class="meta">односторонне: правки в Google обратно не приезжают. Трогаем только свои события —
-        закрыл задачу, и она уходит из календаря сама</div>
-    </div>`;
-}
-
-// Итог прогона человеческим текстом: «ничего не появилось» надо отличать от «нечего
-// выгружать» и от «сервер не принял» — иначе остаётся только гадать, глядя в пустой календарь.
-function csReport(r) {
-  if (!r || r.error) return r?.error || 'Выгрузка не ответила.';
-  const f = r.found || {};
-  const parts = [['tasks', 'задач с датой'], ['obligations', 'платежей'], ['birthdays', 'дней рождения']]
-    .map(([k, n]) => `${n}: ${f[k] ?? 0}`).join(', ');
-  const where = r.calendar ? `«${r.calendar}»${r.source ? ' · ' + r.source : ''}` : 'календарь';
-  const errs = (r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : '';
-  if (!r.total) return `Выгружать нечего — ${parts}.\n\nПроверь, что нужные виды включены и что у задач`
-    + ' проставлены даты (в окно идут открытые задачи от недели назад до года вперёд).' + errs;
-  if (!r.added && !r.updated && !r.removed)
-    return `Всё уже на месте в ${where}: ${parts}.\n\nЕсли в календаре их не видно — проверь,`
-      + ' что группа этого аккаунта включена галочкой в приложении Календарь.' + errs;
-  return `В ${where}: добавлено ${r.added}, изменено ${r.updated}, убрано ${r.removed}.\nНашлось — ${parts}.`
-    + '\n\nВ Google события уезжают из системного Календаря в течение минуты.' + errs;
-}
-
-function bindCalSync(box, cs) {
-  if (!cs) return;
-  const post = (path, body) => fetch('/api/calsync' + path, { method: 'POST',
-    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(x => x.json());
-  box.querySelector('#csAccess')?.addEventListener('click', async () => {
-    const r = await post('/access');
-    if (!r || !r.access) {   // маршрута нет — значит приложение собрано до выгрузки
-      alert('Эта сборка ещё без выгрузки в календарь — пересобери приложение в Xcode (⌘R).');
-      return;
-    }
-    if (r.access !== 'granted') alert('Доступ не выдан. Системные настройки → Конфиденциальность → Календари → Pipboy.');
-    window.loadSettings();
-  });
-  box.querySelector('#csOn')?.addEventListener('click', async () => {
-    if (!cs.on && !cs.calendar) { alert('Сначала выбери календарь, куда выгружать.'); return; }
-    await post('/settings', { on: cs.on ? 0 : 1 });
-    // Выключили — предлагаем убрать выгруженное здесь же: иначе события останутся висеть,
-    // а прогон, который их убирал бы, больше не запускается. Отдельной кнопки для этого
-    // держать не стоит — она нужна ровно в этот момент.
-    if (cs.on && confirm('Выгрузка выключена. Убрать из календаря события, которые уже выгружены?')) {
-      const r = await post('/purge');
-      alert(r.error ? r.error : `Убрано событий: ${r.removed}.`
-        + ((r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : ''));
-    }
-    window.loadSettings();
-  });
-  box.querySelector('#csCal')?.addEventListener('change', async e => {
-    await post('/settings', { calendar: e.target.value });
-    window.loadSettings();
-  });
-  box.querySelectorAll('[data-cskind]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const k = el.dataset.cskind;
-      await post('/settings', { kinds: { [k]: cs.kinds?.[k] ? 0 : 1 } });
-      window.loadSettings();
-    }));
-  box.querySelector('#csRun')?.addEventListener('click', async () => {
-    const r = await post('/run');
-    alert(csReport(r));
-    window.loadSettings();
-  });
-}
-
 // ===== Google Tasks: задачи с галочкой, а не события =====
 // Календарь Google хранит только события; «пункты с кружком» — это отдельный сервис Tasks,
 // и ходить в него можно только своим OAuth-клиентом. Client ID создаёт владелец аккаунта
@@ -1171,13 +1039,12 @@ function gtReport(r) {
 
 // ===== Настройки: корзина, экспорт, бэкап =====
 window.loadSettings = async function () {
-  const [rows, info, ver, cs, gt] = await Promise.all([
+  const [rows, info, ver, gt] = await Promise.all([
     fetch('/api/trash').then(x => x.json()),
     fetch('/api/info').then(x => x.json()).catch(() => ({})),
     fetch('/api/version').then(x => x.json()).catch(() => ({})),
     // 500 от старой сборки — тоже валидный JSON с error, поэтому состоянием считаем
     // только ответ, в котором есть access: иначе «нет выгрузки» читалось бы как «нет доступа»
-    fetch('/api/calsync').then(x => x.json()).then(r => (r && r.access) ? r : null).catch(() => null),
     fetch('/api/gtasks').then(x => x.json()).then(r => (r && 'linked' in r) ? r : null).catch(() => null)
   ]);
   document.getElementById('screen-settings').innerHTML = `
@@ -1251,7 +1118,6 @@ window.loadSettings = async function () {
       <div class="meta" id="syncStatus">авто работает в фоне при открытии · первый раз нажми «синхронизировать» на обоих устройствах и сверь код</div>
       <div class="meta">правки сходятся двусторонне · ничего не уходит в облако</div>
     </div>` : ''}
-    ${calSyncCard(cs)}
     ${gTasksCard(gt)}
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
@@ -1263,7 +1129,6 @@ window.loadSettings = async function () {
   </div>`;
 
   const box = document.getElementById('screen-settings');
-  bindCalSync(box, cs);
   bindGTasks(box, gt);
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
@@ -1442,16 +1307,15 @@ document.getElementById('searchbox').addEventListener('input', e => {
 
 load();
 
-// Выгрузка в календарь и в Google Tasks идёт сама после каждой правки задач, платежей и
-// людей. Здесь — догоняем то, что менялось мимо нас: пока приложение было закрыто, приехало
-// синхроном с телефона или просто наступил следующий день. Выключено или нет доступа —
-// запросы ничего не делают, поэтому состояние заранее не спрашиваем.
+// Выгрузка в Google Tasks идёт сама после каждой правки задач. Здесь — догоняем то, что
+// менялось мимо нас: пока приложение было закрыто, приехало синхроном с телефона или просто
+// наступил следующий день. Выключена выгрузка — запрос ничего не делает, поэтому состояние
+// заранее не спрашиваем.
 const syncPing = { at: 0 };
 function pingExports(force) {
   const now = Date.now();
   if (!force && now - syncPing.at < 10 * 60 * 1000) return;   // не чаще раза в 10 минут
   syncPing.at = now;
-  fetch('/api/calsync/run', { method: 'POST' }).catch(() => {});
   fetch('/api/gtasks/run', { method: 'POST' }).catch(() => {});
 }
 pingExports(true);
