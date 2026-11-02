@@ -4420,15 +4420,22 @@ enum GoogleTasks {
         }
         // то же окно, что у событий: открытые задачи с датой, неделя назад … год вперёд
         var want: [(key: String, title: String, due: String, hash: String)] = []
+        // Берём не только kind = 'task': приложение считает отмечаемым любой некатегорийный
+        // узел со сроком (вопрос, решение, идея, тревога, без типа) — так же, как кнопка ✓
+        // в «Сегодня». Иначе часть записей с датами в Google просто не доезжала.
+        // Просроченное тоже берём целиком: оно открыто и ждёт, нижней границы по дате нет.
         for t in try db.rows("""
-            SELECT id, title, due_date FROM nodes
-            WHERE kind = 'task' AND is_category = 0 AND due_date IS NOT NULL AND due_date <> ''
+            SELECT id, title, kind, due_date FROM nodes
+            WHERE is_category = 0 AND due_date IS NOT NULL AND due_date <> ''
               AND (status IS NULL OR status NOT IN ('done','accepted'))
-              AND due_date >= date('now','localtime','-7 days')
               AND due_date <= date('now','localtime','+1 year')
             """) {
-            let title = (t["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty, let d = t["due_date"] as? String else { continue }
+            let name = (t["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, let d = t["due_date"] as? String else { continue }
+            // тип подписываем теми же словами, что на «Сегодня»; у задачи и без типа метки нет
+            let label = ["decision": "решение", "question": "вопрос", "idea": "идея",
+                         "worry": "тревога", "principle": "принцип"][t["kind"] as? String ?? ""]
+            let title = label.map { "\($0) · \(name)" } ?? name
             want.append((key: "gt:\(iv(t["id"]))", title: title, due: d, hash: "\(title)|\(d)|\(list)"))
         }
         var added = 0, updated = 0, closed = 0, removed = 0
