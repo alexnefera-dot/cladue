@@ -576,7 +576,7 @@ enum Api {
             GoogleTasks.disconnect(db)
             return (try json(GoogleTasks.state(db)), 200)
         }
-        if method == "POST", path == "/api/gtasks/run" { return (try json(try GoogleTasks.run(db)), 200) }
+        if method == "POST", path == "/api/gtasks/run" { return (try json(try GoogleTasks.run(db, pull: true)), 200) }
         if method == "POST", path == "/api/gtasks/purge" { return (try json(try GoogleTasks.purge(db)), 200) }
         #endif
         // ----- Сферы: привязка/дефолты/автонастройка -----
@@ -4337,13 +4337,71 @@ enum GoogleTasks {
         }
     }
 
+    // ----- приём: что человек поменял в Google
+    // Pipboy — база планирования, поэтому при расхождении дат побеждает он: принимаем дату
+    // из Google, только если у себя её с прошлой выгрузки не трогали. А закрытие однозначно:
+    // отметил галочкой в Google — значит сделано, закрываем и у себя тем же путём, что кнопкой
+    // в приложении (у повторяющейся задачи он не закрывает, а двигает срок вперёд).
+    private static func pull(_ db: Database, _ list: String) throws -> (closed: Int, moved: Int) {
+        var remote: [String: [String: Any]] = [:]
+        var page: String?
+        var pages = 0
+        var whole = true     // список прочитан целиком — иначе «пропавшее» может быть недочитанным
+        repeat {
+            let q = "/lists/\(list)/tasks?showCompleted=true&showHidden=true&maxResults=100"
+                + (page.map { "&pageToken=\($0)" } ?? "")
+            guard let r = api(db, "GET", q) else { whole = false; break }
+            for t in (r["items"] as? [[String: Any]]) ?? [] {
+                if let id = t["id"] as? String { remote[id] = t }
+            }
+            page = r["nextPageToken"] as? String
+            pages += 1
+        } while page != nil && pages < 20
+        if page != nil { whole = false }
+        guard !remote.isEmpty else { return (0, 0) }
+
+        var closed = 0, moved = 0
+        for row in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
+            guard let key = row["key"] as? String, key.hasPrefix("gt:"),
+                  let taskId = row["event_id"] as? String,
+                  let node = Int(key.dropFirst(3)) else { continue }
+            guard let t = remote[taskId] else {
+                // Удалили в Google. План живёт здесь, поэтому не удаляем у себя, а рвём связку:
+                // выгрузка ниже положит задачу обратно. Рвём только если список прочитан целиком.
+                if whole { try? db.run("DELETE FROM cal_sync WHERE key = ?", [key]) }
+                continue
+            }
+            guard let local = try db.rows("SELECT status, due_date FROM nodes WHERE id = ?", [node]).first else { continue }
+            // что мы сами туда клали: hash = «название|дата|список», название может содержать «|»
+            let parts = (row["hash"] as? String ?? "").components(separatedBy: "|")
+            let pushedDue = parts.count >= 3 ? parts[parts.count - 2] : ""
+            if (t["status"] as? String) == "completed" {
+                let st = local["status"] as? String ?? ""
+                if !["done", "accepted"].contains(st) { _ = try? Api.toggleNode(db, id: node); closed += 1 }
+                // связка отработала: повторяющаяся задача уедет следующей — новой
+                try? db.run("DELETE FROM cal_sync WHERE key = ?", [key])
+                continue
+            }
+            let gDue = String((t["due"] as? String ?? "").prefix(10))
+            let lDue = local["due_date"] as? String ?? ""
+            if gDue.count == 10, gDue != pushedDue, lDue == pushedDue {
+                _ = try? Api.updateNode(db, id: node, fields: ["due_date": gDue])
+                moved += 1
+            }
+        }
+        return (closed, moved)
+    }
+
     // ----- выгрузка: открытые задачи с датой
     @discardableResult
-    static func run(_ db: Database) throws -> [String: Any] {
+    static func run(_ db: Database, pull takeBack: Bool = false) throws -> [String: Any] {
         guard get(db, kOn) == "1" else { return ["error": "выгрузка в Google Tasks выключена"] }
         guard let list = get(db, kList), !list.isEmpty else { return ["error": "список задач не выбран"] }
         guard token(db) != nil else { return ["error": "связь с Google потеряна — подключись заново"] }
         try db.run("CREATE TABLE IF NOT EXISTS cal_sync(key TEXT PRIMARY KEY, event_id TEXT NOT NULL, hash TEXT NOT NULL, updated_at TEXT)")
+        // Сначала забираем правки из Google, потом выгружаем — так выгрузка уже видит
+        // закрытые и перенесённые задачи и не спорит с ними.
+        let back = takeBack ? try pull(db, list) : (closed: 0, moved: 0)
         var have: [String: (id: String, hash: String)] = [:]
         for r in try db.rows("SELECT key, event_id, hash FROM cal_sync") {
             if let k = r["key"] as? String, let e = r["event_id"] as? String {
@@ -4400,9 +4458,11 @@ enum GoogleTasks {
             try? db.run("DELETE FROM cal_sync WHERE key = ?", [k])
         }
         let when = (get1(db, "SELECT datetime('now','localtime') AS t", "t") as? String) ?? ""
-        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) ✓\(closed) −\(removed)")
+        try? Api.setSetting(db, kLast, "\(when) · +\(added) ~\(updated) ✓\(closed) −\(removed)"
+            + (back.closed + back.moved > 0 ? " · из Google: ✓\(back.closed) ⇄\(back.moved)" : ""))
         return ["added": added, "updated": updated, "closed": closed, "removed": removed,
-                "total": want.count, "errors": errors]
+                "total": want.count, "backClosed": back.closed, "backMoved": back.moved,
+                "errors": errors]
     }
 
     static func runIfOn(_ db: Database) {

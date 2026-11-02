@@ -102,7 +102,6 @@ test('Google Tasks: после связи — список задач и сос�
   assert.match(html, /<option value="L1" selected>Мои задачи</, 'выбранный список не отмечен');
   assert.match(html, /выгрузка включена/, 'состояние выгрузки не видно');
   assert.match(html, /последний прогон: 2026-11-02 12:00/, 'нет итога прошлого прогона');
-  assert.match(html, /не дублируются событиями/, 'не сказано, что задачи не уедут дважды');
   assert.match(html, /только дата/, 'не предупредили, что времени у задач Google нет');
 });
 
@@ -117,4 +116,28 @@ test('Google Tasks: итог прогона читается человеком'
   assert.match(r({ total: 5, added: 4, updated: 0, closed: 1, removed: 0 }),
     /добавлено 4, изменено 0, закрыто 1, удалено 0/, 'не видно, что именно уехало');
   assert.match(r({ error: 'список задач не выбран' }), /список задач не выбран/);
+});
+
+test('итог прогона показывает и то, что приехало из Google', () => {
+  const r = s => loadApp().ctx.gtReport(s);
+  assert.match(r({ total: 4, added: 0, updated: 0, closed: 0, removed: 0, backClosed: 2, backMoved: 1 }),
+    /Из Google принято: закрыто 2, перенесено 1/, 'обратные правки не показаны');
+  // закрытие в Google при пустой выгрузке — не «выгружать нечего», а настоящая работа
+  assert.match(r({ total: 0, added: 0, updated: 0, closed: 0, removed: 0, backClosed: 1, backMoved: 0 }),
+    /Из Google принято: закрыто 1/, 'приём из Google потерялся за «нечего выгружать»');
+  assert.ok(!r({ total: 3, added: 1, updated: 0, closed: 0, removed: 0 }).includes('Из Google'),
+    'пишем про приём, когда ничего не приехало');
+});
+
+test('в блоке сказано, что синхрон двусторонний и кто главный', () => {
+  const html = loadApp().ctx.gTasksCard(GT_ON);
+  assert.match(html, /закрыл задачу в Google — закроется\s+и здесь/, 'не сказано про закрытие из Google');
+  assert.match(html, /перенёс там дату — переедет и здесь/, 'не сказано про перенос даты');
+  assert.match(html, /Pipboy — база планирования/, 'не названо, чья дата главнее при споре');
+});
+
+test('в блоке сказано, что удалённая в Google задача вернётся', () => {
+  const html = loadApp().ctx.gTasksCard(GT_ON);
+  assert.match(html, /Удалил задачу в Google — она вернётся/, 'молчим про то, что удаление не считается');
+  assert.match(html, /закрывать надо\s+галочкой/, 'не сказано, как закрыть правильно');
 });

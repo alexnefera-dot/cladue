@@ -983,9 +983,12 @@ function gTasksCard(gt) {
         ${lists.length ? '' : '<span class="meta">списков не видно — проверь, что Tasks API включён в проекте</span>'}
       </div>
       <div class="meta">${gt.last ? 'последний прогон: ' + esc(gt.last) + ' (добавлено ~изменено ✓закрыто −удалено)' : 'ещё не выгружалось'}</div>
-      <div class="meta">пока это включено, задачи не дублируются событиями в календаре.
-        У задач Google есть только дата — время из задачи не переносится. Закрыл у себя —
-        в Google отмечается галочкой; удалил — исчезает</div>
+      <div class="meta">двусторонне по дате и закрытию: закрыл задачу в Google — закроется
+        и здесь, перенёс там дату — переедет и здесь. Если дату менял и там и тут, главной
+        остаётся эта: Pipboy — база планирования, Google — отслеживание.
+        Правки отсюда уезжают сразу, обратные приезжают при запуске, при возврате в окно
+        и по кнопке. Удалил задачу в Google — она вернётся: план живёт здесь, закрывать надо
+        галочкой. У задач Google есть только дата — время не переносится</div>
     </div>`;
 }
 
@@ -1029,12 +1032,14 @@ function bindGTasks(box, gt) {
 function gtReport(r) {
   if (!r || r.error) return r?.error || 'Выгрузка не ответила.';
   const errs = (r.errors || []).length ? '\n\nНе получилось:\n' + r.errors.join('\n') : '';
-  if (!r.total && !r.closed && !r.removed)
+  const back = (r.backClosed || r.backMoved)
+    ? `\nИз Google принято: закрыто ${r.backClosed || 0}, перенесено ${r.backMoved || 0}.` : '';
+  if (!r.total && !r.closed && !r.removed && !back)
     return 'Выгружать нечего: открытых задач с датой нет (в окно идут задачи от недели назад до года вперёд).' + errs;
   if (!r.added && !r.updated && !r.closed && !r.removed)
-    return `Всё уже в Google: задач ${r.total}.` + errs;
+    return `Всё уже в Google: задач ${r.total}.` + back + errs;
   return `В Google Tasks: добавлено ${r.added}, изменено ${r.updated}, закрыто ${r.closed}, удалено ${r.removed}`
-    + ` (всего задач с датой ${r.total}).` + errs;
+    + ` (всего задач с датой ${r.total}).` + back + errs;
 }
 
 // ===== Настройки: корзина, экспорт, бэкап =====
