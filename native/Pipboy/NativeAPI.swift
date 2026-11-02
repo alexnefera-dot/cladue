@@ -4598,7 +4598,12 @@ enum GoogleTasks {
                 guard let back,
                       let code = URLComponents(url: back, resolvingAgainstBaseURL: false)?
                           .queryItems?.first(where: { $0.name == "code" })?.value else {
-                    done(["error": "вход не завершён: \(err?.localizedDescription ?? "код не получен")"]); return
+                    // 403 access_denied — это не поломка, а режим Testing у экрана согласия:
+                    // Google пускает только добавленных тестировщиков, пока приложение не опубликовано
+                    done(["error": "Вход не завершён: \(err?.localizedDescription ?? "код не получен")."
+                        + " Если Google показал «403: access_denied» — у приложения режим Testing:"
+                        + " в Google Cloud Console → OAuth consent screen (Audience) нажми Publish app"
+                        + " или добавь свой адрес в Test users, и попробуй снова."]); return
                 }
                 let r = tokenCall(["grant_type": "authorization_code", "code": code,
                                    "client_id": client, "code_verifier": verifier,
