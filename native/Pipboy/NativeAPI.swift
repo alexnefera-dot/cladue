@@ -4441,6 +4441,9 @@ enum CalendarSync {
         ev.calendar = cal
         ev.title = it.title
         ev.notes = it.note
+        // Это напоминание, а не встреча: день не должен выглядеть занятым, иначе календарь
+        // показывает человека недоступным из-за собственных задач.
+        if cal.supportedEventAvailabilities.contains(.free) { ev.availability = .free }
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone.current
         let p = it.date.split(separator: "-").compactMap { Int($0) }
