@@ -977,6 +977,10 @@ function calSyncCard(cs) {
   // сказать прямо: по названию «Домашний · iCloud» догадаться нельзя.
   const chosen = cals.find(c => c.id === cs.calendar);
   const noGoogle = cals.length > 0 && !cals.some(c => c.google);
+  // Аккаунт в системе есть, а писать некуда — отдельный случай: в Google бывают только
+  // read-only календари (праздники, дни рождения), и тогда выбирать действительно нечего.
+  const srcs = cs.sources || [];
+  const googleSrc = srcs.find(x => /google|gmail|@/i.test(x));
   return `
     <div class="card">${head}
       <div class="task" style="border:0;flex-wrap:wrap">
@@ -991,10 +995,14 @@ function calSyncCard(cs) {
         </select>
         ${cals.length ? '' : '<span class="meta">нет календарей, куда можно писать</span>'}
       </div>
-      ${noGoogle ? `<div class="meta">гугл-календаря в списке нет — системный Календарь о нём не знает.
+      ${noGoogle && googleSrc ? `<div class="meta">аккаунт «${esc(googleSrc)}» системный Календарь уже видит,
+        но ни одного календаря из него, куда можно писать, нет. Открой приложение Календарь → Настройки →
+        Аккаунты → ${esc(googleSrc)} и включи там календари (праздники и дни рождения — только для чтения,
+        в них писать нельзя). Если аккаунт добавлен прямо сейчас — перезапусти Pipboy, список обновится</div>` : ''}
+      ${noGoogle && !googleSrc ? `<div class="meta">гугл-календаря в списке нет — системный Календарь о нём не знает.
         Чтобы события уезжали в Google: Системные настройки → Интернет-аккаунты → Google → включить
         «Календари», один раз открыть приложение Календарь и вернуться сюда. В iCloud писать тоже можно —
-        события будут на Маке и iPhone, просто не в Google</div>` : ''}
+        события будут на Маке и iPhone, просто не в Google${srcs.length ? ` · сейчас Календарь видит: ${esc(srcs.join(', '))}` : ''}</div>` : ''}
       ${chosen && !chosen.google ? `<div class="meta">выбран «${esc(chosen.title)}»${chosen.source ? ' · ' + esc(chosen.source) : ''} —
         это не гугл-календарь: события останутся на Маке и iPhone и в Google не попадут</div>` : ''}
       <div class="task" style="border:0;flex-wrap:wrap">

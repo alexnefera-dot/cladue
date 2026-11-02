@@ -4275,6 +4275,8 @@ enum CalendarSync {
     // календари, куда можно писать; «google» — подсказка интерфейсу, какой из них гугловый
     static func calendars() -> [[String: Any]] {
         guard accessState == "granted" else { return [] }
+        // аккаунт, добавленный в систему уже после запуска приложения, store сам не подхватит
+        store.refreshSourcesIfNecessary()
         return store.calendars(for: .event).filter { $0.allowsContentModifications }.map { c in
             let src = c.source?.title ?? ""
             let low = src.lowercased()
@@ -4283,12 +4285,19 @@ enum CalendarSync {
         }
     }
 
+    // аккаунты, которые видит системный Календарь: по ним понятно, добавлен ли гугл вообще
+    static func sources() -> [String] {
+        guard accessState == "granted" else { return [] }
+        store.refreshSourcesIfNecessary()
+        return store.sources.filter { !$0.calendars(for: .event).isEmpty }.map { $0.title }
+    }
+
     // ----- состояние для экрана настроек
     static func state(_ db: Database) -> [String: Any] {
         var on: [String: Any] = [:]
         for (name, key) in kinds { on[name] = get(db, key) != "0" }   // по умолчанию выгружаем всё
         return ["access": accessState, "on": get(db, kOn) == "1",
-                "calendar": str(get(db, kCal)), "calendars": calendars(),
+                "calendar": str(get(db, kCal)), "calendars": calendars(), "sources": sources(),
                 "kinds": on, "last": str(get(db, kLast))]
     }
 
@@ -4375,7 +4384,10 @@ enum CalendarSync {
         for it in items {
             let known = have[it.key]
             let found = known.flatMap { store.event(withIdentifier: $0.id) }
-            if found != nil && known?.hash == it.hash { continue }       // не менялось — не трогаем
+            // В хеш входит и сам календарь: сменил его в настройках — события переедут в новый,
+            // а не останутся лежать в прежнем, где их уже никто не ждёт.
+            let want = it.hash + "|" + id
+            if found != nil && known?.hash == want { continue }          // не менялось — не трогаем
             let ev = found ?? EKEvent(eventStore: store)
             fill(ev, it, cal)
             do {
@@ -4385,7 +4397,7 @@ enum CalendarSync {
                     VALUES(?,?,?,datetime('now','localtime'))
                     ON CONFLICT(key) DO UPDATE SET event_id = excluded.event_id,
                       hash = excluded.hash, updated_at = excluded.updated_at
-                    """, [it.key, ev.eventIdentifier ?? "", it.hash])
+                    """, [it.key, ev.eventIdentifier ?? "", want])
                 if found == nil { added += 1 } else { updated += 1 }
             } catch { errors.append("\(it.title): \(error)") }
         }
