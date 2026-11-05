@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "индекс-live"
+APP_BUILD = "indexnow"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1937,6 +1937,134 @@ def api_wm_load():
     return jsonify({"user_id": uid, "hosts": len(rows),
                     "verified": sum(1 for r in rows if r["verified"]),
                     "total_in_search": total, "rows": rows})
+
+
+# --------------------------------------------------------------------------- #
+#  IndexNow: отправка URL на переобход (Яндекс/Bing/IndexNow.org)              #
+# --------------------------------------------------------------------------- #
+# Протокол IndexNow: кладёшь файл-ключ на хост (https://host/<key>.txt), затем
+# шлёшь POST со списком URL — поисковик быстрее их переобходит. Запрос уходит с
+# машины пользователя (из песочницы yandex.com недоступен).
+_INDEXNOW_ENDPOINTS = {
+    "yandex": "https://yandex.com/indexnow",
+    "indexnow": "https://api.indexnow.org/indexnow",
+    "bing": "https://www.bing.com/indexnow",
+}
+_INDEXNOW_MSG = {
+    200: "OK — принято",
+    202: "Принято (ключ ещё проверяется)",
+    400: "Неверный формат запроса",
+    403: "Ключ не найден/не подходит — проверьте файл ключа на хосте",
+    422: "URL не с этого хоста или ключ не совпадает",
+    429: "Слишком много запросов — повторите позже",
+}
+
+
+def _norm_url(line):
+    """Строку приводим к полному URL. Пусто/мусор → ''."""
+    s = (line or "").strip()
+    if not s:
+        return ""
+    if "://" not in s:
+        s = "https://" + s
+    pr = urlparse(s)
+    if not pr.scheme.startswith("http") or not pr.netloc:
+        return ""
+    return s if pr.path else s + "/"
+
+
+def _indexnow_group(raw):
+    """Уникальные URL, сгруппированные по хосту (порядок хостов — как встретились)."""
+    seen, groups = set(), {}
+    for line in (raw or "").replace("\r", "\n").split("\n"):
+        u = _norm_url(line)
+        if not u or u in seen:
+            continue
+        seen.add(u)
+        host = url_host(u)
+        if host and "." in host:          # нужен реальный домен с TLD (мусор без точки — мимо)
+            groups.setdefault(host, []).append(u)
+    return groups
+
+
+@app.route("/api/indexnow/push", methods=["POST"])
+def api_indexnow_push():
+    data = request.get_json(force=True, silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not re.match(r"^[A-Za-z0-9-]{8,128}$", key):
+        return jsonify({"error": "Ключ IndexNow: 8–128 символов (латиница, цифры, дефис)."}), 400
+    endpoint = _INDEXNOW_ENDPOINTS.get(data.get("endpoint") or "yandex", _INDEXNOW_ENDPOINTS["yandex"])
+    key_loc_tpl = (data.get("key_location") or "").strip()
+
+    groups = _indexnow_group(data.get("urls"))
+    if not groups:
+        return jsonify({"error": "Добавьте хотя бы один корректный URL или домен."}), 400
+    hosts = list(groups.keys())[:1000]
+
+    def key_location(host):
+        return key_loc_tpl.replace("{host}", host) if key_loc_tpl else f"https://{host}/{key}.txt"
+
+    def submit(host):
+        urls = groups[host][:10000]
+        payload = {"host": host, "key": key, "keyLocation": key_location(host), "urlList": urls}
+        row = {"host": host, "count": len(urls), "status": None, "ok": False, "detail": ""}
+        try:
+            r = requests.post(endpoint, json=payload, timeout=30,
+                              headers={"Content-Type": "application/json; charset=utf-8"})
+        except requests.RequestException as e:
+            row["detail"] = f"сеть: {e}"
+            return row
+        row["status"] = r.status_code
+        row["ok"] = r.status_code in (200, 202)
+        row["detail"] = _INDEXNOW_MSG.get(r.status_code) or (r.text or "")[:160]
+        return row
+
+    rows = []
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        for r in ex.map(submit, hosts):
+            rows.append(r)
+    rows.sort(key=lambda x: (x["ok"], x["host"]))
+    return jsonify({"endpoint": endpoint, "hosts": len(rows),
+                    "urls": sum(r["count"] for r in rows),
+                    "accepted": sum(1 for r in rows if r["ok"]),
+                    "errors": sum(1 for r in rows if not r["ok"]), "rows": rows})
+
+
+@app.route("/api/indexnow/check", methods=["POST"])
+def api_indexnow_check():
+    """Проверить, что файл-ключ реально лежит на каждом хосте и совпадает."""
+    data = request.get_json(force=True, silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"error": "Сначала укажите ключ."}), 400
+    key_loc_tpl = (data.get("key_location") or "").strip()
+    groups = _indexnow_group(data.get("urls"))
+    if not groups:
+        return jsonify({"error": "Добавьте хотя бы один домен/URL."}), 400
+
+    def check(host):
+        loc = key_loc_tpl.replace("{host}", host) if key_loc_tpl else f"https://{host}/{key}.txt"
+        row = {"host": host, "location": loc, "ok": False, "detail": ""}
+        try:
+            r = requests.get(loc, timeout=15)
+        except requests.RequestException as e:
+            row["detail"] = f"сеть: {e}"
+            return row
+        if r.status_code != 200:
+            row["detail"] = f"HTTP {r.status_code} — файла нет?"
+            return row
+        if (r.text or "").strip() == key:
+            row["ok"], row["detail"] = True, "ключ на месте ✓"
+        else:
+            row["detail"] = "файл есть, но содержимое ≠ ключ"
+        return row
+
+    rows = []
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        for r in ex.map(check, list(groups.keys())[:1000]):
+            rows.append(r)
+    rows.sort(key=lambda x: (x["ok"], x["host"]))
+    return jsonify({"hosts": len(rows), "ok": sum(1 for r in rows if r["ok"]), "rows": rows})
 
 
 @app.route("/api/run", methods=["POST"])

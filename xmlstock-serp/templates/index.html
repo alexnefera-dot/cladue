@@ -143,6 +143,7 @@
     <button class="tab" data-tab="launch">📊 Отчёты по запускам</button>
     <button class="tab" data-tab="whois">🕵 Проверка WHOIS</button>
     <button class="tab" data-tab="wm">🔍 Я.Вебмастер</button>
+    <button class="tab" data-tab="inow">📤 IndexNow</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -744,6 +745,66 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 10: INDEXNOW ================= -->
+  <div id="panel-inow" class="hidden">
+    <div class="card">
+      <label>URL или домены — по одному в строке <span class="count" id="in_count">0</span></label>
+      <textarea id="in_urls" placeholder="https://spacewin.k4r.team/page1&#10;spacewin.k4r.team&#10;https://example.casino/bonus"></textarea>
+      <div class="hint">Отправляем эти адреса в <b>IndexNow</b> — поисковик (Яндекс/Bing) быстрее их переобходит. Голый домен превратится в <code>https://домен/</code>. URL группируются по хосту автоматически (у IndexNow один запрос = один хост).</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Куда слать</label>
+          <select id="in_endpoint">
+            <option value="yandex" selected>Яндекс</option>
+            <option value="indexnow">IndexNow.org (все сразу)</option>
+            <option value="bing">Bing</option>
+          </select>
+        </div>
+        <div style="grid-column:span 2">
+          <label>Ключ IndexNow</label>
+          <input id="in_key" placeholder="8–128 симв.: латиница/цифры/дефис">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn-ghost" id="in_gen" type="button" style="width:100%">🎲 Сгенерировать</button>
+        </div>
+      </div>
+
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--muted);font-size:13px">Свой адрес файла-ключа (необязательно)</summary>
+        <div style="margin-top:8px">
+          <input id="in_keyloc" placeholder="по умолчанию https://{host}/КЛЮЧ.txt — можно задать свой, {host} подставится">
+        </div>
+      </details>
+
+      <div class="hint" id="in_keyhint" style="margin-top:10px"></div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="btn-go" id="in_push">▶ Отправить в переобход</button>
+        <button class="btn-ghost" id="in_check" type="button">🔎 Проверить файлы ключа</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="in_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Хостов</span><b id="in_hosts">0</b></div>
+          <div><span class="muted">URL</span><b id="in_total">0</b></div>
+          <div class="ok"><span class="muted">Принято</span><b id="in_ok">0</b></div>
+          <div><span class="muted">Ошибок</span><b id="in_errs">0</b></div>
+        </div>
+        <button class="btn-dl hidden" id="in_dlCsv">⬇ CSV</button>
+      </div>
+      <div class="tbl-wrap" style="margin-top:12px">
+        <table class="pos" id="in_table">
+          <thead><tr><th>Хост</th><th>URL</th><th>Статус</th><th>Ответ</th></tr></thead>
+          <tbody id="in_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint err-text" id="in_err" style="color:var(--warn)"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
@@ -790,6 +851,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-launch").classList.toggle("hidden", t.dataset.tab!=="launch");
   $("panel-whois").classList.toggle("hidden", t.dataset.tab!=="whois");
   $("panel-wm").classList.toggle("hidden", t.dataset.tab!=="wm");
+  $("panel-inow").classList.toggle("hidden", t.dataset.tab!=="inow");
 });
 
 // ---- движок / свой URL ----
@@ -1573,6 +1635,63 @@ $("wm_dlCsv").onclick = ()=>{
   const lines=[head.join(";")].concat(wmRows.map(r=>[r.host, r.in_search==null?"":r.in_search, r.sqi==null?"":r.sqi, r.verified?"да":"нет", (r.error||"").replace(/;/g,",")].join(";")));
   const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="webmaster_index.csv"; a.click();
+};
+
+// ===================== ВКЛАДКА 10: INDEXNOW =====================
+let inRows=[];
+(function(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_inow")||"{}"); ["in_urls","in_key","in_endpoint","in_keyloc"].forEach(f=>{ if(o[f]!==undefined&&$(f)) $(f).value=o[f]; }); }catch(e){} inKeyHint(); inCount(); })();
+function inSave(){ const o={}; ["in_urls","in_key","in_endpoint","in_keyloc"].forEach(f=> o[f]=$(f).value); try{ localStorage.setItem("xmlstock_inow",JSON.stringify(o)); }catch(e){} }
+function inCount(){ $("in_count").textContent=lines("in_urls")+" стр."; }
+["in_urls","in_key","in_endpoint","in_keyloc"].forEach(f=> $(f).addEventListener("input", ()=>{ inSave(); if(f==="in_key"||f==="in_keyloc") inKeyHint(); if(f==="in_urls") inCount(); }));
+function inKeyHint(){
+  const k=($("in_key").value||"").trim();
+  $("in_keyhint").innerHTML = k
+    ? `Положи файл <code>${esc(k)}.txt</code> с одной строкой — самим ключом — в корень каждого домена: <code>https://домен/${esc(k)}.txt</code>. Без этого файла поисковик отклонит URL (403).`
+    : "Нажми «Сгенерировать» — получишь ключ и инструкцию, куда положить файл.";
+}
+$("in_gen").onclick = ()=>{
+  const hex="0123456789abcdef"; let k=""; for(let i=0;i<32;i++) k+=hex[Math.floor(Math.random()*16)];
+  $("in_key").value=k; inSave(); inKeyHint();
+};
+function inStart(){
+  $("in_panel").classList.remove("hidden"); $("in_tbody").innerHTML='<tr><td colspan="4" class="muted">отправляю…</td></tr>';
+  $("in_err").textContent=""; $("in_dlCsv").classList.add("hidden");
+  ["in_hosts","in_total","in_ok","in_errs"].forEach(id=>$(id).textContent="0");
+  $("in_panel").scrollIntoView({behavior:"smooth"});
+}
+function inRender(d, mode){
+  $("in_hosts").textContent=d.hosts||0;
+  if(mode==="push"){ $("in_total").textContent=d.urls||0; $("in_ok").textContent=d.accepted||0; $("in_errs").textContent=d.errors||0; }
+  else { $("in_total").textContent="—"; $("in_ok").textContent=d.ok||0; $("in_errs").textContent=(d.hosts||0)-(d.ok||0); }
+  inRows=d.rows||[];
+  $("in_tbody").innerHTML = inRows.map(r=>{
+    const ok = r.ok ? '<span class="p-top">да</span>' : '<span class="p-no">нет</span>';
+    const st = mode==="push" ? (r.status!=null?r.status:"—") : ok;
+    const cnt = mode==="push" ? (r.count!=null?r.count:"—") : "—";
+    return `<tr><td>${esc(r.host)}</td><td>${cnt}</td><td>${mode==="push"?`<b class="${r.ok?'p-top':'p-no'}">${st}</b>`:ok}</td><td>${esc(r.detail||"")}</td></tr>`;
+  }).join("") || '<tr><td colspan="4" class="miss">Нет данных.</td></tr>';
+  if(inRows.length) $("in_dlCsv").classList.remove("hidden");
+}
+async function inCall(url, mode, btn){
+  hideErr();
+  if(!$("in_urls").value.trim()){ showErr("Добавьте хотя бы один URL или домен."); return; }
+  if(!$("in_key").value.trim()){ showErr("Укажите ключ IndexNow (или нажмите «Сгенерировать»)."); return; }
+  $(btn).disabled=true; inStart();
+  try{
+    const payload={ urls:$("in_urls").value, key:$("in_key").value.trim(), endpoint:$("in_endpoint").value, key_location:$("in_keyloc").value.trim() };
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); $("in_tbody").innerHTML=""; $(btn).disabled=false; return; }
+    inRender(d, mode);
+  }catch(e){ showErr("Нет связи с сервером: "+e); }
+  $(btn).disabled=false;
+}
+$("in_push").onclick  = ()=> inCall("/api/indexnow/push","push","in_push");
+$("in_check").onclick = ()=> inCall("/api/indexnow/check","check","in_check");
+$("in_dlCsv").onclick = ()=>{
+  const lines=["host;count;ok;status;detail"].concat(inRows.map(r=>[r.host, r.count==null?"":r.count, r.ok?"да":"нет", r.status==null?"":r.status, (r.detail||"").replace(/;/g,",")].join(";")));
+  const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="indexnow.csv"; a.click();
 };
 </script>
 </body>
