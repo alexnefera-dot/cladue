@@ -1475,6 +1475,50 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   row with «Брендов 2», the registrable column, the rejected row is present, and `['door']` leaves
   only doors) and `PanelTest::testSerpAnalysisPageAndEndpoint` (both downloads over HTTP and
   `file=hosts` in the browser-rendered page).
+  EVERY BRAND IS ITS OWN LIFE (1.55.0) — «у каждого бренда показывать в таблице процент доров,
+  трастов, изменения, не только вверху общей массой… каждый бренд = это своя жизнь и там свои типы
+  сайтов лидеры». The list answered only «сколько доров» per brand: `door_share` and the capture
+  bucket. Everything else about a brand's composition lived in the GLOBAL stats row, where it says
+  nothing about the brand you are looking at. `build()` now computes `vis_by_type` per brand — the
+  share of the brand's VISIBILITY held by each of the five types, of which `door_share` is simply the
+  `door` element (one number, one definition, no second way to compute it). Visibility, not site
+  count: five sites in the tail of the top and one at #1 are the same composition by count and
+  opposite by who holds the brand. Page: a «Состав» column between «Захват» and «Доля лидера» — a
+  100% stacked bar (`compCell()`, `TYPE_ORDER`) plus the two biggest types named under it with their
+  deltas, and the full composition in the cell's tooltip; the opened brand gets `compTable()` under
+  «Итого по бренду» (type · share · sites · delta). The five segment colors are the dataviz skill's
+  categorical slots 1–5, run through `validate_palette.js` against THIS page's surfaces (#fff and
+  the card's #1a2029): both modes pass the lightness band, chroma floor, CVD separation and the
+  normal-vision floor; light carries a contrast WARN on three slots, which is why the labels under
+  the bar and the table in the opened brand are mandatory, not decoration. The page legend now
+  carries the same colors as the bar (`.sw.door` …) — a legend in other colors than the mark is
+  worse than none. Sorts `known_share`/`theme_share` (generic: any `<type>_share`) answer «где
+  держат трасты», and `brandsCsv()` gained five «Доля видимости: <тип> %» columns.
+  SNAPSHOT PICKER, A MONTH DEEP (1.55.0) — «страницу выбора снимков выдачи (будем хранить за месяц),
+  при выборе снимка показывать ту выгрузку». `/serp` was always built from `runs/current/results.csv`,
+  which describes ONE collect — the last one. Snapshots of every collect were already written by
+  `SerpHistory` (numbers per brand, no rows — rows would be megabytes), so the picker renders those:
+  `SerpHistory::snapshots()` lists them (id, date, top, brand count), `byId()` returns one WITH the
+  snapshot before it (so «прошлый сбор» means the one before the SELECTED collect, not the
+  second-newest overall), and `asAnalysis()` turns a snapshot into the same shape `build()` returns.
+  What a snapshot cannot answer comes back empty, never zero: `board`/`queries` are `[]`,
+  `strong_door` is `null`, `freshness` is `null`, and the page hides those summary rows, relabels the
+  stat tiles («сайтов по брендам» — the per-brand sum, since distinct sites are not stored) and dims
+  the CSV buttons with a note saying rows exist only for the current collect. `snapshot()` stores the
+  new `bv` (`vis_by_type`) next to `by` (counts), `compare()` returns `bv_was`/`bv_delta` per type
+  (`shareDelta()` skips types that were 0 in both), and `record()` prunes with `KEEP_DAYS` (31) —
+  the newest record always survives, so there is always something to compare with. Covered by
+  `SerpHistoryTest::testKeepsSnapshotsForAMonthAndListsThemForPicking` /
+  `testSnapshotRendersAsAnalysisWithoutInventingRows`,
+  `SerpAnalysisTest::testEachBrandHasItsOwnCompositionByType` and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (`?snap=` returns that collect's numbers and compares
+  with the one before it; the rendered page carries «Состав», `class="comp"` and the picker).
+  THE PANEL'S OWN SHEBANG BROKE IT ON PHP < 8.4 (1.55.0) — found when the whole PanelTest file failed
+  in a container with PHP 8.3: `bin/panel.php` is its own `php -S` ROUTER, and there the line
+  `#!/usr/bin/env php` is printed as text before `<?php`, so `declare(strict_types=1)` is no longer
+  the first statement and PHP fatals on every request. PHP 8.4 strips it, earlier versions do not,
+  while the project supports 8.1+. The shebang is gone; the file is always started as
+  «php bin/panel.php». Keep it that way.
   THE SUMMARY IS A TABLE, NOT FIVE PARAGRAPHS (1.52.0) — «ты даёшь текстом много инфы, но их сложно
   читать, сделай табличкой, выдели параметры и тп, чтоб это было информативно с первого взгляда».
   Everything added since 1.42.0 had been appended to the block above the list as one more SENTENCE,

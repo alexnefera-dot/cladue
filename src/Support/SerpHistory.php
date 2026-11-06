@@ -23,6 +23,9 @@ final class SerpHistory
     /** Сколько сборов помнить: ~25 КБ на сбор из 165 брендов, два месяца ежедневных сборов. */
     public const LIMIT = 60;
 
+    /** За сколько дней держим снимки: «будем хранить за месяц». Старше — удаляются при записи. */
+    public const KEEP_DAYS = 31;
+
     /** Доля считается изменившейся от этого значения в процентных пунктах — ниже это шум округления. */
     public const EPS = 0.1;
 
@@ -57,6 +60,9 @@ final class SerpHistory
                 // Состав бренда по типам сайтов: по нему видно РОТАЦИЮ — бренд держали доры,
                 // стали держать тематические домены. Пять маленьких чисел на бренд.
                 'by' => array_map('intval', (array) ($brand['counts'] ?? [])),
+                // И он же по ДОЛЕ ВИДИМОСТИ: пять сайтов внизу топа и один на первом месте — это
+                // один и тот же состав по счёту и совсем разный по тому, кто держит бренд.
+                'bv' => array_map('floatval', (array) ($brand['vis_by_type'] ?? [])),
             ];
         }
 
@@ -110,11 +116,157 @@ final class SerpHistory
             array_shift($records);
         }
         array_unshift($records, $snapshot);
-        $records = array_slice($records, 0, self::LIMIT);
+        $records = self::prune($records, $at ?? time());
         $file = rtrim($runsDir, '/') . '/' . self::FILE;
         @file_put_contents($file, (string) json_encode($records, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
 
         return $snapshot;
+    }
+
+    /**
+     * Оставить снимки за последний месяц (и не больше LIMIT штук). Самый свежий остаётся всегда,
+     * даже если часы на машине ушли: без него сравнивать будет не с чем.
+     *
+     * @param list<array<string, mixed>> $records
+     * @return list<array<string, mixed>>
+     */
+    private static function prune(array $records, int $now): array
+    {
+        $edge = $now - self::KEEP_DAYS * 86400;
+        $kept = [];
+        foreach ($records as $i => $rec) {
+            $at = strtotime((string) ($rec['at'] ?? '')) ?: 0;
+            if ($i === 0 || $at === 0 || $at >= $edge) {
+                $kept[] = $rec;
+            }
+        }
+
+        return array_slice($kept, 0, self::LIMIT);
+    }
+
+    /**
+     * Список снимков для выбора на странице: только «паспорт» каждого сбора, без брендов.
+     *
+     * @return list<array{id: string, at: string, top: int, brands: int, is_last: bool}>
+     */
+    public static function snapshots(string $runsDir): array
+    {
+        $out = [];
+        foreach (self::load($runsDir) as $i => $rec) {
+            $out[] = [
+                'id' => (string) ($rec['id'] ?? ''),
+                'at' => (string) ($rec['at'] ?? ''),
+                'top' => (int) ($rec['top'] ?? 0),
+                'brands' => count((array) ($rec['brands'] ?? [])),
+                'is_last' => $i === 0,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Снимок по идентификатору — чтобы показать выдачу того сбора, а не только текущего.
+     *
+     * @return array{snap: array<string, mixed>, prev: array<string, mixed>|null}|null
+     */
+    public static function byId(string $runsDir, string $id): ?array
+    {
+        $records = self::load($runsDir);
+        foreach ($records as $i => $rec) {
+            if ((string) ($rec['id'] ?? '') === $id && $id !== '') {
+                return ['snap' => $rec, 'prev' => $records[$i + 1] ?? null];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Снимок → список брендов в том же виде, в каком его рисует страница. Строк выдачи в снимке нет
+     * (их не хранят — это мегабайты), поэтому поля, которых нет, заполняются честными пустыми
+     * значениями, а страница говорит, чего в старом снимке нет.
+     *
+     * @param array<string, mixed> $snap
+     * @return array<string, mixed> разбор той же формы, что отдаёт SerpAnalysis::build()
+     */
+    public static function asAnalysis(array $snap): array
+    {
+        $brands = [];
+        $totals = array_fill_keys(array_keys(SerpAnalysis::TYPES), 0);
+        $capture = ['door' => 0, 'mixed' => 0, 'other' => 0, 'nobrand' => 0];
+        $captureLeader = $capture;
+        $sites = 0;
+        $ownDoors = 0;
+        $strong = 0;
+        $real = 0;
+        foreach ((array) ($snap['brands'] ?? []) as $key => $b) {
+            $key = (string) $key;
+            $counts = array_map('intval', (array) ($b['by'] ?? []));
+            $byVis = array_map('floatval', (array) ($b['bv'] ?? []));
+            foreach ($totals as $t => $_) {
+                $totals[$t] += $counts[$t] ?? 0;
+            }
+            $cap = (string) ($b['cap'] ?? '');
+            $bucket = $key === '' ? 'nobrand' : (isset($capture[$cap]) ? $cap : 'other');
+            $capture[$bucket]++;
+            $lt = (string) ($b['lt'] ?? '');
+            if ($lt === 'door') {
+                $captureLeader[$bucket]++;
+            }
+            $sites += (int) ($b['sites'] ?? 0);
+            $ownDoors += (int) ($b['own'] ?? 0);
+            if ($key !== '') {
+                $real++;
+            }
+            $lead = (string) ($b['lead'] ?? '');
+            $brands[] = [
+                'key' => $key,
+                'label' => (string) ($b['label'] ?? $key),
+                'capture' => $cap,
+                'capture_label' => SerpAnalysis::CAPTURE[$cap] ?? '',
+                'door_share' => (float) ($b['ds'] ?? 0),
+                'vis_by_type' => $byVis,
+                'counts' => $counts,
+                'sites' => (int) ($b['sites'] ?? 0),
+                'query_count' => (int) ($b['keys'] ?? 0),
+                'rows' => 0,
+                'fresh_sites' => (int) ($b['fresh'] ?? 0),
+                'own_doors' => (int) ($b['own'] ?? 0),
+                'our_share' => (float) ($b['os'] ?? 0),
+                'our_best' => null,
+                'leader' => $lead === '' ? null : ['host' => $lead, 'type' => $lt,
+                    'share' => (float) ($b['ls'] ?? 0), 'own' => false, 'keys' => 0, 'best' => 0, 'top3' => 0],
+                'board' => [],
+                'queries' => [],
+                'crossed' => 0,
+                'networked' => 0,
+                // Этих чисел в снимке нет: показывать ноль как измерение нельзя, поэтому пусто.
+                'strong_door' => null,
+                'doors_strong' => null,
+                'door_best' => null,
+                'door_best_host' => '',
+                'door_best_own' => false,
+            ];
+        }
+        usort($brands, static fn (array $a, array $b): int => ($a['key'] === '') <=> ($b['key'] === '')
+            ?: $b['query_count'] <=> $a['query_count'] ?: strcmp((string) $a['label'], (string) $b['label']));
+
+        return [
+            'brands' => $brands,
+            'totals' => $totals,
+            'totals_sum' => $totals,
+            'repeats' => ['sites' => 0, 'by_type' => array_fill_keys(array_keys(SerpAnalysis::TYPES), 0)],
+            'own' => ['doors' => $ownDoors, 'sites' => 0, 'by_reason' => []],
+            'capture' => $capture,
+            'capture_leader' => $captureLeader,
+            'strong_doors' => ['brands' => $strong, 'of' => $real],
+            'sites' => $sites,
+            'results' => 0,
+            'queries' => array_sum(array_map(static fn (array $b): int => (int) $b['query_count'], $brands)),
+            'freshness' => ['rows' => 0, 'total' => 0],
+            'from_snapshot' => true,
+        ];
     }
 
     /**
@@ -158,6 +310,13 @@ final class SerpHistory
                 'cap_dir' => (self::RANK[(string) ($brand['capture'] ?? '')] ?? 0) <=> (self::RANK[(string) $old['cap']] ?? 0),
                 'ds_was' => (float) $old['ds'],
                 'ds_delta' => round($ds - (float) $old['ds'], 1),
+                // Сдвиг по КАЖДОМУ типу: «доров стало меньше» ничего не говорит о том, кто занял
+                // их место — трастовые площадки, тематические домены или соцсети.
+                'bv_was' => array_map('floatval', (array) ($old['bv'] ?? [])),
+                'bv_delta' => self::shareDelta(
+                    (array) ($brand['vis_by_type'] ?? []),
+                    (array) ($old['bv'] ?? []),
+                ),
                 'lead_was' => (string) $old['lead'],
                 'lead_changed' => $host !== '' && (string) $old['lead'] !== '' && $host !== (string) $old['lead'],
                 'os_was' => (float) $old['os'],
@@ -183,6 +342,29 @@ final class SerpHistory
         }
 
         return ['brands' => $out, 'gone' => $gone];
+    }
+
+    /**
+     * Разница долей по типам, в процентных пунктах. Типы, которых не было ни там ни там, пропускаем:
+     * пустая строка в подсказке — это шум.
+     *
+     * @param array<string, float> $now
+     * @param array<string, float> $was
+     * @return array<string, float>
+     */
+    private static function shareDelta(array $now, array $was): array
+    {
+        $out = [];
+        foreach (array_keys(SerpAnalysis::TYPES) as $type) {
+            $a = (float) ($now[$type] ?? 0);
+            $b = (float) ($was[$type] ?? 0);
+            if ($a === 0.0 && $b === 0.0) {
+                continue;
+            }
+            $out[$type] = round($a - $b, 1);
+        }
+
+        return $out;
     }
 
     /**

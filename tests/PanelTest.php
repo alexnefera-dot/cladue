@@ -1471,6 +1471,9 @@ final class PanelTest
             $rh = json_decode((string) $this->http('POST', $base . '/api/reset-history', []), true);
             Assert::true($rh['ok'] ?? false, json_encode($rh));
             Assert::same(2, $rh['records'], 'удалены обе записи');
+            // Файл писал этот процесс, а удалял процесс панели: без сброса кэша stat is_file()
+            // ответит по своей старой записи, а не по диску.
+            clearstatcache(true, $dir . '/runs/history.json');
             Assert::false(is_file($dir . '/runs/history.json'), 'история удалена');
             Assert::same(1, (json_decode((string) $this->http('GET', $base . '/api/state'), true))['base_domains'], 'база доменов не тронута');
         } finally {
@@ -1606,7 +1609,17 @@ final class PanelTest
             ]],
             ['id' => 'prev', 'at' => date(DATE_ATOM, time() - 86400), 'top' => 10, 'brands' => [
                 'vulkan' => ['label' => 'vulkan', 'cap' => 'other', 'ds' => 10.0, 'sites' => 2, 'doors' => 0,
-                    'keys' => 2, 'lead' => 'bylo-vulkan.ru', 'lt' => 'theme', 'ls' => 50.0, 'own' => 0, 'os' => 0.0, 'fresh' => 0],
+                    'keys' => 2, 'lead' => 'bylo-vulkan.ru', 'lt' => 'theme', 'ls' => 50.0, 'own' => 0, 'os' => 0.0, 'fresh' => 0,
+                    'by' => ['door' => 0, 'theme' => 1, 'social' => 0, 'known' => 1, 'other' => 0],
+                    // Состав по доле видимости: тогда бренд держали тематический домен и траст.
+                    'bv' => ['door' => 10.0, 'theme' => 60.0, 'social' => 0.0, 'known' => 30.0, 'other' => 0.0]],
+            ]],
+            // Снимок месячной давности: он в выборе есть, но в сравнение не попадает.
+            ['id' => 'old', 'at' => date(DATE_ATOM, time() - 20 * 86400), 'top' => 10, 'brands' => [
+                'vulkan' => ['label' => 'vulkan', 'cap' => 'other', 'ds' => 0.0, 'sites' => 1, 'doors' => 0,
+                    'keys' => 1, 'lead' => 'staryi.ru', 'lt' => 'theme', 'ls' => 100.0, 'own' => 0, 'os' => 0.0, 'fresh' => 0,
+                    'by' => ['door' => 0, 'theme' => 1, 'social' => 0, 'known' => 0, 'other' => 0],
+                    'bv' => ['door' => 0.0, 'theme' => 100.0, 'social' => 0.0, 'known' => 0.0, 'other' => 0.0]],
             ]],
         ], JSON_UNESCAPED_UNICODE));
         $mk = static fn (string $q, int $pos, string $host, string $title, string $reason): array => [
@@ -1705,6 +1718,40 @@ final class PanelTest
                 'доля доров между порогами: ' . $byKey['vulkan']['door_share'],
             );
             Assert::same('door', $byKey['lex']['capture'], 'в бренде только дор — забран дорами');
+
+            // СОСТАВ БРЕНДА ПО ТИПАМ. «Захват» отвечает только про доры, а держать бренд может что
+            // угодно — у каждого бренда свой состав, и доли считаются по видимости, не по числу сайтов.
+            $vb = $byKey['vulkan']['vis_by_type'];
+            Assert::same(5, count($vb), 'доля по каждому типу');
+            Assert::same($byKey['vulkan']['door_share'], $vb['door'], 'доля доров — часть того же состава');
+            Assert::true(abs(array_sum($vb) - 100.0) < 0.5, 'доли в сумме дают 100%: ' . array_sum($vb));
+            Assert::true($vb['social'] > 0 || $vb['known'] > 0, 'в гибриде есть не только доры');
+            Assert::same(100.0, (float) $byKey['lex']['vis_by_type']['door'], 'в бренде из одного дора состав однороден');
+
+            // СНИМКИ ЗА МЕСЯЦ: их список приходит для выбора, и по выбранному снимку страница
+            // показывает ТОТ сбор, а не текущий.
+            $snaps = $j['snapshots'];
+            Assert::true(count($snaps) >= 3, 'в выборе все снимки: ' . count($snaps));
+            Assert::same('now', $snaps[0]['id'], 'свежий снимок первым');
+            Assert::true($snaps[0]['is_last'], 'он же описывает текущий сбор');
+            Assert::false($j['from_snapshot'], 'без параметра показываем текущий сбор');
+
+            $s1 = json_decode((string) $this->http('GET', $base . '/api/serp?snap=prev'), true);
+            Assert::true($s1['ok'] ?? false, json_encode($s1));
+            Assert::true($s1['from_snapshot'], 'разбор собран из снимка');
+            Assert::same('prev', $s1['snapshot']['id']);
+            $sb = $s1['brands'][0];
+            Assert::same('vulkan', $sb['key']);
+            Assert::same(10.0, (float) $sb['door_share'], 'числа того сбора, а не текущего');
+            Assert::same('bylo-vulkan.ru', $sb['leader']['host'], 'и лидер тот же, что был тогда');
+            Assert::same(60.0, (float) $sb['vis_by_type']['theme'], 'состав по типам хранится в снимке');
+            // Сравнение идёт со снимком ПЕРЕД выбранным, а не с предпоследним вообще.
+            Assert::same(100.0, (float) $sb['changed']['bv_was']['theme'], 'было 100% тематических');
+            Assert::same(-40.0, (float) $sb['changed']['bv_delta']['theme'], 'и просело на 40 п.п.');
+            Assert::null($s1['freshness'], 'свежести в снимке нет — ноль был бы выдумкой');
+
+            $bad = json_decode((string) $this->http('GET', $base . '/api/serp?snap=netakogo'), true);
+            Assert::false($bad['ok'] ?? true, 'несуществующий снимок — понятная ошибка');
             Assert::same(100.0, (float) $byKey['lex']['door_share']);
             Assert::same(['door' => 1, 'mixed' => 1, 'other' => 0, 'nobrand' => 0], $j['capture'], 'счёт по типам захвата');
             // Дор стоит первым в обоих блоках — это отдельный счёт рядом с захватом.
@@ -1745,22 +1792,22 @@ final class PanelTest
             Assert::same('door', $flip['to'], 'стал забирать дор');
             Assert::same(1, (int) $flip['ago'], 'сколько сборов назад это случилось');
             // Ряд для спарклайна в списке — по строке на сбор, от старых к новым.
-            Assert::same(2, count($byKey['vulkan']['spark']['os']), 'ряд нашей доли по сборам');
+            Assert::same(3, count($byKey['vulkan']['spark']['os']), 'ряд нашей доли по сборам');
             Assert::same(0.0, (float) $byKey['vulkan']['spark']['os'][0], 'в прошлом сборе нас там не было');
             Assert::true($ch['ds_delta'] > 0, 'доля доров выросла: ' . $ch['ds_delta']);
             Assert::same(1, (int) $j['changes']['lead_changed'], 'итог по изменениям');
             Assert::same(1, (int) $j['changes']['new'], 'бренда «лекс» в прошлом сборе не было');
             // Динамика одного бренда по сборам приезжает вместе с ним.
             $trend = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true)['trend'];
-            Assert::same(2, count($trend), 'строка на сбор');
+            Assert::same(3, count($trend), 'строка на сбор');
             Assert::same('kush.grid-x.ru', $trend[0]['lead'], 'сверху текущий сбор');
             Assert::same('bylo-vulkan.ru', $trend[1]['lead']);
 
             // ГРАФИК ПО СБОРАМ строится из той же истории: по строке на сбор, от старых к новым.
-            Assert::same(2, count($j['overview']), 'сводка по каждому сбору');
+            Assert::same(3, count($j['overview']), 'сводка по каждому сбору');
             Assert::true($j['overview'][0]['at'] <= $j['overview'][1]['at'], 'от старых к новым');
-            Assert::same(1, (int) $j['overview'][1]['own_brands'], 'брендов, где есть наш дор');
-            Assert::same(1, (int) $j['overview'][1]['own_doors'], 'наших доров всего');
+            Assert::same(1, (int) $j['overview'][2]['own_brands'], 'брендов, где есть наш дор');
+            Assert::same(1, (int) $j['overview'][2]['own_doors'], 'наших доров всего');
 
             // ВЫГРУЗКА РАЗБОРА: одна строка на бренд — чтобы делить бренды самому, а не только фильтрами.
             $csv = (string) $this->http('GET', $base . '/download?file=serp', null, $csvCode);
@@ -1828,6 +1875,13 @@ final class PanelTest
                 Assert::contains('наш дор', $rendered, 'число наших доров стоит рядом с нашей долей');
                 Assert::contains('class="spark"', $rendered, 'спарклайн нарисован прямо в строке бренда');
                 Assert::contains('class="rot"', $rendered, 'ротация типа — своей строкой в ряду бренда');
+                // СОСТАВ БРЕНДА: колонка и сама полоса долей по типам — у каждого бренда свой состав.
+                Assert::contains('Состав', $rendered, 'колонка состава есть в шапке списка');
+                Assert::contains('class="comp"', $rendered, 'полоса долей по типам нарисована в ряду');
+                Assert::contains('--s-door', $rendered, 'сегменты окрашены по типам');
+                // Выбор снимка: список сборов за месяц приезжает в селект.
+                Assert::contains('id="snap"', $rendered, 'селект выбора снимка на месте');
+                Assert::contains('текущий сбор', $rendered, 'и первым пунктом — текущий сбор');
                 Assert::contains('Отметка переобхода', $rendered, 'строка про свежесть выдачи — в сводке');
                 Assert::contains('источник не отдаёт', $rendered,
                     'колонка в файле есть, значит причина пустой «Свежести» — источник, так и написано');

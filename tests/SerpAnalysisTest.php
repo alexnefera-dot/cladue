@@ -236,6 +236,10 @@ final class SerpAnalysisTest
         // Берёт ли место хотя бы один дор — колонками, чтобы список делился и в Excel: по сумме
         // доров («Доля доров %») этого вопроса не задать.
         Assert::contains('Дор от 5%', $lines[0]);
+        // Состав бренда по типам — в тех же колонках, что и на странице: по сумме доров не видно,
+        // чем держится бренд, где доров мало.
+        Assert::contains('Доля видимости: доры (поддомены) %', $lines[0]);
+        Assert::contains('Доля видимости: известные сайты рунета %', $lines[0]);
         Assert::contains('Доля лучшего дора %', $lines[0]);
         Assert::contains('Лучший дор', $lines[0]);
         Assert::contains(';да;80,5;kush.ourbase.ru;да;2', $lines[1], 'есть дор, его доля, он сам и сколько таких');
@@ -551,6 +555,33 @@ final class SerpAnalysisTest
         // А вот когда колонки нет вовсе — причина другая и лечение другое: не источник, а старый файл.
         Assert::contains('нет колонки modtime', SerpAnalysis::freshnessText($old, false, 'xmlstock'),
             'две причины нулевой свежести не должны звучать одинаково');
+    }
+
+    public function testEachBrandHasItsOwnCompositionByType(): void
+    {
+        // У каждого бренда своя жизнь: один держат доры, другой — трастовые площадки рунета.
+        // Доля доров отвечает только про доры, поэтому состав считается по ВСЕМ типам — и по доле
+        // видимости, а не по числу сайтов: пять сайтов внизу топа держат меньше одного первого.
+        $rows = [
+            $this->row('вулкан казино', 1, 'vk.com'),                 // соцсеть на первом месте
+            $this->row('вулкан казино', 2, 'kush.grid-x.ru'),         // дор
+            $this->row('вулкан казино', 9, 'lenta.ru'),               // известный сайт в хвосте
+            $this->row('лекс казино', 1, 'leks.grid-x.ru'),           // здесь только дор
+        ];
+
+        $brands = [];
+        foreach (SerpAnalysis::build($rows, 10)['brands'] as $b) {
+            $brands[(string) $b['key']] = $b;
+        }
+        $v = $brands['vulkan']['vis_by_type'];
+
+        Assert::same(5, count($v), 'доля по каждому типу, даже нулевая');
+        Assert::true(abs(array_sum($v) - 100.0) < 0.5, 'в сумме 100%: ' . array_sum($v));
+        Assert::true($v['social'] > $v['door'], 'соцсеть на первом месте держит больше дора на втором');
+        Assert::true($v['known'] < $v['door'], 'девятое место держит меньше второго');
+        Assert::same($brands['vulkan']['door_share'], $v['door'], 'доля доров — часть того же состава');
+        Assert::same(100.0, $brands['lex']['vis_by_type']['door'], 'бренд из одного дора: весь состав — доры');
+        Assert::same(0.0, $brands['lex']['vis_by_type']['theme'], 'а остальные типы — честный ноль');
     }
 
     public function testSeesWhetherResultsCsvEvenHasTheFreshnessColumn(): void

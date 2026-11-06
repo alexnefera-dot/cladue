@@ -242,12 +242,14 @@ final class SerpAnalysis
             // «присутствует на всех ключах десятым» и «держит первое место» наконец перестают
             // выглядеть одинаково, а по доле лидера сразу видно, насколько бренд вообще занят.
             $visTotal = 0.0;
-            $doorVis = 0.0;
+            // Видимость по КАЖДОМУ типу, а не только по дорам: у каждого бренда своя жизнь — один
+            // держат доры, другой трастовые площадки рунета, третий тематические домены, и по одной
+            // доле доров этого не видно. Доля доров ниже — просто один из элементов этого массива.
+            $visByType = array_fill_keys(array_keys(self::TYPES), 0.0);
             foreach ($brand['hosts'] as $info) {
                 $visTotal += (float) $info['vis'];
-                if ($info['type'] === 'door') {
-                    $doorVis += (float) $info['vis'];
-                }
+                $type = (string) $info['type'];
+                $visByType[$type] = ($visByType[$type] ?? 0.0) + (float) $info['vis'];
             }
             $freshSites = 0;
             foreach ($brand['hosts'] as $host => $info) {
@@ -284,7 +286,11 @@ final class SerpAnalysis
             $brand['own_doors'] = $ownDoors;
             // ЧЕМ ЗАБРАН БРЕНД. Доля видимости доров, а не их число: именно по ней бренды делятся на
             // «массово доры», «не доры» и гибриды, и именно это решает, лезть ли в бренд дором вообще.
-            $brand['door_share'] = $visTotal > 0 ? round(100 * $doorVis / $visTotal, 1) : 0.0;
+            $brand['vis_by_type'] = array_map(
+                static fn (float $v): float => $visTotal > 0 ? round(100 * $v / $visTotal, 1) : 0.0,
+                $visByType,
+            );
+            $brand['door_share'] = $brand['vis_by_type']['door'];
             $brand['capture'] = self::captureOf($brand['door_share']);
             $brand['capture_label'] = self::CAPTURE[$brand['capture']];
             // ЕСТЬ ЛИ ЗДЕСЬ ДОР, КОТОРЫЙ РЕАЛЬНО ЗАБИРАЕТ (см. DOOR_SHARE_MIN). Доска уже
@@ -638,6 +644,11 @@ final class SerpAnalysis
         $head[] = 'Лучший дор';
         $head[] = 'Лучший дор наш';
         $head[] = 'Доров от ' . $thr . '%';
+        // СОСТАВ БРЕНДА ПО ДОЛЕ ВИДИМОСТИ. Колонки с числом сайтов по типам есть выше, но держит
+        // бренд не счёт сайтов: пять в хвосте топа и один на первом месте — разные вещи.
+        foreach (self::TYPES as $label) {
+            $head[] = 'Доля видимости: ' . $label . ' %';
+        }
         $out = fopen('php://temp', 'r+');
         if ($out === false) {
             return '';
@@ -678,6 +689,7 @@ final class SerpAnalysis
             }
             $row[] = (int) ($diff['added']['total'] ?? 0);
             $row[] = (int) ($diff['removed']['total'] ?? 0);
+            $visByType = (array) ($brand['vis_by_type'] ?? []);
             $ch = $brand['changed'] ?? null;
             if (is_array($ch) && empty($ch['is_new'])) {
                 $row[] = self::CAPTURE[(string) $ch['cap_was']] ?? '';
@@ -707,6 +719,9 @@ final class SerpAnalysis
             $row[] = (string) ($brand['door_best_host'] ?? '');
             $row[] = ($brand['door_best_host'] ?? '') === '' ? '' : (!empty($brand['door_best_own']) ? 'да' : 'нет');
             $row[] = (int) ($brand['doors_strong'] ?? 0);
+            foreach (array_keys(self::TYPES) as $type) {
+                $row[] = self::num((float) ($visByType[$type] ?? 0));
+            }
             fputcsv($out, $row, $delimiter, '"', '');
         }
         rewind($out);

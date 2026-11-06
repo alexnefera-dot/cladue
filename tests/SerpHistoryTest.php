@@ -271,9 +271,76 @@ final class SerpHistoryTest
         $brand = $snap['brands']['vulkan'];
 
         Assert::same(10, $snap['top'], 'глубина топа записана: сравнивать можно только одинаковые');
-        Assert::same(['label', 'cap', 'ds', 'sites', 'doors', 'keys', 'lead', 'lt', 'ls', 'own', 'os', 'fresh', 'by'], array_keys($brand));
+        Assert::same(['label', 'cap', 'ds', 'sites', 'doors', 'keys', 'lead', 'lt', 'ls', 'own', 'os', 'fresh', 'by', 'bv'], array_keys($brand));
         Assert::same(1, (int) $brand['by']['door'], 'состав по типам — для ротации');
+        // Состав по ДОЛЕ ВИДИМОСТИ хранится рядом: по счёту сайтов не видно, кто реально держит бренд.
+        Assert::same(5, count($brand['bv']), 'доля видимости по каждому типу');
         Assert::notContains('вулкан казино', json_encode($snap, JSON_UNESCAPED_UNICODE), 'запросов в снимке нет');
         Assert::notContains('obzor-kazino.ru', json_encode($snap, JSON_UNESCAPED_UNICODE), 'списка хостов в снимке нет');
+    }
+
+    public function testKeepsSnapshotsForAMonthAndListsThemForPicking(): void
+    {
+        // Снимки хранятся месяц: по ним выбирают, какой сбор показать. Старше — удаляются при записи,
+        // иначе файл растёт вечно; самый свежий остаётся всегда, иначе сравнивать будет не с чем.
+        $dir = $this->runs() . '/keep';
+        mkdir($dir, 0777, true);
+        $old = ['id' => 'ancient', 'at' => date(DATE_ATOM, time() - 60 * 86400), 'top' => 10,
+            'brands' => ['vulkan' => ['label' => 'vulkan', 'cap' => 'other', 'ds' => 0.0]]];
+        $fresh = ['id' => 'week', 'at' => date(DATE_ATOM, time() - 7 * 86400), 'top' => 10,
+            'brands' => ['vulkan' => ['label' => 'vulkan', 'cap' => 'other', 'ds' => 5.0]]];
+        file_put_contents($dir . '/' . SerpHistory::FILE, (string) json_encode([$fresh, $old]));
+
+        $rows = [$this->row('вулкан казино', 1, 'kush.grid-x.ru')];
+        SerpHistory::record($dir, SerpAnalysis::build($rows, 10));
+        $kept = SerpHistory::load($dir);
+
+        Assert::same(2, count($kept), 'снимок старше месяца удалён, недельный остался');
+        Assert::same('week', (string) $kept[1]['id']);
+
+        $list = SerpHistory::snapshots($dir);
+        Assert::same(2, count($list), 'в выборе ровно то, что хранится');
+        Assert::true($list[0]['is_last'], 'первый — последний сбор');
+        Assert::same(1, $list[0]['brands'], 'в паспорте снимка видно, сколько в нём брендов');
+
+        // Снимок по id — вместе с тем, что был перед ним: «прошлый сбор» для выбранного, а не вообще.
+        $picked = SerpHistory::byId($dir, 'week');
+        Assert::true($picked !== null, 'снимок находится по id');
+        Assert::same('week', (string) $picked['snap']['id']);
+        Assert::null($picked['prev'], 'перед ним уже ничего не хранится');
+        Assert::null(SerpHistory::byId($dir, 'нет-такого'), 'чужой id — ничего');
+        array_map('unlink', glob($dir . '/*') ?: []);
+        rmdir($dir);
+    }
+
+    public function testSnapshotRendersAsAnalysisWithoutInventingRows(): void
+    {
+        // По выбранному снимку страница рисует тот же список брендов. Строк выдачи в снимке нет —
+        // и то, чего в нём нет, должно приходить пустым, а не нулём: ноль читался бы как измерение.
+        $snap = ['id' => 'x', 'at' => date(DATE_ATOM), 'top' => 10, 'brands' => [
+            'vulkan' => ['label' => 'Вулкан', 'cap' => 'mixed', 'ds' => 40.0, 'sites' => 3, 'doors' => 1,
+                'keys' => 2, 'lead' => 'obzor.ru', 'lt' => 'theme', 'ls' => 55.0, 'own' => 1, 'os' => 12.5,
+                'fresh' => 2, 'by' => ['door' => 1, 'theme' => 2],
+                'bv' => ['door' => 40.0, 'theme' => 55.0, 'known' => 5.0]],
+        ]];
+
+        $a = SerpHistory::asAnalysis($snap);
+        $b = $a['brands'][0];
+
+        Assert::true($a['from_snapshot'], 'разбор помечен как собранный из снимка');
+        Assert::same('vulkan', $b['key']);
+        Assert::same('Вулкан', $b['label']);
+        Assert::same(40.0, $b['door_share'], 'числа берутся из снимка как есть');
+        Assert::same(55.0, $b['vis_by_type']['theme'], 'состав по типам восстановлен');
+        Assert::same('obzor.ru', $b['leader']['host']);
+        Assert::same('theme', $b['leader']['type']);
+        Assert::same(12.5, $b['our_share']);
+        Assert::same(2, $b['query_count']);
+        Assert::same([], $b['board'], 'доски в снимке нет');
+        Assert::same([], $b['queries'], 'и строк выдачи тоже');
+        Assert::same(0, $b['rows']);
+        Assert::null($b['strong_door'], 'про «дор забирает ≥ 5%» снимок не знает — не выдумываем');
+        Assert::same(1, $a['capture']['mixed'], 'счёт по типам захвата считается по снимку');
+        Assert::same(1, $a['own']['doors']);
     }
 }

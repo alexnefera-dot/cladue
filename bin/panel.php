@@ -1,6 +1,9 @@
-#!/usr/bin/env php
 <?php
 
+// Без шебанга намеренно: этот же файл запускается РОУТЕРОМ встроенного сервера (php -S … panel.php),
+// а там строка «#!/usr/bin/env php» печатается как текст до <?php, и declare(strict_types=1) перестаёт
+// быть первым выражением — PHP до 8.4 падает с фаталом «strict_types declaration must be the very first
+// statement». Панель всегда запускают как «php bin/panel.php», шебанг ей не нужен.
 declare(strict_types=1);
 
 /*
@@ -637,17 +640,34 @@ if ($path === '/api/serp') {
     // ЕДИНСТВЕННЫЙ источник «наш» — список из системы запусков.
     $ownSites = ownSitesForPanel($projectDir, $saved);
     $dorgen = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
-    $analysis = \YandexSites\Support\SerpAnalysis::build(
-        \YandexSites\Support\SerpAnalysis::csvRows($csv),
-        $top,
-        $ownSites,
-    );
-    $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
+    // ВЫБОР СНИМКА. results.csv описывает только последний сбор, поэтому прошлые сборы показываем
+    // из снимков: в них по бренду лежат те же числа, по которым принимают решение, но нет строк
+    // выдачи — их не хранят, это мегабайты на сбор. Страница об этом говорит прямо.
+    $snapId = trim((string) ($_GET['snap'] ?? ''));
+    $picked = $snapId !== '' ? \YandexSites\Support\SerpHistory::byId($projectDir . '/runs', $snapId) : null;
+    if ($snapId !== '' && $picked === null) {
+        jsonOut(['ok' => false, 'error' => 'Снимок не найден — он мог устареть и удалиться (храним за месяц)']);
+    }
+    $analysis = $picked !== null
+        ? \YandexSites\Support\SerpHistory::asAnalysis($picked['snap'])
+        : \YandexSites\Support\SerpAnalysis::build(
+            \YandexSites\Support\SerpAnalysis::csvRows($csv),
+            $top,
+            $ownSites,
+        );
+    if ($picked !== null) {
+        $top = (int) ($picked['snap']['top'] ?? $top);
+    }
+    // serp-diff.json описывает ПОСЛЕДНИЙ сбор: для выбранного снимка он не годится.
+    $diff = $picked !== null
+        ? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]]
+        : (readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]]);
     // БЫЛО/СТАЛО. Самый свежий снимок описывает ТЕКУЩИЙ results.csv (его пишет конец сбора), поэтому
     // сравниваем с предыдущим. Считаем на лету, а не читаем готовое: так числа «было» всегда об одном
     // и том же — глубина топа у снимка и у текущего разбора должна совпадать, иначе сравнивать нельзя.
     $serpRecords = \YandexSites\Support\SerpHistory::load($projectDir . '/runs');
-    $prevSnap = $serpRecords[1] ?? null;
+    // Для выбранного снимка «прошлый сбор» — тот, что идёт за ним, а не предпоследний вообще.
+    $prevSnap = $picked !== null ? $picked['prev'] : ($serpRecords[1] ?? null);
     $sameTop = $prevSnap !== null && (int) ($prevSnap['top'] ?? 0) === $top;
     $changes = $sameTop
         ? \YandexSites\Support\SerpHistory::compare($prevSnap, $analysis)
@@ -710,12 +730,19 @@ if ($path === '/api/serp') {
         'sites' => $analysis['sites'],
         'results' => $analysis['results'],
         'queries' => $analysis['queries'],
+        // Снимки за месяц: что показываем сейчас и из чего можно выбрать.
+        'snapshots' => \YandexSites\Support\SerpHistory::snapshots($projectDir . '/runs'),
+        'snapshot' => $picked !== null
+            ? ['id' => (string) ($picked['snap']['id'] ?? ''), 'at' => (string) ($picked['snap']['at'] ?? '')]
+            : null,
+        'from_snapshot' => $picked !== null,
         // Принесла ли выдача отметку переобхода. Ноль строк сам по себе ничего не объясняет, поэтому
         // рядом едут `column` (есть ли вообще колонка modtime в results.csv — её нет у сбора прошлой
         // версии) и `source`: это РАЗНЫЕ причины с разным лечением.
-        'freshness' => ($analysis['freshness'] ?? ['rows' => 0, 'total' => 0])
-            + ['column' => \YandexSites\Support\SerpAnalysis::csvHasModtime($csv),
-               'source' => (string) ($saved['source'] ?? '')],
+        'freshness' => $picked !== null ? null
+            : ($analysis['freshness'] ?? ['rows' => 0, 'total' => 0])
+                + ['column' => \YandexSites\Support\SerpAnalysis::csvHasModtime($csv),
+                   'source' => (string) ($saved['source'] ?? '')],
         'fresh_days' => \YandexSites\Support\Freshness::FRESH_DAYS,
         'top' => $top,
         'types' => \YandexSites\Support\SerpAnalysis::TYPES,
