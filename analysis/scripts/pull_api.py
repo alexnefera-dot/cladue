@@ -77,8 +77,13 @@ if __name__ == '__main__':
                 "Трафик переедет в отдельное API, оно ещё не реализовано. "
                 "Подробности — analysis/spec/AUDIT_API_17.09.md §2-бис.")
         elif a[0] in ('subdomains', 'events'):
-            if len(a) < 3: raise SystemExit(f"использование: pull_api.py {a[0]} <date_from> <date_to>")
-            extra = {'date_field': 'pipeline_started'} if a[0] == 'subdomains' else {}
+            if len(a) < 3: raise SystemExit(
+                f"использование: pull_api.py {a[0]} <date_from> <date_to> [date_field]\n"
+                "  date_field для subdomains: pipeline_started (по умолчанию), domain_created, cd_created")
+            extra = {}
+            if a[0] == 'subdomains':
+                # по какому полю резать окно: запуск конвейера или создание домена
+                extra = {'date_field': a[3] if len(a) > 3 else 'pipeline_started'}
             src().dump(a[0], a[1], a[2], **extra)
         else:
             raise SystemExit(__doc__)
