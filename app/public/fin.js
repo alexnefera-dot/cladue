@@ -1523,6 +1523,7 @@ function secBets(d, s) {
     const closed = b.status === 'won' || b.status === 'lost';
     return `<div class="task bet${closed ? ' betdone' : ''}">
       <span class="pill btn" data-betkind="${b.id}:${b.kind || 'invest'}" title="тип ставки — клик">${ico} ${kindName}</span>
+      <span class="pill btn" data-betcur="${b.id}:${fesc(cur)}" title="валюта ставки — клик">${fesc(cur)}</span>
       <span class="t">
         <span class="ed" data-fe="bets:${b.id}:title:text">${fesc(b.title || 'без названия')}</span>
         <div class="meta"><span class="ed" data-fe="bets:${b.id}:thesis:text" data-hint="почему верю, что сыграет">${
@@ -1563,6 +1564,7 @@ function secBets(d, s) {
     <div class="task finadd">
       <input id="betTitle" placeholder="ставка: «доля в студии», «EXUS на 30%», «продать машину»…" style="flex:1">
       <input id="betUp" placeholder="+ сколько" style="width:110px">
+      <select id="betCur"><option>€</option><option>$</option></select>
       <input id="betConf" placeholder="% веры" style="width:80px">
       <input id="betWhen" placeholder="2027-03" style="width:95px">
       <span class="pill btn ok" id="betAdd">＋</span>
@@ -2130,6 +2132,12 @@ function bindFin() {
       await finApi.patch('bets', +id, { kind: BET_NEXT[kind] || 'invest' });
       window.loadFin();
     }));
+  document.querySelectorAll('[data-betcur]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.betcur.split(':');
+      await finApi.patch('bets', +id, { currency: cur === '€' ? '$' : '€' });
+      window.loadFin();
+    }));
   document.querySelectorAll('[data-betwon]').forEach(el =>
     el.addEventListener('click', async () => {
       // сколько принесла на самом деле — это и есть проверка ожиданий, поэтому спрашиваем
@@ -2159,6 +2167,7 @@ function bindFin() {
     if (!title) { alert('Назови ставку: что ты сделал, от чего ждёшь прироста.'); return; }
     const when = ($('betWhen')?.value || '').trim();
     await finApi.add('bets', { title, upside: parseNum($('betUp')?.value || ''),
+      currency: $('betCur')?.value === '$' ? '$' : '€',
       confidence: parseNum($('betConf')?.value || '') ?? 50,
       horizon: /^\d{4}-\d{2}$/.test(when) ? when : null });
     window.loadFin();

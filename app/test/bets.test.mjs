@@ -134,7 +134,8 @@ test('новую ставку нельзя завести без названи�
   f.ctx.__byId.betTitle.value = 'Доля в студии';
   await f.ctx.__byId.betAdd._click();
   const post = f.calls.find(c => c.method === 'POST');
-  assert.deepEqual(post.body, { title: 'Доля в студии', upside: 30000, confidence: 70, horizon: '2027-03' },
+  assert.deepEqual(post.body,
+    { title: 'Доля в студии', upside: 30000, currency: '€', confidence: 70, horizon: '2027-03' },
     'сокращения вроде 30k или месяц не разобраны');
 });
 
@@ -145,4 +146,32 @@ test('открытые ставки идут по сроку, без срока 
   const months = [...html.matchAll(/class="meta betmon">([^<]+)</g)].map(m => m[1]);
   assert.deepEqual(months, ['мар 2027', 'дек 2027', 'без срока'],
     'порядок зависит от того, как отдал бэкенд, а должен быть по сроку');
+});
+
+test('валюту ставки видно и можно переключить', async () => {
+  const f = loadFin();
+  const html = f.ctx.secBets(DATA([bet(4, { currency: '$', upside: 10800 })]), { rate: 1.08 });
+  assert.match(html, /data-betcur="4:\$"/, 'валюту ставки нечем переключить');
+  const patch = await f.click(html, 'betcur');
+  assert.deepEqual(patch.body, { currency: '€' }, '$ не переключается в €');
+
+  const back = loadFin();
+  const eurHtml = back.ctx.secBets(DATA([bet(5)]), { rate: 1.08 });
+  assert.deepEqual((await back.click(eurHtml, 'betcur')).body, { currency: '$' }, '€ не переключается в $');
+});
+
+test('новую ставку можно завести сразу в долларах', async () => {
+  const f = loadFin();
+  f.ctx.__byId = { betTitle: { value: 'Доля в студии' }, betUp: { value: '30k' }, betConf: { value: '70' },
+    betWhen: { value: '' }, betCur: { value: '$' },
+    betAdd: { addEventListener(ev, fn) { f.ctx.__byId.betAdd['_' + ev] = fn; } } };
+  f.ctx.secBets(DATA([]), { rate: 1.08 });
+  f.ctx.bindFin();
+  await f.ctx.__byId.betAdd._click();
+  const post = f.calls.find(c => c.method === 'POST');
+  assert.equal(post.body.currency, '$', 'выбранная валюта потерялась при создании');
+
+  f.ctx.__byId.betCur.value = '€';
+  await f.ctx.__byId.betAdd._click();
+  assert.equal(f.calls.filter(c => c.method === 'POST').at(-1).body.currency, '€');
 });
