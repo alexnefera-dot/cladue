@@ -320,6 +320,39 @@ function tdSphStrip() {
       <span class="tdfoc-bar"><i style="width:${m.p * 10}%;background:${m.col}"></i></span>
       <span class="tdfoc-arr">›</span></div>`).join('')}</div>`;
 }
+// 🎓 Навыки за год на главной: вехи, отмеченные 🎓 в сферах. Здесь — только ближайшие
+// по сроку и только незакрытые: главная напоминает, к чему идёшь, а вся лента и правка
+// живут на экране сфер. Данные те же, что у «Фокуса дня», — второй раз никуда не ходим.
+const TD_SKMON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const tdSkillMonth = ym => {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+  return m ? `${TD_SKMON[+m[2] - 1]} ${m[1]}` : 'без срока';
+};
+function tdSkills() {
+  const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const items = [];
+  spheres.forEach((s, i) => (s.milestones || []).forEach(m => {
+    if (!m.skill) return;
+    const p = Math.max(0, Math.min(10, m.progress ?? 0));
+    if (p >= 10) return;   // навык уже есть — не напоминаем о нём каждый день
+    items.push({ sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length],
+      title: m.title || '', p, by: m.skill_by || '' });
+  }));
+  if (!items.length) return '';
+  ensureTdSphStyle();
+  items.sort((a, b) => (a.by || '9999').localeCompare(b.by || '9999'));
+  const show = items.slice(0, 3), rest = items.length - show.length;
+  return `<div class="sec">🎓 Навыки за год · ${items.length}</div>
+    <div class="card">${show.map(k => `<div class="tdfoc" data-sphopen="${k.sid}">
+      ${tdSphIcon(k.sphere, k.col, 30)}
+      <div class="tdfoc-txt">
+        <div class="tdfoc-n">${k.title ? tesc(k.title) : '<span class="muted">без названия</span>'}</div>
+        <div class="tdfoc-s">${tesc(k.sphere)} · ${tdSkillMonth(k.by)} · ${k.p}/10</div>
+      </div>
+      <span class="tdfoc-bar"><i style="width:${k.p * 10}%;background:${k.col}"></i></span>
+      <span class="tdfoc-arr">›</span></div>`).join('')}${
+      rest > 0 ? `<div class="meta" style="padding-top:6px">и ещё ${rest} — вся лента в сферах</div>` : ''}</div>`;
+}
 function ensureTdSphStyle() {
   if (document.getElementById('tdsph-style')) return;
   const st = document.createElement('style'); st.id = 'tdsph-style';
@@ -595,6 +628,7 @@ function renderToday() {
     просрочено: ${d.overdue.length} · сделано за неделю: ${d.movement.total} 👏</div>
 
   ${tdSphStrip()}
+  ${tdSkills()}
   ${tdRest()}
   ${tdWeekBoard()}
 
@@ -670,14 +704,6 @@ function renderToday() {
     </div>
     <div>
       ${tdFinance()}
-      <div class="sec">▲ Движение недели</div>
-      <div class="card">
-        ${d.movement.top.map(([cat, n]) => `<div class="task">
-          <span class="pill ok">⚑ ${tesc(cat)}</span>
-          <span class="t">${n} ${n === 1 ? 'шаг' : 'шага(ов)'} за неделю</span></div>`).join('')}
-        <div class="task"><span class="pill ok">👏</span>
-          <span class="t"><b>${d.movement.total ? d.movement.total + ' действий за неделю — ты двигаешься' : 'неделя только начинается'}</b></span></div>
-      </div>
     </div>
   </div>
   <div class="footer-hint">Отметки синхронизируются со списком, шагами и календарём. Рутины: пропуск не висит долгом — день закрылся и всё.</div>`;
@@ -722,6 +748,7 @@ function renderTodayMobile() {
   <div class="muted" style="margin-bottom:12px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]}</div>
 
   ${tdSphStrip()}
+  ${tdSkills()}
   ${tdRest()}
   ${tdWeekBoard(true)}
 
@@ -795,13 +822,7 @@ function renderTodayMobile() {
     <div class="bar"><i style="width:${d.weekGoals.total ? d.weekGoals.done / d.weekGoals.total * 100 : 0}%"></i></div>
     <div class="meta" style="margin-top:6px">разобрано: ${pct}% · инбокс: ${d.inbox}</div>
   </div>
-
-  ${d.movement.top.length ? `<div class="sec">▲ Движение недели</div>
-  <div class="card">
-    ${d.movement.top.map(([cat, n]) => `<div class="task">
-      <span class="pill ok">⚑ ${tesc(cat)}</span>
-      <span class="t">${n} ${n === 1 ? 'шаг' : 'шага(ов)'}</span></div>`).join('')}
-  </div>` : ''}`;
+`;
 
   bindToday();
 }

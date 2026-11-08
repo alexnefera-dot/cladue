@@ -75,6 +75,65 @@ test('на десктопе просроченное осталось на эк�
   assert.ok(html.includes('data-tdwait="task:7:0"'), 'из ожидания нечем вернуть обратно');
 });
 
+test('«Движение недели» убрано с главной — и на десктопе, и на телефоне', () => {
+  const full = { ...DATA, obOverdue: [], routines: [], progress: { total: 1, typed: 1 },
+    movement: { total: 7, top: [['Работа', 4], ['Спорт', 3]] },
+    weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null, checkin: null, events: [], week: [],
+    zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
+    people: { birthdays: [], overdueContacts: [] } };
+  const screen = (mobile) => {
+    const ctx = loadToday(full);
+    ctx.matchMedia = () => ({ matches: mobile });
+    const node = { addEventListener() {}, appendChild() {}, classList: { add() {}, remove() {} },
+      dataset: {}, style: {}, innerHTML: '', value: '', focus() {}, replaceWith() {} };
+    ctx.document.getElementById = () => node;
+    vm.runInContext('window.tdRestData = { today: tdData.date, ideas: [], log: [] }; window.tdSpheres = [];', ctx);
+    ctx.renderToday();
+    return node.innerHTML;
+  };
+  for (const [where, html] of [['десктоп', screen(false)], ['телефон', screen(true)]]) {
+    assert.ok(!html.includes('Движение недели'), `блок остался на «${where}»`);
+    assert.ok(!html.includes('шага(ов)'), `разбивка по категориям осталась на «${where}»`);
+  }
+});
+
+test('отмеченные 🎓 навыки видны на главной — и на десктопе, и на телефоне', () => {
+  const sph = [
+    { id: 1, name: 'Здоровье', milestones: [
+      { id: 11, title: 'Подтягиваться 20 раз', progress: 4, skill: 1, skill_by: '2027-04' },
+      { id: 12, title: 'Просто веха', progress: 2, skill: 0 }] },
+    { id: 2, name: 'Работа', milestones: [
+      { id: 21, title: 'Английский C1', progress: 3, skill: 1, skill_by: '2027-01' },
+      { id: 22, title: 'Уже умею', progress: 10, skill: 1, skill_by: '2026-12' },
+      { id: 23, title: 'Монтаж', progress: 0, skill: 1, skill_by: '' },
+      { id: 24, title: 'Студия', progress: 1, skill: 1, skill_by: '2027-09' }] },
+  ];
+  const screen = mobile => {
+    const ctx = loadToday({ ...DATA, obOverdue: [], routines: [], progress: { total: 1, typed: 1 },
+      movement: { total: 0, top: [] }, weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null,
+      checkin: null, events: [], week: [], zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
+      people: { birthdays: [], overdueContacts: [] } });
+    ctx.matchMedia = () => ({ matches: mobile });
+    const node = { addEventListener() {}, appendChild() {}, classList: { add() {}, remove() {} },
+      dataset: {}, style: {}, innerHTML: '', value: '', focus() {}, replaceWith() {} };
+    ctx.document.getElementById = () => node;
+    ctx.__sph = sph;
+    vm.runInContext('window.tdRestData = { today: tdData.date, ideas: [], log: [] }; window.tdSpheres = __sph;', ctx);
+    ctx.renderToday();
+    return node.innerHTML;
+  };
+  for (const [where, html] of [['десктоп', screen(false)], ['телефон', screen(true)]]) {
+    assert.match(html, /🎓 Навыки за год · 4/, `на «${where}» нет блока навыков или счёт не тот`);
+    assert.ok(html.includes('Английский C1') && html.includes('Подтягиваться 20 раз'),
+      `на «${where}» не видно ближайших навыков`);
+    assert.ok(!html.includes('Уже умею'), `на «${where}» напоминаем про навык, который уже есть`);
+    assert.ok(!html.includes('Просто веха'), `на «${where}» в навыки попала неотмеченная веха`);
+    assert.ok(!html.includes('Монтаж'), `на «${where}» показано больше трёх — главная не лента`);
+    assert.match(html, /и ещё 1 — вся лента в сферах/, `на «${where}» не сказано, что навыков больше`);
+    assert.match(html, /янв 2027/, `на «${where}» не видно срока навыка`);
+  }
+});
+
 test('первого числа на главной висит «отложить», пока не отложил', () => {
   const due = [{ id: 1, name: 'Фан-кар', target: 15000, saved: 3200, pct_min: 5, pct_max: 5, incomeMonth: 6000, incomeYm: '2026-09' },
     { id: 2, name: 'EXUS', target: null, saved: 12000, pct_min: 10, pct_max: 30, incomeMonth: 6000, incomeYm: '2026-09' }];
