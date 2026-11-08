@@ -42,6 +42,10 @@ extension Api {
         _ = try? db.run("ALTER TABLE metrics ADD COLUMN source TEXT")                                   // авто-счётчик: milestones|practices|tasks|routines (NULL = ручная)
         _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN completed_at TEXT")                     // дата закрытия вехи (progress>=10)
         _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")     // веха закреплена → видна в «Фокусе дня» на главной
+        // 🎓 веха даёт навык: отмеченные собираются в «Навыки за год» на обзоре сфер.
+        // skill_by — месяц «YYYY-MM», к которому навык должен появиться (может быть пустым)
+        _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN skill INTEGER NOT NULL DEFAULT 0")
+        _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN skill_by TEXT")
         _ = try? db.run("ALTER TABLE nodes ADD COLUMN completed_at TEXT")                               // дата закрытия задачи (status done)
         // FAQ сферы: вопрос→ответ, опц. связь с задачей/метрикой
         _ = try? db.run("""
@@ -353,7 +357,7 @@ extension Api {
             let scores = sc.compactMap { $0["score"] as? Int }
             let scoreVal: Any = sc.first?["score"] ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
-            let milestones = (try? db.rows("SELECT id, level, title, progress, pinned FROM area_milestones WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []   // прогресс-вехи; не роняем сбор, если таблицы ещё нет
+            let milestones = (try? db.rows("SELECT id, level, title, progress, pinned, skill, skill_by, completed_at FROM area_milestones WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []   // прогресс-вехи; не роняем сбор, если таблицы ещё нет
             // FAQ сферы: вопрос→ответ; для связанной задачи подтягиваем её статус для бейджа
             let questions: [[String: Any]] = ((try? db.rows("SELECT id, question, answer, node_id, metric_id FROM area_questions WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []).map { row in
                 var q = row

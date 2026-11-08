@@ -140,6 +140,56 @@ function renderSpheres() {
   bindDetail(s);
 }
 
+// ===== Навыки за год =====
+// Вехи сфер, отмеченные 🎓, — это то, чем я буду уметь то, чего не умею сейчас.
+// Собираем их со всех сфер в одну ленту по месяцам: видно, что и когда появится.
+const SPH_MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+function sphMonth(ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+  if (!m) return 'без срока';
+  return `${SPH_MON[+m[2] - 1] ?? '?'} ${m[1]}`;
+}
+// навыки всех сфер; у каждого — сфера, прогресс и срок
+function sphSkills() {
+  const out = [];
+  (sphData || []).forEach((s, i) => (s.milestones || []).forEach(m => {
+    if (!m.skill) return;
+    out.push({ id: m.id, title: m.title || '', area: s.name, col: colOf(i),
+      p: Math.max(0, Math.min(10, m.progress ?? 0)), by: m.skill_by || '' });
+  }));
+  // без срока — в конец: это «когда-нибудь», а не «через год»
+  return out.sort((a, b) => (a.by || '9999').localeCompare(b.by || '9999') || a.title.localeCompare(b.title));
+}
+function sphSkillsBlock() {
+  const all = sphSkills();
+  if (!all.length) return '';
+  const year = new Date(); year.setMonth(year.getMonth() + 12);
+  const horizon = year.toISOString().slice(0, 7);   // граница «за год»
+  const soon = all.filter(k => k.by && k.by <= horizon);
+  const done = all.filter(k => k.p >= 10).length;
+  const groups = [];
+  all.forEach(k => {
+    const key = k.by && k.by <= horizon ? k.by : (k.by ? 'later' : 'none');
+    const g = groups.find(x => x.key === key) || (groups.push({ key, items: [] }), groups[groups.length - 1]);
+    g.items.push(k);
+  });
+  const label = key => key === 'none' ? 'без срока' : key === 'later' ? 'дальше года' : sphMonth(key);
+  return `<div class="card sph-skills" style="margin-bottom:14px">
+    <div class="meta">🎓 НАВЫКИ ЗА ГОД · ${soon.length} ${soon.length === 1 ? 'навык' : 'шт'}${done ? ` · ${done} уже есть` : ''}</div>
+    ${groups.map(g => `<div class="sph-skgroup">
+      <div class="sph-skmon">${label(g.key)}</div>
+      ${g.items.map(k => `<div class="sph-skrow${k.p >= 10 ? ' done' : ''}" data-skopen="${k.id}">
+        <span class="sph-skdot" style="background:${k.col}"></span>
+        <span class="sph-sktitle">${k.title ? sesc(k.title) : '<span class="muted">без названия</span>'}</span>
+        <span class="sph-skarea">${sesc(k.area)}</span>
+        <span class="pbar2 sph-skbar"><i style="width:${k.p * 10}%"></i></span>
+        <span class="sph-skp">${k.p >= 10 ? '✓' : k.p + '/10'}</span>
+      </div>`).join('')}
+    </div>`).join('')}
+    <div class="meta">отмечай 🎓 у вехи внутри сферы — она попадёт сюда; срок ставится там же</div>
+  </div>`;
+}
+
 function sphOverview() {
   const scored = sphData.filter(s => s.score != null);
   const avg = scored.length ? (scored.reduce((a, s) => a + s.score, 0) / scored.length).toFixed(1) : '–';
@@ -147,6 +197,7 @@ function sphOverview() {
     <div class="muted" style="margin-bottom:8px">средний баланс ${avg}/10 · 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
     <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <span class="pill btn" id="sphTagBtn">🏷 привязка</span></div>
+    ${sphSkillsBlock()}
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
@@ -159,6 +210,12 @@ function sphOverview() {
 }
 function bindOverview() {
   document.querySelectorAll('#screen-spheres [data-open]').forEach(c => c.onclick = () => { sphOpen = +c.dataset.open; renderSpheres(); });
+  // клик по навыку ведёт в его сферу: там он правится как обычная веха
+  document.querySelectorAll('#screen-spheres [data-skopen]').forEach(r => r.onclick = () => {
+    const id = +r.dataset.skopen;
+    const area = (sphData || []).find(s => (s.milestones || []).some(m => m.id === id));
+    if (area) { sphOpen = area.id; renderSpheres(); }
+  });
   document.getElementById('sphTagBtn')?.addEventListener('click', async () => {
     sphTagData = await sphApi.tagpool(); sphTag = true; renderSpheres();
   });
@@ -325,6 +382,8 @@ function sphRoadmap(s) {
       <span class="pbar2 sph-rmbar"><i style="width:${p * 10}%"></i></span>
       <span class="sph-rt" data-msedit="${m.id}" title="клик — переименовать">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
       <span class="rowbtn" data-mspin="${m.id}:${m.pinned ? 1 : 0}" title="${m.pinned ? 'закреплена на «Сегодня» — снять' : 'закрепить на «Сегодня»'}" style="${m.pinned ? 'color:var(--amber);opacity:1' : ''}">${m.pinned ? '★' : '☆'}</span>
+      <span class="rowbtn" data-msskill="${m.id}:${m.skill ? 1 : 0}" title="${m.skill ? 'навык — убрать из «Навыков за год»' : 'эта веха даёт навык — в «Навыки за год»'}" style="${m.skill ? 'opacity:1' : ''}">${m.skill ? '🎓' : '🎓'}</span>
+      ${m.skill ? `<span class="rowbtn" data-msby="${m.id}:${m.skill_by || ''}" title="к какому месяцу появится навык — клик">${m.skill_by ? sphMonth(m.skill_by) : 'без срока'}</span>` : ''}
       ${isDone ? '<span style="color:var(--green-dim);font-size:12px">✓ закрыта</span>'
         : `<span class="pill btn ok" data-msinc="${m.id}:${p}" title="+1 к прогрессу">+1</span>`}
       ${p > 0 ? `<span class="rowbtn" data-msdec="${m.id}:${p}" title="−1">−</span>` : ''}
@@ -510,6 +569,16 @@ function bindDetail(s) {
   });
   document.querySelectorAll('#screen-spheres [data-mspin]').forEach(el => el.onclick = async () => {
     const [id, pin] = el.dataset.mspin.split(':'); await sphApi.msPatch(+id, { pinned: pin === '1' ? 0 : 1 }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-msskill]').forEach(el => el.onclick = async () => {
+    const [id, on] = el.dataset.msskill.split(':');
+    await sphApi.msPatch(+id, { skill: on === '1' ? 0 : 1 }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-msby]').forEach(el => el.onclick = async () => {
+    const [id, cur] = el.dataset.msby.split(':');
+    const v = prompt('К какому месяцу появится навык? Год-месяц, например 2027-03 (пусто — снять срок):', cur);
+    if (v == null) return;
+    await sphApi.msPatch(+id, { skill_by: v.trim() }); window.loadSpheres();
   });
   document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
@@ -711,6 +780,19 @@ function ensureSphStyle() {
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
     .sph-rmbar{width:56px;flex:0 0 auto}
+    /* Навыки за год: лента по месяцам со всех сфер */
+    .sph-skills .meta:first-child{margin-bottom:6px}
+    .sph-skgroup{margin-top:8px}
+    .sph-skmon{font:700 10px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px}
+    .sph-skrow{display:flex;gap:9px;align-items:center;padding:5px 0;border-top:1px solid var(--bg2);font-size:13.5px;cursor:pointer}
+    .sph-skgroup .sph-skrow:first-of-type{border-top:0}
+    .sph-skrow:hover{background:var(--bg2);border-radius:8px;margin:0 -8px;padding:5px 8px}
+    .sph-skdot{width:8px;height:8px;border-radius:99px;flex:0 0 auto}
+    .sph-sktitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sph-skrow.done .sph-sktitle{color:var(--muted);text-decoration:line-through}
+    .sph-skarea{font-size:11px;color:var(--muted);flex:0 0 auto}
+    .sph-skbar{width:56px;flex:0 0 auto}
+    .sph-skp{font:700 10px var(--mono);color:var(--muted);width:34px;text-align:right;flex:0 0 auto}
     .sph-faq{padding:8px 0;border-top:1px solid var(--bg2);cursor:grab}.sph-faq:first-child{border-top:0}
     .sph-faq.dropbefore{box-shadow:inset 0 2px 0 var(--green)}.sph-faq.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
     .sph-faqq{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

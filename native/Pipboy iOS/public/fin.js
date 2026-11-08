@@ -12,7 +12,7 @@ let showMonefy = false;
 // Из-за этого правки бэкенда молча не применялись, и цифры «слетали» на перезаходе.
 // NEED_BUILD — дата последней правки native/Pipboy/*.swift: старее → показываем предупреждение.
 // ПРАВИШЬ SWIFT — ОБНОВИ ЭТУ ДАТУ.
-const NEED_BUILD = '2026-11-02';
+const NEED_BUILD = '2026-11-08';
 let finBuild = null;   // { platform, buildDate, … } из /api/version
 
 const finApi = {

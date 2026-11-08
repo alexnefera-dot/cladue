@@ -645,6 +645,11 @@ enum Api {
                     else { try db.run("UPDATE area_milestones SET completed_at = NULL WHERE id = ?", [id]) }
                 }
                 if body["pinned"] != nil { try db.run("UPDATE area_milestones SET pinned = ? WHERE id = ?", [intval(body["pinned"]) != 0 ? 1 : 0, id]) }   // закрепить → видна на главной
+                if body["skill"] != nil { try db.run("UPDATE area_milestones SET skill = ? WHERE id = ?", [intval(body["skill"]) != 0 ? 1 : 0, id]) }       // 🎓 → в «Навыки за год»
+                if let by = body["skill_by"] as? String {   // месяц «YYYY-MM»; пустая строка — снять срок
+                    let m = by.range(of: "^[0-9]{4}-[0-9]{2}$", options: .regularExpression) != nil ? by : ""
+                    try db.run("UPDATE area_milestones SET skill_by = ? WHERE id = ?", [m.isEmpty ? NSNull() : m, id])
+                }
                 return (ok(), 200)
             }
             if method == "DELETE" { try db.run("DELETE FROM area_milestones WHERE id = ?", [id]); return (ok(), 200) }
