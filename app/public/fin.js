@@ -1515,9 +1515,33 @@ const betMonth = ym => {
 // ставка в плюс (потеря / (приз + потеря)); ожидаемая ценность — приз × вера минус
 // потеря × (1 − вера). Считаем только когда названа потеря: без неё риска нет, а значит
 // и арифметики тоже. Поток в месяц сюда не мешаем — у него нет разовой потери.
+// Сколько лет до срока: нужно, чтобы перевести рост позиции в годовые
+function betYears(horizon) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(horizon || ''));
+  if (!m) return null;
+  const now = new Date();
+  const months = (+m[1] - now.getFullYear()) * 12 + (+m[2] - 1 - now.getMonth());
+  return months > 0 ? months / 12 : null;
+}
+
 function betVerdict(b, rate) {
   const toEur = v => ((b.currency === '$' ? (v || 0) / (rate || 1.08) : (v || 0)));
   const up = toEur(b.upside), down = toEur(b.downside), flow = toEur(b.monthly);
+  const stake = toEur(b.stake);
+  // Длинная позиция — не пари: «теряю» у неё это просадка, из которой выходят, а не
+  // проигрыш. Мерить её соотношением приз/риск бессмысленно. Здесь важно другое:
+  // насколько вырастет позиция, сколько это годовых и как глубоко может провалиться.
+  if (b.kind === 'invest' && stake > 0 && up > 0) {
+    const grow = up / stake * 100;
+    const years = betYears(b.horizon);
+    const cagr = years ? (Math.pow(1 + up / stake, 1 / years) - 1) * 100 : null;
+    const dd = down > 0 ? Math.min(100, down / stake * 100) : null;
+    return `<span class="meta betev up"
+      title="рост позиции ${fmt(stake)} → ${fmt(stake + up)}${years ? ` за ${years.toFixed(1).replace('.', ',')} года` : ''}${
+      dd != null ? `; просадка — временная, а не потеря: позиция может сходить вниз на ${dd.toFixed(0)}%` : ''}"
+      >+${grow.toFixed(0)}% к позиции${cagr != null ? ` · ~${cagr.toFixed(1).replace('.', ',')}%/год` : ''}${
+      dd != null ? ` <span class="muted">· просадка до ${dd.toFixed(0)}%</span>` : ''}</span>`;
+  }
   // У потока риск меряется сроком возврата: за сколько месяцев он вернёт потерю.
   if (!(up > 0) && down > 0 && flow > 0) {
     const months = Math.ceil(down / flow);
@@ -1590,7 +1614,9 @@ function secBets(d, s) {
           b.thesis ? fesc(b.thesis) : '<span class="muted">почему верю — клик</span>'}</span></div>
         <div class="betmore">
           ${money(b, 'stake', 'на кону', 'сколько моего завязано на исход')}
-          ${money(b, 'downside', 'теряю', 'сколько потеряю, если не сыграет — это не то же, что на кону')}
+          ${b.kind === 'invest'
+            ? money(b, 'downside', 'просадка', 'насколько позиция может сходить вниз — это временно, а не потеря')
+            : money(b, 'downside', 'теряю', 'сколько потеряю безвозвратно, если не сыграет — это не то же, что на кону')}
           ${money(b, 'frees', 'высвободит', 'деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими')}
           ${flow ? '' : money(b, 'monthly', 'в месяц', 'если ставка даёт поток, а не разовый приз')}
           ${closed ? '' : betVerdict(b, rate)}
@@ -1619,22 +1645,25 @@ function secBets(d, s) {
   <div class="sec">Ставки на рост · почему будет лучше<span class="pr" title="если сыграют все открытые ставки">${
     cap >= 1 ? fmtE(cap) : ''}</span></div>
   <div class="card">
-    <div class="capline betline">
-      ${byLevel.map(g => `<span title="сумма призов ставок, про которые ты сказал «${g.name}»">${g.name}
-        <b class="${g.name === 'верю' ? 'up' : ''}">+${fmt(g.prize)} €</b>${
-        g.flow >= 1 ? ` <span class="meta">и ${fmt(g.flow)} €/мес</span>` : ''}</span>`).join('')}
-      ${!byLevel.length ? '<span class="meta">впиши, что ставка принесёт — посчитаю по уровням веры</span>' : ''}
+    <div class="fingrid betgrid">
+      <div class="card"><div class="meta">ПРОФИТ · НОВЫЕ ДЕНЬГИ</div>
+        <div class="bignum">${cap >= 1 ? '+' + fmtE(cap) : '—'}${
+          perMonth >= 1 ? ` <span class="betper">+${fmt(perMonth)} €/мес</span>` : ''}</div>
+        <div class="meta">${byLevel.length
+          ? byLevel.map(g => `<span class="betlvl ${g.name === 'верю' ? 'up' : ''}">${g.name} ${fmt(g.prize)}${
+              g.flow >= 1 ? ` и ${fmt(g.flow)}/мес` : ''}</span>`).join(' · ')
+          : 'впиши, что ставка принесёт'}</div>
+      </div>
+      <div class="card"><div class="meta">ВЫСВОБОДИТ</div>
+        <div class="bignum">${frees >= 1 ? fmtE(frees) : '—'}</div>
+        <div class="meta">уже твоё, но лежит вне капитала: продашь — станет рабочим</div>
+      </div>
+      <div class="card"><div class="meta">ЕСЛИ НЕ ВЫЙДЕТ</div>
+        <div class="bignum ${risk >= 1 ? 'down' : ''}">${risk >= 1 ? '−' + fmtE(risk) : '—'}</div>
+        <div class="meta">на кону ${fmtE(staked)}${capBy.all > 0 ? ` · ${(staked / capBy.all * 100).toFixed(0)}% всего` : ''}${
+          cap >= 1 && capital > 0 ? ` · всё сразу = +${(cap / capital * 100).toFixed(0)}% к капиталу` : ''}</div>
+      </div>
     </div>
-    <div class="capline betline betrisk">
-      ${risk >= 1 ? `<span title="сумма потерь, если не выйдет ни одна">если не выйдет <b class="down">−${fmt(risk)} €</b></span>` : ''}
-      ${frees >= 1 ? `<span title="деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими">высвободит <b>${fmt(frees)} €</b></span>` : ''}
-      ${staked >= 1 ? `<span title="сколько моего завязано на исход открытых ставок">на кону <b>${fmt(staked)} €</b>${
-        capBy.all > 0 ? ` <span class="meta">${(staked / capBy.all * 100).toFixed(0)}% всего</span>` : ''}</span>` : ''}
-      ${cap >= 1 && capital > 0 ? `<span class="meta" title="если сыграют все открытые ставки">всё сразу = +${(cap / capital * 100).toFixed(0)}% к капиталу</span>` : ''}
-    </div>
-    <div class="meta betrule">Ничего не усредняем: приз и потеря — как есть, вера — словом.
-      «Приз к риску» = принесёт ÷ теряю; чем меньше веры, тем крупнее он должен быть:
-      верю — от 1:1, скорее да — 1,5:1, 50 на 50 — 2:1, сомневаюсь — 3:1</div>
     ${groups.map(g => `<div class="meta betmon">${betMonth(g.key)}</div>${g.items.map(row).join('')}`).join('')
       || '<div class="empty">ставок пока нет — впиши первую: что ты уже сделал, от чего ждёшь прироста</div>'}
     <div class="task finadd">

@@ -60,9 +60,9 @@ test('сводка складывает призы по уровням веры,
     bet(2, { upside: 20000, confidence: 65 }),          // скорее да
     bet(3, { upside: 15000, confidence: 30 }),          // сомневаюсь
   ]), { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /верю\s*<b class="up">\+80 000 €/, 'призы «верю» сложены неверно');
-  assert.match(html, /скорее да\s*<b[^>]*>\+20 000 €/, 'уровень «скорее да» потерян');
-  assert.match(html, /сомневаюсь\s*<b[^>]*>\+15 000 €/, 'уровень «сомневаюсь» потерян');
+  assert.match(html, /ПРОФИТ[\s\S]*?\+115 000 €[\s\S]*?верю 80 000/, 'призы «верю» сложены неверно');
+  assert.match(html, /скорее да 20 000/, 'уровень «скорее да» потерян');
+  assert.match(html, /сомневаюсь 15 000/, 'уровень «сомневаюсь» потерян');
   // ровно то, от чего отказались: ни одно число не домножено на вероятность
   assert.ok(!html.includes('68 000') && !html.includes('×'), 'деньги всё ещё пересчитаны по проценту веры');
 });
@@ -73,21 +73,21 @@ test('вера не трогает суммы — только расклады�
     .replace(/ /g, ' ');
   const doubt = ctx.secBets(DATA([bet(2, { upside: 100000, confidence: 30 })]), { rate: 1.08 })
     .replace(/ /g, ' ');
-  assert.match(sure, /верю\s*<b class="up">\+100 000 €/, 'сумма изменилась от уверенности');
-  assert.match(doubt, /сомневаюсь\s*<b[^>]*>\+100 000 €/, 'сумма изменилась от неуверенности');
+  assert.match(sure, /верю 100 000/, 'сумма изменилась от уверенности');
+  assert.match(doubt, /сомневаюсь 100 000/, 'сумма изменилась от неуверенности');
   assert.ok(!doubt.includes('30 000'), 'приз домножен на веру');
 });
 
 test('валюты приводятся к евро и в суммах по уровням', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 10800, currency: '$', confidence: 85 })]),
     { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /верю\s*<b class="up">\+10 000 €/, 'доллары сложены с евро по номиналу');
+  assert.match(html, /верю 10 000/, 'доллары сложены с евро по номиналу');
 });
 
 test('поток показан рядом с призом своего уровня и отдельной строкой', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1, { monthly: 600, confidence: 85 })]), { rate: 1.08 })
     .replace(/ /g, ' ');
-  assert.match(html, /и 600 €\/мес/, 'поток не показан у своего уровня веры');
+  assert.match(html, /верю 0 и 600\/мес/, 'поток не показан у своего уровня веры');
   assert.ok(!html.includes('300'), 'поток домножен на веру');
 });
 
@@ -96,8 +96,8 @@ test('сценарий «если не выйдет» — сумма потер�
   data.targetPortfolio = [...data.targetPortfolio,
     { id: 2, name: 'Вещи', kind: 'block', side: 'use', eur: 100000, children: [] }];
   const html = loadFin().ctx.secBets(data, { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /если не выйдет <b class="down">−50 000 €/, 'потери усреднены или потеряны');
-  assert.match(html, /на кону <b>100 000 €<\/b>[\s\S]*?50% всего/, 'не видно, какая доля нажитого завязана');
+  assert.match(html, /ЕСЛИ НЕ ВЫЙДЕТ[\s\S]*?−50 000 €/, 'потери усреднены или потеряны');
+  assert.match(html, /на кону 100 000 €[\s\S]*?50% всего/, 'не видно, какая доля нажитого завязана');
 });
 
 test('в строке — приз к риску, и планка зависит от уровня веры', () => {
@@ -228,19 +228,18 @@ test('высвобождение капитала — отдельное чис�
   const html = loadFin().ctx.secBets(DATA([
     bet(1, { title: 'Продать квартиру', kind: 'sale', frees: 120000, upside: 8000, confidence: 100 }),
   ]), { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /высвободит <b>120 000 €/, 'высвобождение не посчитано');
-  assert.match(html, /верю\s*<b class="up">\+8 000 €/,
+  assert.match(html, /ВЫСВОБОДИТ[\s\S]*?120 000 €/, 'высвобождение не посчитано');
+  assert.match(html, /ПРОФИТ[\s\S]*?\+8 000 €/,
     'цена продажи попала в прирост — капитал бы вырос дважды');
   assert.match(html, /data-fe="bets:1:frees:num"/, 'высвобождение нечем вписать в строке');
 });
 
-test('нечего высвобождать — числа в сводке нет', () => {
-  // слово есть и в подсказке строки, поэтому смотрим именно сводку сверху
-  const line = h => (h.match(/<div class="capline betline betrisk">[\s\S]*?<\/div>/) || [''])[0];
-  assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('высвободит'),
-    'пустое число занимает место в сводке');
-  assert.ok(line(loadFin().ctx.secBets(DATA([bet(1, { frees: 9000, confidence: 100 })]), { rate: 1.08 })).includes('высвободит'),
-    'есть что высвободить, а в сводке не показано');
+test('нечего высвобождать — в плитке прочерк, а не ноль', () => {
+  const tile = h => (h.replace(/\u00a0/g, ' ').match(/ВЫСВОБОДИТ[\s\S]*?bignum[^>]*>([^<]*)</) || [])[1].trim();
+  assert.equal(tile(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })), '—',
+    'пустое высвобождение показано числом');
+  assert.match(tile(loadFin().ctx.secBets(DATA([bet(1, { frees: 9000 })]), { rate: 1.08 })), /9 000/,
+    'есть что высвободить, а в плитке прочерк');
 });
 
 // Риск-менеджмент: из «на кону / теряю / вера» считается порог безубыточности и
@@ -259,7 +258,8 @@ test('в строке одно главное число, прочее — вт�
   const main = html.slice(html.indexOf('</div>', html.indexOf('betmore')));   // после второго ряда
   assert.match(main, /принесёт[\s\S]*?10 000<\/span> €/, 'главное число не на виду');
   const more = html.slice(html.indexOf('betmore'), html.indexOf('</div>', html.indexOf('betmore')));
-  for (const w of ['на кону', 'теряю', 'высвободит']) {
+  // у позиции поле потерь называется «просадка» — проверяем по типу ставки
+  for (const w of ['на кону', 'просадка', 'высвободит']) {
     assert.ok(more.includes(w), `«${w}» должно быть вторым рядом, а не в главной строке`);
   }
   assert.ok(!main.includes('на кону'), 'второстепенные числа остались в главной строке');
@@ -279,6 +279,36 @@ test('незаполненные числа приглушены, а не спр
 
 test('правило блока объясняет, что именно считается', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1)]), { rate: 1.08 });
-  assert.match(html, /Ничего не усредняем/, 'не сказано, что суммы показаны как есть');
-  assert.match(html, /вера — словом/, 'не сказано, чем стала вера');
+  assert.match(html, /это не прогноз про рынок/, 'не отделено от прогнозов — а это разные вещи');
+  assert.match(html, /«\+» — новые деньги сверх того, что есть/, 'не сказано, что считается профитом');
+});
+
+// Длинная позиция — не пари: её «просадка» временная, и мерить её соотношением приз/риск
+// бессмысленно. Там важны рост позиции, годовые и глубина просадки.
+test('у инвестиции вместо приза к риску — рост, годовые и просадка', () => {
+  const ctx = loadFin().ctx;
+  const year = new Date().getFullYear() + 8;
+  const full = ctx.secBets(DATA([bet(1, { kind: 'invest', stake: 130000, upside: 80000,
+    downside: 60000, confidence: 50, horizon: `${year}-01` })]), { rate: 1.08 });
+  // смотрим саму строку: в правиле блока слова «приз к риску» есть законно
+  const etf = full.slice(full.indexOf('class="task bet'));
+  assert.match(etf, /\+62% к позиции/, 'рост позиции не посчитан');
+  // срок считается от сегодняшнего месяца, поэтому годовые плавают около 7% — проверяем,
+  // что это сложный процент (линейный дал бы 62/7 ≈ 8,7%), а не что число ровно такое
+  const cagr = +(etf.match(/~(\d+,\d)%\/год/) || [])[1].replace(',', '.');
+  assert.ok(cagr > 6 && cagr < 7.5, `годовые ${cagr}% похожи на линейные, а не на сложный процент`);
+  assert.match(etf, /просадка до 46%/, 'не видно глубины просадки');
+  assert.ok(!etf.includes('приз к риску'), 'длинной позиции навязано пари');
+  assert.ok(!etf.includes('мало, нужно от'), 'позицию ругают планкой, которая к ней не относится');
+  assert.match(etf, /просадка\n?\s*<span class="ed" data-fe="bets:1:downside:num"/,
+    'поле потерь у позиции называется «теряю», хотя это просадка');
+});
+
+test('у проекта и продажи приз к риску остаётся', () => {
+  const ctx = loadFin().ctx;
+  const whole = ctx.secBets(DATA([bet(1, { kind: 'project', stake: 10000, upside: 30000,
+    downside: 10000, confidence: 85 })]), { rate: 1.08 });
+  const proj = whole.slice(whole.indexOf('class="task bet'));
+  assert.match(proj, /приз к риску 3,0 : 1 · хватает/, 'у пари пропал приз к риску');
+  assert.ok(!proj.includes('к позиции'), 'проекту навязана логика длинной позиции');
 });
