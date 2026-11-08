@@ -1496,6 +1496,15 @@ function secSpending(d) {
 const BET_KIND = { invest: ['📈', 'инвестиция'], project: ['💼', 'проект'],
   sale: ['🏷', 'продажа'], income: ['👛', 'доход'] };
 const BET_NEXT = { invest: 'project', project: 'sale', sale: 'income', income: 'invest' };
+// Вера — это «будет или нет», а не множитель к деньгам. Поэтому уровень словом, а суммы
+// показываем как есть: усреднять три личные ставки нечего, случится либо приз, либо потеря.
+// Число в базе остаётся (0–100) — старые значения раскладываются по уровням сами.
+const BET_SURE = [[75, 'верю', 'ok'], [55, 'скорее да', ''], [45, '50 на 50', 'p2'], [0, 'сомневаюсь', 'p1']];
+const betSure = c => BET_SURE.find(([min]) => (c ?? 50) >= min) || BET_SURE[BET_SURE.length - 1];
+const betSureNext = c => {                      // клик идёт по кругу: верю → скорее да → …
+  const i = BET_SURE.findIndex(([min]) => (c ?? 50) >= min);
+  return [85, 65, 50, 30][(i + 1) % BET_SURE.length];
+};
 const betMonth = ym => {
   const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
   return m ? `${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][+m[2] - 1]} ${m[1]}` : 'без срока';
@@ -1507,23 +1516,19 @@ const betMonth = ym => {
 function betVerdict(b, rate) {
   const toEur = v => ((b.currency === '$' ? (v || 0) / (rate || 1.08) : (v || 0)));
   const up = toEur(b.upside), down = toEur(b.downside), flow = toEur(b.monthly);
-  // У потока нет разового приза, поэтому и порога нет: его риск меряется сроком окупаемости —
-  // сколько месяцев поток возвращает то, что потеряешь, если проект встанет.
+  // У потока риск меряется сроком возврата: за сколько месяцев он вернёт потерю.
   if (!(up > 0) && down > 0 && flow > 0) {
     const months = Math.ceil(down / flow);
     return `<span class="meta betev ${months <= 12 ? 'up' : 'down'}"
-      title="за столько месяцев поток вернёт то, что потеряешь, если проект встанет">окупится за ${months} мес</span>`;
+      title="за столько месяцев поток вернёт то, что потеряешь, если проект встанет">вернётся за ${months} мес</span>`;
   }
   if (!(down > 0) || !(up > 0)) return '';
-  const p = (b.confidence ?? 50) / 100;
-  const need = down / (up + down) * 100;          // порог безубыточности, %
-  const ev = up * p - down * (1 - p);
-  // Показываем не итог, а сам счёт числами: «0,4 × 80 000 − 0,6 × 50 000 = +2 000 €».
-  // Так видно, откуда берётся результат, и не надо держать формулу в голове.
-  return `<span class="meta betev ${ev >= 0 ? 'up' : 'down'}"
-    title="порог ${need.toFixed(0)}%: при вере ниже этого ставка играет против тебя"
-    >${p.toFixed(2).replace('.', ',')} × ${fmt(up)} − ${(1 - p).toFixed(2).replace('.', ',')} × ${fmt(down)}
-     = ${ev >= 0 ? '+' : '−'}${fmt(Math.abs(ev))} € · порог ${need.toFixed(0)}%</span>`;
+  // Соотношение приза к потере — единственная арифметика, которой тут место: она не делает
+  // вид, что знает будущее, а говорит, во сколько раз выигрыш крупнее проигрыша.
+  const r = up / down;
+  return `<span class="meta betev ${r >= 1 ? 'up' : 'down'}"
+    title="во сколько раз приз крупнее потери: риск ${fmt(down)} € ради ${fmt(up)} €"
+    >приз к риску ${r.toFixed(1).replace('.', ',')} : 1</span>`;
 }
 
 function secBets(d, s) {
@@ -1536,15 +1541,17 @@ function secBets(d, s) {
   const done = all.filter(b => b.status === 'won' || b.status === 'lost');
   // Потолок — если сыграет всё; взвешенная — то же, умноженное на уверенность. Второе
   // честнее: ставка на 100k с верой 10% не то же самое, что на 10k с верой 100%.
-  const cap = open.reduce((a, b) => a + eur(b.upside, b.currency), 0);
-  const weighted = open.reduce((a, b) => a + eur(b.upside, b.currency) * ((b.confidence ?? 50) / 100), 0);
-  const perMonth = open.reduce((a, b) => a + eur(b.monthly, b.currency) * ((b.confidence ?? 50) / 100), 0);
-  const staked = open.reduce((a, b) => a + eur(b.stake, b.currency), 0);
-  // Высвобождение считаем отдельно от прироста: это не новые деньги, а те, что уже есть,
-  // но лежат вне капитала — продал имущество, и они стали рабочими.
-  const frees = open.reduce((a, b) => a + eur(b.frees, b.currency) * ((b.confidence ?? 50) / 100), 0);
-  // Риск — ожидаемая потеря: сколько уйдёт, если ставки не сыграют, с их же вероятностями
-  const risk = open.reduce((a, b) => a + eur(b.downside, b.currency) * (1 - (b.confidence ?? 50) / 100), 0);
+  // Ничего не усредняем: суммы по уровням веры и сценарий «если не выйдет» — как есть.
+  const sum = (list, f) => list.reduce((a, b) => a + eur(b[f], b.currency), 0);
+  const byLevel = BET_SURE.map(([min, name]) => {
+    const list = open.filter(b => betSure(b.confidence)[1] === name);
+    return { name, prize: sum(list, 'upside'), flow: sum(list, 'monthly'), count: list.length };
+  }).filter(g => g.count && (g.prize > 0 || g.flow > 0));
+  const cap = sum(open, 'upside');
+  const perMonth = sum(open, 'monthly');
+  const staked = sum(open, 'stake');
+  const frees = sum(open, 'frees');
+  const risk = sum(open, 'downside');     // если не выйдет — потеряю столько
   const capBy = capitalSplit(d.targetPortfolio || d.portfolio, rate);
   const capital = capBy.capital;
   const wonSum = done.filter(b => b.status === 'won').reduce((a, b) => a + eur(b.actual, b.currency), 0);
@@ -1586,8 +1593,8 @@ function secBets(d, s) {
         </div>
       </span>
       ${main}
-      <span class="pill" title="верю, что сыграет; остальное — вероятность, что нет: 40% веры = 60%, что не выйдет">${
-        closed ? '' : 'верю <span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
+      ${closed ? '' : `<span class="pill btn ${betSure(b.confidence)[2]}" data-betsure="${b.id}:${b.confidence ?? 50}"
+        title="насколько веришь, что это вообще случится — клик меняет уровень">${betSure(b.confidence)[1]}</span>`}
       <span class="meta ed" data-fe="bets:${b.id}:horizon:text" data-hint="когда станет ясно: 2027-03" title="когда станет ясно">${betMonth(b.horizon)}</span>
       ${closed
         ? `<span class="pill ${b.status === 'won' ? 'ok' : 'p0'}">${b.status === 'won'
@@ -1605,20 +1612,24 @@ function secBets(d, s) {
     (groups.find(g => g.key === key) || (groups.push({ key, items: [] }), groups.at(-1))).items.push(b);
   });
   return `
-  <div class="sec">Ставки на рост · почему будет лучше<span class="pr">${fmtE(weighted)}</span></div>
+  <div class="sec">Ставки на рост · почему будет лучше<span class="pr" title="если сыграют все открытые ставки">${
+    cap >= 1 ? fmtE(cap) : ''}</span></div>
   <div class="card">
     <div class="capline betline">
-      <span title="если сыграют все открытые ставки, будет ${fmtE(cap)}">ожидаю <b class="up">${fmtE(weighted)}</b>${
-        capital > 0 ? ` <span class="meta">к капиталу +${(weighted / capital * 100).toFixed(0)}%</span>` : ''}</span>
-      ${perMonth >= 1 ? `<span title="взвешенная прибавка к доходу">в месяц <b class="up">${fmtE(perMonth)}</b></span>` : ''}
-      ${frees >= 1 ? `<span title="деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими">высвободит <b>${fmtE(frees)}</b></span>` : ''}
-      ${staked >= 1 ? `<span title="сколько моего завязано на исход открытых ставок${
-        risk >= 1 ? `, из них ожидаемая потеря ${fmt(risk)} €` : ''}">на кону <b>${fmtE(staked)}</b>${
-        capBy.all > 0 ? ` <span class="meta">${(staked / capBy.all * 100).toFixed(0)}% всего</span>` : ''}${
-        risk >= 1 ? ` <span class="meta down">риск −${fmt(risk)} €</span>` : ''}</span>` : ''}
+      ${byLevel.map(g => `<span title="сумма призов ставок, про которые ты сказал «${g.name}»">${g.name}
+        <b class="${g.name === 'верю' ? 'up' : ''}">+${fmt(g.prize)} €</b>${
+        g.flow >= 1 ? ` <span class="meta">и ${fmt(g.flow)} €/мес</span>` : ''}</span>`).join('')}
+      ${!byLevel.length ? '<span class="meta">впиши, что ставка принесёт — посчитаю по уровням веры</span>' : ''}
     </div>
-    <div class="meta betrule">«принесёт» × «верю» = <b>ожидаю</b>. Назовёшь, сколько теряешь при провале —
-      посчитаю порог веры, ниже которого ставка играет против тебя</div>
+    <div class="capline betline betrisk">
+      ${risk >= 1 ? `<span title="сумма потерь, если не выйдет ни одна">если не выйдет <b class="down">−${fmt(risk)} €</b></span>` : ''}
+      ${frees >= 1 ? `<span title="деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими">высвободит <b>${fmt(frees)} €</b></span>` : ''}
+      ${staked >= 1 ? `<span title="сколько моего завязано на исход открытых ставок">на кону <b>${fmt(staked)} €</b>${
+        capBy.all > 0 ? ` <span class="meta">${(staked / capBy.all * 100).toFixed(0)}% всего</span>` : ''}</span>` : ''}
+      ${cap >= 1 && capital > 0 ? `<span class="meta" title="если сыграют все открытые ставки">всё сразу = +${(cap / capital * 100).toFixed(0)}% к капиталу</span>` : ''}
+    </div>
+    <div class="meta betrule">Ничего не усредняем: приз и потеря — как есть, вера — словом.
+      Клик по «верю» меняет уровень</div>
     ${groups.map(g => `<div class="meta betmon">${betMonth(g.key)}</div>${g.items.map(row).join('')}`).join('')
       || '<div class="empty">ставок пока нет — впиши первую: что ты уже сделал, от чего ждёшь прироста</div>'}
     <div class="task finadd">
@@ -2191,6 +2202,12 @@ function bindFin() {
     el.addEventListener('click', async () => {
       const [id, kind] = el.dataset.betkind.split(':');
       await finApi.patch('bets', +id, { kind: BET_NEXT[kind] || 'invest' });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-betsure]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, conf] = el.dataset.betsure.split(':');
+      await finApi.patch('bets', +id, { confidence: betSureNext(+conf) });
       window.loadFin();
     }));
   document.querySelectorAll('[data-betcur]').forEach(el =>

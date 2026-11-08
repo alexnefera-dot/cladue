@@ -472,6 +472,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .betmore{display:flex;flex-wrap:wrap;gap:10px;margin-top:3px;font-size:11.5px}
 .betadd{opacity:.6;border-bottom-style:dotted}.task.bet:hover .betadd{opacity:1}   /* пустое поле — приглашение, а не выключенное */
 .betrule{margin:-4px 0 8px}
+.betrisk{margin-top:-6px;opacity:.85}   /* второй ряд сводки: риски и объёмы */
 /* 🔒 закрытая цель не правится кликом, но читается как закреплённая */
 .porttable td.goal .pinned{color:var(--green);font-weight:600}
 .bgrip{color:var(--line2);cursor:grab;font-size:11px;line-height:1;user-select:none}

@@ -54,39 +54,79 @@ const DATA = bets => ({
   portfolio: [],
 });
 
-test('сверху — ожидаемая прибавка, потолок в подсказке и доля к капиталу', () => {
+test('сводка складывает призы по уровням веры, ничего не усредняя', () => {
   const html = loadFin().ctx.secBets(DATA([
-    bet(1, { upside: 30000, confidence: 80, stake: 12000 }),
-    bet(2, { upside: 20000, confidence: 10 }),
+    bet(1, { upside: 80000, confidence: 85 }),          // верю
+    bet(2, { upside: 20000, confidence: 65 }),          // скорее да
+    bet(3, { upside: 15000, confidence: 30 }),          // сомневаюсь
   ]), { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /будет 50 000 €/, 'потолок считается не как сумма всех ставок');
-  assert.match(html, /ожидаю[\s\S]*?26 000 €/, 'ожидаемая прибавка считается без уверенности');
-  assert.match(html, /к капиталу \+26%/, 'не видно, насколько это меняет капитал');
-  assert.match(html, /на кону[\s\S]*?12 000 €/, 'не видно, чем рискую');
+  assert.match(html, /верю\s*<b class="up">\+80 000 €/, 'призы «верю» сложены неверно');
+  assert.match(html, /скорее да\s*<b[^>]*>\+20 000 €/, 'уровень «скорее да» потерян');
+  assert.match(html, /сомневаюсь\s*<b[^>]*>\+15 000 €/, 'уровень «сомневаюсь» потерян');
+  // ровно то, от чего отказались: ни одно число не домножено на вероятность
+  assert.ok(!html.includes('68 000') && !html.includes('×'), 'деньги всё ещё пересчитаны по проценту веры');
 });
 
-test('ставка на 100k с верой 10% не равна ставке на 10k с верой 100%', () => {
+test('вера не трогает суммы — только раскладывает их по уровням', () => {
   const ctx = loadFin().ctx;
-  const risky = ctx.secBets(DATA([bet(1, { upside: 100000, confidence: 10 })]), { rate: 1.08 });
-  const sure = ctx.secBets(DATA([bet(2, { upside: 10000, confidence: 100 })]), { rate: 1.08 });
-  const w = h => (h.replace(/ /g, ' ').match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
-  assert.equal(w(risky), '10 000');
-  assert.equal(w(sure), '10 000', 'взвешенная прибавка должна сравнивать их на равных');
-  assert.match(risky.replace(/ /g, ' '), /будет 100 000 €/, 'потолок обязан остаться разным');
-});
-
-test('доход в месяц считается отдельно от разовой суммы', () => {
-  const html = loadFin().ctx.secBets(DATA([bet(1, { monthly: 1000, confidence: 60 })]), { rate: 1.08 })
+  const sure = ctx.secBets(DATA([bet(1, { upside: 100000, confidence: 85 })]), { rate: 1.08 })
     .replace(/ /g, ' ');
-  assert.match(html, /в месяц[\s\S]*?600 €/, 'ежемесячная прибавка не взвешена или потеряна');
-  const once = (html.match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
-  assert.equal(once, '0', 'месячный доход попал в разовую прибавку');
+  const doubt = ctx.secBets(DATA([bet(2, { upside: 100000, confidence: 30 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(sure, /верю\s*<b class="up">\+100 000 €/, 'сумма изменилась от уверенности');
+  assert.match(doubt, /сомневаюсь\s*<b[^>]*>\+100 000 €/, 'сумма изменилась от неуверенности');
+  assert.ok(!doubt.includes('30 000'), 'приз домножен на веру');
 });
 
-test('$-ставка приводится к евро, а не складывается как есть', () => {
-  const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 10800, currency: '$', confidence: 100 })]),
+test('валюты приводятся к евро и в суммах по уровням', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 10800, currency: '$', confidence: 85 })]),
     { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /ожидаю[\s\S]*?10 000 €/, 'доллары сложены с евро по номиналу');
+  assert.match(html, /верю\s*<b class="up">\+10 000 €/, 'доллары сложены с евро по номиналу');
+});
+
+test('поток показан рядом с призом своего уровня и отдельной строкой', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { monthly: 600, confidence: 85 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(html, /и 600 €\/мес/, 'поток не показан у своего уровня веры');
+  assert.ok(!html.includes('300'), 'поток домножен на веру');
+});
+
+test('сценарий «если не выйдет» — сумма потерь как есть', () => {
+  const data = DATA([bet(1, { stake: 100000, downside: 50000, upside: 80000, confidence: 40 })]);
+  data.targetPortfolio = [...data.targetPortfolio,
+    { id: 2, name: 'Вещи', kind: 'block', side: 'use', eur: 100000, children: [] }];
+  const html = loadFin().ctx.secBets(data, { rate: 1.08 }).replace(/ /g, ' ');
+  assert.match(html, /если не выйдет <b class="down">−50 000 €/, 'потери усреднены или потеряны');
+  assert.match(html, /на кону <b>100 000 €<\/b>[\s\S]*?50% всего/, 'не видно, какая доля нажитого завязана');
+});
+
+test('в строке — приз к риску, без вероятностей', () => {
+  const ctx = loadFin().ctx;
+  const good = ctx.secBets(DATA([bet(1, { upside: 80000, downside: 50000, confidence: 40 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(good, /приз к риску 1,6 : 1/, 'соотношение приза к потере не посчитано');
+  assert.match(good, /betev up/, 'приз крупнее риска, а помечено как плохое');
+  assert.ok(!good.includes('0,40 ×'), 'в строке осталась арифметика ожидаемой ценности');
+
+  const bad = ctx.secBets(DATA([bet(2, { upside: 10000, downside: 50000 })]), { rate: 1.08 });
+  assert.match(bad, /приз к риску 0,2 : 1/);
+  assert.match(bad, /betev down/, 'риск крупнее приза, а помечено как хорошее');
+});
+
+test('без потери вердикта нет, у потока — срок возврата', () => {
+  const ctx = loadFin().ctx;
+  assert.ok(!ctx.secBets(DATA([bet(1, { upside: 30000 })]), { rate: 1.08 }).includes('betev'),
+    'вердикт выдуман там, где потеря не названа');
+  assert.match(ctx.secBets(DATA([bet(2, { monthly: 600, downside: 4000 })]), { rate: 1.08 }),
+    /вернётся за 7 мес/, 'у потока нет вердикта — а риск у него есть');
+});
+
+test('уровень веры переключается кликом по кругу', async () => {
+  const f = loadFin();
+  const html = f.ctx.secBets(DATA([bet(9, { confidence: 85, upside: 1000 })]), { rate: 1.08 });
+  assert.match(html, /data-betsure="9:85"[^>]*>верю</, 'уровень веры не показан словом');
+  const patch = await f.click(html, 'betsure');
+  assert.deepEqual(patch.body, { confidence: 65 }, 'клик не переводит «верю» в «скорее да»');
 });
 
 test('закрытые ставки дают честную статистику ожиданий', () => {
@@ -185,21 +225,15 @@ test('высвобождение капитала — отдельное чис�
   const html = loadFin().ctx.secBets(DATA([
     bet(1, { title: 'Продать квартиру', kind: 'sale', frees: 120000, upside: 8000, confidence: 100 }),
   ]), { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /высвободит[\s\S]*?120 000 €/, 'высвобождение не посчитано');
-  const grow = (html.match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
-  assert.equal(grow, '8 000', 'цена продажи попала в прирост — капитал бы вырос дважды');
+  assert.match(html, /высвободит <b>120 000 €/, 'высвобождение не посчитано');
+  assert.match(html, /верю\s*<b class="up">\+8 000 €/,
+    'цена продажи попала в прирост — капитал бы вырос дважды');
   assert.match(html, /data-fe="bets:1:frees:num"/, 'высвобождение нечем вписать в строке');
-});
-
-test('высвобождение взвешивается верой, как и остальное', () => {
-  const html = loadFin().ctx.secBets(DATA([bet(1, { frees: 100000, confidence: 50 })]), { rate: 1.08 })
-    .replace(/ /g, ' ');
-  assert.match(html, /высвободит[\s\S]*?50 000 €/, 'неуверенная продажа обещает всю сумму');
 });
 
 test('нечего высвобождать — числа в сводке нет', () => {
   // слово есть и в подсказке строки, поэтому смотрим именно сводку сверху
-  const line = h => (h.match(/<div class="capline betline">[\s\S]*?<\/div>/) || [''])[0];
+  const line = h => (h.match(/<div class="capline betline betrisk">[\s\S]*?<\/div>/) || [''])[0];
   assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('высвободит'),
     'пустое число занимает место в сводке');
   assert.ok(line(loadFin().ctx.secBets(DATA([bet(1, { frees: 9000, confidence: 100 })]), { rate: 1.08 })).includes('высвободит'),
@@ -208,60 +242,12 @@ test('нечего высвобождать — числа в сводке не�
 
 // Риск-менеджмент: из «на кону / теряю / вера» считается порог безубыточности и
 // ожидаемая ценность. Главное — поймать самообман: веры меньше, чем нужно ставке.
-test('порог безубыточности и ожидаемая ценность считаются по ставке', () => {
-  const ctx = loadFin().ctx;
-  // приз 30k, потеря 10k → порог 25%; вера 40% → ожидаемо 30×0.4 − 10×0.6 = +6 000
-  const good = ctx.secBets(DATA([bet(1, { upside: 30000, downside: 10000, confidence: 40 })]), { rate: 1.08 })
-    .replace(/ /g, ' ');
-  assert.match(good, /0,40 × 30 000 − 0,60 × 10 000\s*= \+6 000 € · порог 25%/, 'порог или ожидаемая ценность посчитаны неверно');
-  assert.match(good, /betev up/, 'ставка в плюс не отмечена как плюс');
-
-  // та же ставка с верой 10% → ожидаемо 3 000 − 9 000 = −6 000, то есть против тебя
-  const bad = ctx.secBets(DATA([bet(2, { upside: 30000, downside: 10000, confidence: 10 })]), { rate: 1.08 })
-    .replace(/ /g, ' ');
-  assert.match(bad, /0,10 × 30 000 − 0,90 × 10 000\s*= −6 000 € · порог 25%/, 'минусовая ставка показана как плюсовая');
-  assert.match(bad, /betev down/, 'ставка против тебя не отмечена');
-});
-
-test('без названной потери вердикта нет — считать нечего', () => {
-  const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 30000, confidence: 40 })]), { rate: 1.08 });
-  assert.ok(!html.includes('betev'), 'вердикт выдуман там, где потеря не названа');
-  assert.match(html, /data-fe="bets:1:downside:num"/, 'потерю нечем вписать');
-});
-
-test('сводка показывает ожидаемую потерю и долю нажитого на кону', () => {
-  const data = DATA([bet(1, { stake: 25000, downside: 10000, confidence: 60, upside: 20000 })]);
-  // вещи вне капитала: иначе «всё» равно капиталу и подмена одного другим незаметна
-  data.targetPortfolio = [...data.targetPortfolio,
-    { id: 2, name: 'Вещи', kind: 'block', side: 'use', eur: 100000, children: [] }];
-  const html = loadFin().ctx.secBets(data, { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /риск −4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
-  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?13% всего/,
-    'доля считается не от всего нажитого — а на кону бывает и имущество вне капитала');
-});
-
 test('нечего терять — строки риска в сводке нет', () => {
   const line = h => (h.match(/<div class="capline betline">[\s\S]*?<\/div>/) || [''])[0];
   assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('риск'),
     'пустой риск занимает место');
 });
 
-test('у потоковой ставки вердикт — срок окупаемости, а не порог', () => {
-  const ctx = loadFin().ctx;
-  // теряю 4 000, поток 600 в месяц → вернётся за 7 месяцев
-  const fast = ctx.secBets(DATA([bet(1, { monthly: 600, downside: 4000, confidence: 70 })]), { rate: 1.08 });
-  assert.match(fast, /окупится за 7 мес/, 'у потока нет вердикта — а риск у него есть');
-  assert.match(fast, /betev up/, 'быстрая окупаемость не отмечена как хорошая');
-  assert.ok(!fast.includes('нужно ≥'), 'потоку приписан порог разовой ставки');
-
-  // теряю 40 000 при том же потоке → почти шесть лет, это уже плохо
-  const slow = ctx.secBets(DATA([bet(2, { monthly: 600, downside: 40000 })]), { rate: 1.08 });
-  assert.match(slow, /окупится за 67 мес/);
-  assert.match(slow, /betev down/, 'долгая окупаемость выглядит как хорошая');
-});
-
-// Строка должна читаться предложением: что за ставка, что принесёт, насколько верю,
-// когда станет ясно. Остальные числа — вторым рядом, и пустые не лезут в глаза.
 test('в строке одно главное число, прочее — вторым рядом', () => {
   const ctx = loadFin().ctx;
   const html = ctx.secBets(DATA([bet(1, { upside: 10000, stake: 120000, frees: 120000, confidence: 80 })]),
@@ -290,6 +276,6 @@ test('незаполненные числа приглушены, а не спр
 
 test('правило блока объясняет, что именно считается', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1)]), { rate: 1.08 });
-  assert.match(html, /«принесёт» × «верю» = <b>ожидаю<\/b>/, 'не сказано, откуда берётся главное число');
-  assert.match(html, /порог веры/, 'не сказано, что даёт поле «теряю»');
+  assert.match(html, /Ничего не усредняем/, 'не сказано, что суммы показаны как есть');
+  assert.match(html, /вера — словом/, 'не сказано, чем стала вера');
 });
