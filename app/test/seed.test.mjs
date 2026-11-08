@@ -41,7 +41,6 @@ test('демо-сид оживляет дашборд: просрочка, не�
   assert.ok(t.overdue.length >= 1, 'есть просроченная задача');
   assert.ok(t.week.length >= 3, 'неделя наполнена (задачи+платежи+события)');
   assert.ok(t.routines.length === 5 && t.routines.some(r => r.streak > 0), 'рутины со стриком');
-  assert.ok(t.movement.total >= 1, 'движение недели не пустое');
   assert.ok(t.debtsOverdue.length >= 1, 'просроченный долг виден');
   assert.equal(t.activityMonth, '🎾 Июнь — падл');
   assert.ok(t.people.birthdays.length >= 1 && t.people.overdueContacts.length >= 1);

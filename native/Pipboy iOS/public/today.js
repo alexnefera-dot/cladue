@@ -625,7 +625,7 @@ function renderToday() {
   document.getElementById('screen-today').innerHTML = `
   <h2 style="margin-bottom:2px">Сегодня</h2>
   <div class="muted" style="margin-bottom:14px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]} ·
-    просрочено: ${d.overdue.length} · сделано за неделю: ${d.movement.total} 👏</div>
+    просрочено: ${d.overdue.length}</div>
 
   ${tdSphStrip()}
   ${tdSkills()}
@@ -755,7 +755,6 @@ function renderTodayMobile() {
   <div class="tdchips">
     <div class="tdchip ${d.overdue.length || (d.obOverdue || []).length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length + (d.obToday || []).length + (d.obOverdue || []).length}</b><span>дел${d.overdue.length + (d.obOverdue || []).length ? ` · ${d.overdue.length + (d.obOverdue || []).length} просроч.` : ''}</span></div>
     <div class="tdchip"><b>${rDone}/${d.routines.length}</b><span>рутины</span></div>
-    <div class="tdchip"><b>${d.movement.total}</b><span>за неделю 👏</span></div>
   </div>
 
   ${checkin}

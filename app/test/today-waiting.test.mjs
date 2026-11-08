@@ -29,7 +29,7 @@ const DATA = {
   waiting: [{ id: 7, title: 'Решить с растаможкой', kind: 'decision' }],
   obWaiting: [{ id: 3, name: 'Страховка', amount: 400, currency: '€', next_date: '2026-08-01' }],
   overdue: [{ id: 5, title: 'Оплатить штраф', kind: 'task', due_date: '2026-08-01' }],
-  obOverdue: [], dueToday: [], obToday: [], movement: { total: 0 },
+  obOverdue: [], dueToday: [], obToday: [],
 };
 
 test('доска: наверху «Ожидает решения», а не всё просроченное', () => {
@@ -59,7 +59,7 @@ test('строка просроченного получает кнопку пе
 test('на десктопе просроченное осталось на экране — из него и переносят', () => {
   const ctx = loadToday({ ...DATA,
     obOverdue: [{ id: 9, name: 'Налог', amount: 100, currency: '€', next_date: '2026-08-10', overdue_days: 20 }],
-    routines: [], progress: { total: 1, typed: 1 }, movement: { total: 0, top: [] },
+    routines: [], progress: { total: 1, typed: 1 },
     weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null, checkin: null, events: [], week: [],
     zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
     people: { birthdays: [], overdueContacts: [] } });
@@ -75,9 +75,8 @@ test('на десктопе просроченное осталось на эк�
   assert.ok(html.includes('data-tdwait="task:7:0"'), 'из ожидания нечем вернуть обратно');
 });
 
-test('«Движение недели» убрано с главной — и на десктопе, и на телефоне', () => {
+test('недели на главной нет вовсе: ни блока, ни счётчика, ни данных о ней', () => {
   const full = { ...DATA, obOverdue: [], routines: [], progress: { total: 1, typed: 1 },
-    movement: { total: 7, top: [['Работа', 4], ['Спорт', 3]] },
     weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null, checkin: null, events: [], week: [],
     zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
     people: { birthdays: [], overdueContacts: [] } };
@@ -94,6 +93,7 @@ test('«Движение недели» убрано с главной — и н
   for (const [where, html] of [['десктоп', screen(false)], ['телефон', screen(true)]]) {
     assert.ok(!html.includes('Движение недели'), `блок остался на «${where}»`);
     assert.ok(!html.includes('шага(ов)'), `разбивка по категориям осталась на «${where}»`);
+    assert.ok(!html.includes('за неделю'), `счётчик недели остался на «${where}» — в шапке или чипом`);
   }
 });
 
@@ -110,7 +110,7 @@ test('отмеченные 🎓 навыки видны на главной — 
   ];
   const screen = mobile => {
     const ctx = loadToday({ ...DATA, obOverdue: [], routines: [], progress: { total: 1, typed: 1 },
-      movement: { total: 0, top: [] }, weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null,
+      weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null,
       checkin: null, events: [], week: [], zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
       people: { birthdays: [], overdueContacts: [] } });
     ctx.matchMedia = () => ({ matches: mobile });

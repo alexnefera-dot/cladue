@@ -3122,7 +3122,7 @@ enum Api {
         return items
     }
 
-    // ===== Дашборд «Сегодня» (порт today.buildToday + movement/sortRoutines) =====
+    // ===== Дашборд «Сегодня» (порт today.buildToday + sortRoutines) =====
     static func todayDash(_ db: Database) throws -> Data {
         let t = localToday()
         let cal = Calendar.current
@@ -3208,7 +3208,6 @@ enum Api {
             },
             "zones": ["paymentsWeek": payments7.count, "debtsOverdue": debtsOverdue.count, "practicesToday": practicesToday],
             "people": ["birthdays": Array(bdays), "overdueContacts": Array(overdueContacts)],
-            "movement": try movement(db),
             "weekGoals": ["total": (wg?["total"] as? Int) ?? 0, "done": (wg?["done"] as? Int) ?? 0],
             "checkin": checkin.map { $0 as Any } ?? NSNull(),
             "debtsOverdue": debtsOverdue,
@@ -3216,31 +3215,6 @@ enum Api {
             "progress": ["typed": typed, "total": real],
         ]
         return try json(result)
-    }
-
-    // Движение недели: закрытое за 7 дней по корневым категориям — порт today.movement.
-    static func movement(_ db: Database) throws -> [String: Any] {
-        let nodes = try db.rows("SELECT id, parent_id, title, is_category FROM nodes")
-        var byId: [Int: [String: Any]] = [:]
-        for n in nodes { byId[intval(n["id"])] = n }
-        func rootOf(_ start: [String: Any]) -> String {
-            var cur = start
-            while let pid = cur["parent_id"] as? Int, let p = byId[pid] {
-                if intval(p["is_category"]) != 0 && (p["parent_id"] as? Int) == nil {
-                    return p["title"] as? String ?? "прочее"
-                }
-                cur = p
-            }
-            return intval(cur["is_category"]) != 0 ? (cur["title"] as? String ?? "прочее") : "прочее"
-        }
-        let done = try db.rows("""
-            SELECT id FROM nodes WHERE is_category = 0
-              AND status IN ('done','accepted') AND updated_at >= datetime('now','localtime','-7 days')
-            """)
-        var byCat: [String: Int] = [:]
-        for d in done { if let node = byId[intval(d["id"])] { byCat[rootOf(node), default: 0] += 1 } }
-        return ["total": done.count,
-                "top": byCat.sorted { $0.value > $1.value }.prefix(3).map { [$0.key, $0.value] as [Any] }]
     }
 
     // Сортировка рутин для дашборда — порт life.sortRoutines.

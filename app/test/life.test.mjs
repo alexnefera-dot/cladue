@@ -67,8 +67,6 @@ test('дашборд: рутины, люди, зоны и движение не�
   assert.equal(t.routines.length, 1);
   assert.equal(t.people.overdueContacts[0].name, 'Дима');
   assert.ok('paymentsWeek' in t.zones);
-  assert.equal(t.movement.total, 1);
-  assert.deepEqual(t.movement.top[0], ['Финансы', 1], 'движение сгруппировано по корневой категории');
   assert.ok(!('fire' in t), 'FIRE с дашборда убран');
   assert.ok(!('portfolioDelta' in t), 'портфель с дашборда убран');
 });

@@ -5,30 +5,6 @@ import { monthOccurrences } from './psy.js';
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;   // локальная дата: сутки переключаются в твою полночь, не по UTC
 
-// «Движение недели»: закрытое за 7 дней, сгруппированное по корневым категориям
-function movement(db) {
-  const nodes = db.prepare('SELECT id, parent_id, title, is_category FROM nodes').all();
-  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
-  const rootOf = n => {
-    let cur = n;
-    while (cur.parent_id && byId[cur.parent_id]) {
-      const p = byId[cur.parent_id];
-      if (p.is_category && !p.parent_id) return p.title;
-      cur = p;
-    }
-    return cur.is_category ? cur.title : 'прочее';
-  };
-  const done = db.prepare(`
-    SELECT id FROM nodes WHERE is_category = 0
-      AND status IN ('done','accepted') AND updated_at >= datetime('now','-7 days')`).all();
-  const byCat = {};
-  for (const d of done) byCat[rootOf(byId[d.id])] = (byCat[rootOf(byId[d.id])] ?? 0) + 1;
-  return {
-    total: done.length,
-    top: Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3),
-  };
-}
-
 export function buildToday(db) {
   const today = iso(new Date());
   const tomorrow = iso(new Date(Date.now() + 864e5));
@@ -96,7 +72,6 @@ export function buildToday(db) {
       overdueContacts: people.filter(p => p.overdue_contact > 0)
         .sort((a, b) => b.overdue_contact - a.overdue_contact).slice(0, 5),
     },
-    movement: movement(db),
     weekGoals: { total: weekGoals.total ?? 0, done: weekGoals.done ?? 0 },
     checkin: checkinToday,
     debtsOverdue,
