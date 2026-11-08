@@ -628,7 +628,6 @@ function renderToday() {
     просрочено: ${d.overdue.length}</div>
 
   ${tdSphStrip()}
-  ${tdSkills()}
   ${tdRest()}
   ${tdWeekBoard()}
 
@@ -706,6 +705,7 @@ function renderToday() {
       ${tdFinance()}
     </div>
   </div>
+  ${tdSkills()}
   <div class="footer-hint">Отметки синхронизируются со списком, шагами и календарём. Рутины: пропуск не висит долгом — день закрылся и всё.</div>`;
 
   bindToday();
@@ -748,7 +748,6 @@ function renderTodayMobile() {
   <div class="muted" style="margin-bottom:12px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]}</div>
 
   ${tdSphStrip()}
-  ${tdSkills()}
   ${tdRest()}
   ${tdWeekBoard(true)}
 
@@ -821,6 +820,8 @@ function renderTodayMobile() {
     <div class="bar"><i style="width:${d.weekGoals.total ? d.weekGoals.done / d.weekGoals.total * 100 : 0}%"></i></div>
     <div class="meta" style="margin-top:6px">разобрано: ${pct}% · инбокс: ${d.inbox}</div>
   </div>
+
+  ${tdSkills()}
 `;
 
   bindToday();
