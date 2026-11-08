@@ -1547,10 +1547,24 @@ function secBets(d, s) {
   const capital = capBy.capital;
   const wonSum = done.filter(b => b.status === 'won').reduce((a, b) => a + eur(b.actual, b.currency), 0);
   const expSum = done.reduce((a, b) => a + eur(b.upside, b.currency), 0);
+  // Строка читается сверху вниз одним предложением: что за ставка, что принесёт,
+  // насколько верю, когда станет ясно. Остальные числа — вторым рядом и только если
+  // заполнены: пустые поля на виду и были той «кучей полей», из-за которой не читалось.
+  const money = (b, field, label, hint) => {
+    const has = b[field] != null;
+    return `<span class="${has ? 'meta' : 'meta betadd'}" title="${hint}">${label}
+      <span class="ed" data-fe="bets:${b.id}:${field}:num">${has ? fmt(b[field]) : '—'}</span>${
+      has ? ' ' + fesc(b.currency || '€') : ''}</span>`;
+  };
   const row = b => {
     const [ico, kindName] = BET_KIND[b.kind] || BET_KIND.invest;
     const cur = b.currency || '€';
     const closed = b.status === 'won' || b.status === 'lost';
+    // главное число ставки: разовый приз либо поток. Показываем то, что заполнено.
+    const flow = b.monthly != null && b.upside == null;
+    const main = flow
+      ? `<span class="num" title="сколько ставка даёт в месяц">принесёт <span class="ed" data-fe="bets:${b.id}:monthly:num">${fmt(b.monthly)}</span> ${fesc(cur)}/мес</span>`
+      : `<span class="num" title="новые деньги сверх того, что уже есть">принесёт <span class="ed" data-fe="bets:${b.id}:upside:num">${b.upside != null ? fmt(b.upside) : '—'}</span> ${fesc(cur)}</span>`;
     return `<div class="task bet${closed ? ' betdone' : ''}">
       <span class="pill btn" data-betkind="${b.id}:${b.kind || 'invest'}" title="тип ставки — клик">${ico} ${kindName}</span>
       <span class="pill btn" data-betcur="${b.id}:${fesc(cur)}" title="валюта ставки — клик">${fesc(cur)}</span>
@@ -1558,14 +1572,16 @@ function secBets(d, s) {
         <span class="ed" data-fe="bets:${b.id}:title:text">${fesc(b.title || 'без названия')}</span>
         <div class="meta"><span class="ed" data-fe="bets:${b.id}:thesis:text" data-hint="почему верю, что сыграет">${
           b.thesis ? fesc(b.thesis) : '<span class="muted">почему верю — клик</span>'}</span></div>
+        <div class="betmore">
+          ${money(b, 'stake', 'на кону', 'сколько моего завязано на исход')}
+          ${money(b, 'downside', 'теряю', 'сколько потеряю, если не сыграет — это не то же, что на кону')}
+          ${money(b, 'frees', 'высвободит', 'деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими')}
+          ${flow ? '' : money(b, 'monthly', 'в месяц', 'если ставка даёт поток, а не разовый приз')}
+          ${closed ? '' : betVerdict(b, rate)}
+        </div>
       </span>
-      <span class="meta" title="сколько уже на кону">на кону <span class="ed" data-fe="bets:${b.id}:stake:num">${b.stake != null ? fmt(b.stake) : '—'}</span> ${fesc(cur)}</span>
-      <span class="num" title="что может принести разово">+<span class="ed" data-fe="bets:${b.id}:upside:num">${b.upside != null ? fmt(b.upside) : '—'}</span> ${fesc(cur)}</span>
-      <span class="meta" title="или сколько в месяц">+<span class="ed" data-fe="bets:${b.id}:monthly:num">${b.monthly != null ? fmt(b.monthly) : '—'}</span> ${fesc(cur)}/мес</span>
-      <span class="meta" title="сколько капитала ставка высвободит: продажа имущества не создаёт новых денег, но делает их рабочими">⇄<span class="ed" data-fe="bets:${b.id}:frees:num">${b.frees != null ? fmt(b.frees) : '—'}</span> ${fesc(cur)}</span>
-      <span class="meta" title="сколько потеряю, если не сыграет — это не то же, что на кону">−<span class="ed" data-fe="bets:${b.id}:downside:num">${b.downside != null ? fmt(b.downside) : '—'}</span> ${fesc(cur)}</span>
+      ${main}
       <span class="pill" title="насколько верю">${closed ? '' : '<span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
-      ${closed ? '' : betVerdict(b, rate)}
       <span class="meta ed" data-fe="bets:${b.id}:horizon:text" data-hint="когда станет ясно: 2027-03" title="когда станет ясно">${betMonth(b.horizon)}</span>
       ${closed
         ? `<span class="pill ${b.status === 'won' ? 'ok' : 'p0'}">${b.status === 'won'
@@ -1586,15 +1602,17 @@ function secBets(d, s) {
   <div class="sec">Ставки на рост · почему будет лучше<span class="pr">${fmtE(weighted)}</span></div>
   <div class="card">
     <div class="capline betline">
-      <span title="если сыграют все открытые ставки">потолок <b>${fmtE(cap)}</b></span>
-      <span title="то же, взвешенное по уверенности — реалистичная прибавка">взвешенно <b class="up">${fmtE(weighted)}</b>${
+      <span title="если сыграют все открытые ставки, будет ${fmtE(cap)}">ожидаю <b class="up">${fmtE(weighted)}</b>${
         capital > 0 ? ` <span class="meta">к капиталу +${(weighted / capital * 100).toFixed(0)}%</span>` : ''}</span>
       ${perMonth >= 1 ? `<span title="взвешенная прибавка к доходу">в месяц <b class="up">${fmtE(perMonth)}</b></span>` : ''}
       ${frees >= 1 ? `<span title="деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими">высвободит <b>${fmtE(frees)}</b></span>` : ''}
-      ${risk >= 1 ? `<span title="ожидаемая потеря: что уйдёт, если ставки не сыграют, с их же вероятностями">риск <b class="down">−${fmtE(risk)}</b></span>` : ''}
-      <span title="сколько моего завязано на исход открытых ставок — считая имущество, которое лежит вне капитала">на кону <b>${fmtE(staked)}</b>${
-        capBy.all > 0 ? ` <span class="meta">${(staked / capBy.all * 100).toFixed(0)}% всего</span>` : ''}</span>
+      ${staked >= 1 ? `<span title="сколько моего завязано на исход открытых ставок${
+        risk >= 1 ? `, из них ожидаемая потеря ${fmt(risk)} €` : ''}">на кону <b>${fmtE(staked)}</b>${
+        capBy.all > 0 ? ` <span class="meta">${(staked / capBy.all * 100).toFixed(0)}% всего</span>` : ''}${
+        risk >= 1 ? ` <span class="meta down">риск −${fmt(risk)} €</span>` : ''}</span>` : ''}
     </div>
+    <div class="meta betrule">«принесёт» × «верю» = <b>ожидаю</b>. Назовёшь, сколько теряешь при провале —
+      посчитаю порог веры, ниже которого ставка играет против тебя</div>
     ${groups.map(g => `<div class="meta betmon">${betMonth(g.key)}</div>${g.items.map(row).join('')}`).join('')
       || '<div class="empty">ставок пока нет — впиши первую: что ты уже сделал, от чего ждёшь прироста</div>'}
     <div class="task finadd">

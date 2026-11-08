@@ -43,21 +43,24 @@ function loadFin() {
   return { ctx, click, calls, alerts, prompts };
 }
 
-const bet = (id, o = {}) => ({ id, title: 'Ставка ' + id, kind: 'invest', thesis: '', stake: 0,
-  currency: '€', upside: 0, monthly: 0, confidence: 50, horizon: null, status: 'open', actual: null, ...o });
+// пустые поля — именно null, как у только что заведённой ставки: нули выглядели бы
+// заполненными и скрывали бы разницу между «не вписал» и «вписал ноль»
+const bet = (id, o = {}) => ({ id, title: 'Ставка ' + id, kind: 'invest', thesis: '', stake: null,
+  currency: '€', upside: null, monthly: null, frees: null, downside: null,
+  confidence: 50, horizon: null, status: 'open', actual: null, ...o });
 const DATA = bets => ({
   summary: { portfolioTotal: 100000, rate: 1.08 }, rate: 1.08, bets,
   targetPortfolio: [{ id: 1, name: 'Рост', kind: 'block', side: 'act', eur: 100000, children: [] }],
   portfolio: [],
 });
 
-test('сверху — потолок, взвешенная прибавка и доля к капиталу', () => {
+test('сверху — ожидаемая прибавка, потолок в подсказке и доля к капиталу', () => {
   const html = loadFin().ctx.secBets(DATA([
     bet(1, { upside: 30000, confidence: 80, stake: 12000 }),
     bet(2, { upside: 20000, confidence: 10 }),
   ]), { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /потолок[\s\S]*?50 000 €/, 'потолок считается не как сумма всех ставок');
-  assert.match(html, /взвешенно[\s\S]*?26 000 €/, 'взвешенная прибавка считается без уверенности');
+  assert.match(html, /будет 50 000 €/, 'потолок считается не как сумма всех ставок');
+  assert.match(html, /ожидаю[\s\S]*?26 000 €/, 'ожидаемая прибавка считается без уверенности');
   assert.match(html, /к капиталу \+26%/, 'не видно, насколько это меняет капитал');
   assert.match(html, /на кону[\s\S]*?12 000 €/, 'не видно, чем рискую');
 });
@@ -66,24 +69,24 @@ test('ставка на 100k с верой 10% не равна ставке на
   const ctx = loadFin().ctx;
   const risky = ctx.secBets(DATA([bet(1, { upside: 100000, confidence: 10 })]), { rate: 1.08 });
   const sure = ctx.secBets(DATA([bet(2, { upside: 10000, confidence: 100 })]), { rate: 1.08 });
-  const w = h => (h.replace(/ /g, ' ').match(/взвешенно[\s\S]*?([\d ]+) €/) || [])[1].trim();
+  const w = h => (h.replace(/ /g, ' ').match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
   assert.equal(w(risky), '10 000');
   assert.equal(w(sure), '10 000', 'взвешенная прибавка должна сравнивать их на равных');
-  assert.match(risky.replace(/ /g, ' '), /потолок[\s\S]*?100 000 €/, 'потолок обязан остаться разным');
+  assert.match(risky.replace(/ /g, ' '), /будет 100 000 €/, 'потолок обязан остаться разным');
 });
 
 test('доход в месяц считается отдельно от разовой суммы', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1, { monthly: 1000, confidence: 60 })]), { rate: 1.08 })
     .replace(/ /g, ' ');
   assert.match(html, /в месяц[\s\S]*?600 €/, 'ежемесячная прибавка не взвешена или потеряна');
-  const once = (html.match(/взвешенно[\s\S]*?([\d ]+) €/) || [])[1].trim();
+  const once = (html.match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
   assert.equal(once, '0', 'месячный доход попал в разовую прибавку');
 });
 
 test('$-ставка приводится к евро, а не складывается как есть', () => {
   const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 10800, currency: '$', confidence: 100 })]),
     { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /взвешенно[\s\S]*?10 000 €/, 'доллары сложены с евро по номиналу');
+  assert.match(html, /ожидаю[\s\S]*?10 000 €/, 'доллары сложены с евро по номиналу');
 });
 
 test('закрытые ставки дают честную статистику ожиданий', () => {
@@ -95,7 +98,7 @@ test('закрытые ставки дают честную статистику
   assert.match(html, /проверено 2 · сыграло 1/, 'не видно, сколько ставок вообще проверено');
   assert.match(html, /ждал 40 000 € → вышло 12 000 €/, 'нет сверки ожиданий с фактом');
   assert.match(html, /✓ сыграла · 12 000 €/, 'у сыгравшей не показан фактический результат');
-  assert.ok(!/взвешенно[\s\S]*?22 500 €/.test(html), 'закрытые ставки всё ещё обещают прибавку');
+  assert.ok(!/ожидаю[\s\S]*?22 500 €/.test(html), 'закрытые ставки всё ещё обещают прибавку');
 });
 
 test('закрытие спрашивает, сколько принесла на самом деле', async () => {
@@ -183,7 +186,7 @@ test('высвобождение капитала — отдельное чис�
     bet(1, { title: 'Продать квартиру', kind: 'sale', frees: 120000, upside: 8000, confidence: 100 }),
   ]), { rate: 1.08 }).replace(/ /g, ' ');
   assert.match(html, /высвободит[\s\S]*?120 000 €/, 'высвобождение не посчитано');
-  const grow = (html.match(/взвешенно[\s\S]*?([\d ]+) €/) || [])[1].trim();
+  const grow = (html.match(/ожидаю[\s\S]*?([\d ]+) €/) || [])[1].trim();
   assert.equal(grow, '8 000', 'цена продажи попала в прирост — капитал бы вырос дважды');
   assert.match(html, /data-fe="bets:1:frees:num"/, 'высвобождение нечем вписать в строке');
 });
@@ -232,7 +235,7 @@ test('сводка показывает ожидаемую потерю и до�
   data.targetPortfolio = [...data.targetPortfolio,
     { id: 2, name: 'Вещи', kind: 'block', side: 'use', eur: 100000, children: [] }];
   const html = loadFin().ctx.secBets(data, { rate: 1.08 }).replace(/ /g, ' ');
-  assert.match(html, /риск[\s\S]*?−4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
+  assert.match(html, /риск −4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
   assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?13% всего/,
     'доля считается не от всего нажитого — а на кону бывает и имущество вне капитала');
 });
@@ -255,4 +258,38 @@ test('у потоковой ставки вердикт — срок окупа�
   const slow = ctx.secBets(DATA([bet(2, { monthly: 600, downside: 40000 })]), { rate: 1.08 });
   assert.match(slow, /окупится за 67 мес/);
   assert.match(slow, /betev down/, 'долгая окупаемость выглядит как хорошая');
+});
+
+// Строка должна читаться предложением: что за ставка, что принесёт, насколько верю,
+// когда станет ясно. Остальные числа — вторым рядом, и пустые не лезут в глаза.
+test('в строке одно главное число, прочее — вторым рядом', () => {
+  const ctx = loadFin().ctx;
+  const html = ctx.secBets(DATA([bet(1, { upside: 10000, stake: 120000, frees: 120000, confidence: 80 })]),
+    { rate: 1.08 }).replace(/ /g, ' ');
+  assert.ok(html.includes('class="betmore"'), 'второго ряда нет вовсе — всё снова в одной строке');
+  const main = html.slice(html.indexOf('</div>', html.indexOf('betmore')));   // после второго ряда
+  assert.match(main, /принесёт[\s\S]*?10 000<\/span> €/, 'главное число не на виду');
+  const more = html.slice(html.indexOf('betmore'), html.indexOf('</div>', html.indexOf('betmore')));
+  for (const w of ['на кону', 'теряю', 'высвободит']) {
+    assert.ok(more.includes(w), `«${w}» должно быть вторым рядом, а не в главной строке`);
+  }
+  assert.ok(!main.includes('на кону'), 'второстепенные числа остались в главной строке');
+});
+
+test('у потока главным числом стоит поток, а не пустой разовый приз', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { monthly: 600 })]), { rate: 1.08 });
+  assert.match(html, /принесёт <span class="ed" data-fe="bets:1:monthly:num">600<\/span> €\/мес/,
+    'у потоковой ставки главным показано пустое «принесёт разово»');
+});
+
+test('незаполненные числа приглушены, а не спрятаны', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 });
+  assert.match(html, /class="meta betadd"[^>]*>на кону/, 'пустое поле либо исчезло, либо кричит как заполненное');
+  assert.match(html, /data-fe="bets:1:stake:num"/, 'пустое поле нельзя заполнить кликом');
+});
+
+test('правило блока объясняет, что именно считается', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1)]), { rate: 1.08 });
+  assert.match(html, /«принесёт» × «верю» = <b>ожидаю<\/b>/, 'не сказано, откуда берётся главное число');
+  assert.match(html, /порог веры/, 'не сказано, что даёт поле «теряю»');
 });
