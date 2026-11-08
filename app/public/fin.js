@@ -1518,10 +1518,12 @@ function betVerdict(b, rate) {
   const p = (b.confidence ?? 50) / 100;
   const need = down / (up + down) * 100;          // порог безубыточности, %
   const ev = up * p - down * (1 - p);
-  const ok = ev >= 0;
-  return `<span class="meta betev ${ok ? 'up' : 'down'}"
-    title="порог: при вере ниже ${need.toFixed(0)}% ставка играет против тебя. Ожидаемо = приз × вера − потеря × (1 − вера)"
-    >нужно ≥${need.toFixed(0)}% · ожидаемо ${ev >= 0 ? '+' : '−'}${fmt(Math.abs(ev))} €</span>`;
+  // Показываем не итог, а сам счёт числами: «0,4 × 80 000 − 0,6 × 50 000 = +2 000 €».
+  // Так видно, откуда берётся результат, и не надо держать формулу в голове.
+  return `<span class="meta betev ${ev >= 0 ? 'up' : 'down'}"
+    title="порог ${need.toFixed(0)}%: при вере ниже этого ставка играет против тебя"
+    >${p.toFixed(2).replace('.', ',')} × ${fmt(up)} − ${(1 - p).toFixed(2).replace('.', ',')} × ${fmt(down)}
+     = ${ev >= 0 ? '+' : '−'}${fmt(Math.abs(ev))} € · порог ${need.toFixed(0)}%</span>`;
 }
 
 function secBets(d, s) {
@@ -1552,9 +1554,12 @@ function secBets(d, s) {
   // заполнены: пустые поля на виду и были той «кучей полей», из-за которой не читалось.
   const money = (b, field, label, hint) => {
     const has = b[field] != null;
-    return `<span class="${has ? 'meta' : 'meta betadd'}" title="${hint}">${label}
-      <span class="ed" data-fe="bets:${b.id}:${field}:num">${has ? fmt(b[field]) : '—'}</span>${
-      has ? ' ' + fesc(b.currency || '€') : ''}</span>`;
+    // Пустое поле раньше рисовалось приглушённым прочерком и читалось как выключенное.
+    // Теперь это явное приглашение: «＋ на кону» — видно, что сюда можно вписать.
+    return has
+      ? `<span class="meta" title="${hint}">${label}
+          <span class="ed" data-fe="bets:${b.id}:${field}:num">${fmt(b[field])}</span> ${fesc(b.currency || '€')}</span>`
+      : `<span class="ed betadd" data-fe="bets:${b.id}:${field}:num" data-hint="${label}" title="${hint}">＋ ${label}</span>`;
   };
   const row = b => {
     const [ico, kindName] = BET_KIND[b.kind] || BET_KIND.invest;
@@ -1581,7 +1586,8 @@ function secBets(d, s) {
         </div>
       </span>
       ${main}
-      <span class="pill" title="насколько верю">${closed ? '' : '<span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
+      <span class="pill" title="верю, что сыграет; остальное — вероятность, что нет: 40% веры = 60%, что не выйдет">${
+        closed ? '' : 'верю <span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
       <span class="meta ed" data-fe="bets:${b.id}:horizon:text" data-hint="когда станет ясно: 2027-03" title="когда станет ясно">${betMonth(b.horizon)}</span>
       ${closed
         ? `<span class="pill ${b.status === 'won' ? 'ok' : 'p0'}">${b.status === 'won'

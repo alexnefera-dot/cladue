@@ -470,7 +470,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .task.bet .rowbtn{opacity:.55}.task.bet:hover .rowbtn{opacity:1}
 .betev{font-weight:600}   /* вердикт по ставке: порог веры и ожидаемая ценность */
 .betmore{display:flex;flex-wrap:wrap;gap:10px;margin-top:3px;font-size:11.5px}
-.betadd{opacity:.45}.task.bet:hover .betadd{opacity:.8}   /* незаполненное не мозолит глаза */
+.betadd{opacity:.6;border-bottom-style:dotted}.task.bet:hover .betadd{opacity:1}   /* пустое поле — приглашение, а не выключенное */
 .betrule{margin:-4px 0 8px}
 /* 🔒 закрытая цель не правится кликом, но читается как закреплённая */
 .porttable td.goal .pinned{color:var(--green);font-weight:600}
