@@ -125,6 +125,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // frees — сколько капитала ставка высвобождает: продажа квартиры не создаёт новых денег,
         // но переводит их из замороженного в рабочее. Прирост и высвобождение — разные числа.
         _ = try? made.run("ALTER TABLE bets ADD COLUMN frees REAL")
+        // downside — сколько теряю, если ставка не сыграет. Это не то же, что «на кону»:
+        // сделка по квартире может сорваться, но квартира останется. Отсюда считаются
+        // ожидаемая ценность и порог веры, ниже которого ставка играет против тебя.
+        _ = try? made.run("ALTER TABLE bets ADD COLUMN downside REAL")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY, title TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'invest', thesis TEXT NOT NULL DEFAULT '', stake REAL, currency TEXT NOT NULL DEFAULT '€', upside REAL, monthly REAL, confidence INTEGER NOT NULL DEFAULT 50, horizon TEXT, status TEXT NOT NULL DEFAULT 'open', actual REAL, item_id INTEGER, ord INTEGER NOT NULL DEFAULT 0, created_at TEXT, resolved_at TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
@@ -1586,7 +1590,7 @@ enum Api {
         "save": ["name", "target", "pct_min", "pct_max", "currency", "day", "note", "ord", "archived"],
         "savelog": ["date", "amount", "note"],
         "bets": ["title", "kind", "thesis", "stake", "currency", "upside", "monthly", "frees",
-                 "confidence", "horizon", "status", "actual", "item_id", "ord"]]
+                 "downside", "confidence", "horizon", "status", "actual", "item_id", "ord"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
     private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
         "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",

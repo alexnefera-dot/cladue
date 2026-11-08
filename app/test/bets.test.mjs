@@ -202,3 +202,40 @@ test('нечего высвобождать — числа в сводке не�
   assert.ok(line(loadFin().ctx.secBets(DATA([bet(1, { frees: 9000, confidence: 100 })]), { rate: 1.08 })).includes('высвободит'),
     'есть что высвободить, а в сводке не показано');
 });
+
+// Риск-менеджмент: из «на кону / теряю / вера» считается порог безубыточности и
+// ожидаемая ценность. Главное — поймать самообман: веры меньше, чем нужно ставке.
+test('порог безубыточности и ожидаемая ценность считаются по ставке', () => {
+  const ctx = loadFin().ctx;
+  // приз 30k, потеря 10k → порог 25%; вера 40% → ожидаемо 30×0.4 − 10×0.6 = +6 000
+  const good = ctx.secBets(DATA([bet(1, { upside: 30000, downside: 10000, confidence: 40 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(good, /нужно ≥25% · ожидаемо \+6 000 €/, 'порог или ожидаемая ценность посчитаны неверно');
+  assert.match(good, /betev up/, 'ставка в плюс не отмечена как плюс');
+
+  // та же ставка с верой 10% → ожидаемо 3 000 − 9 000 = −6 000, то есть против тебя
+  const bad = ctx.secBets(DATA([bet(2, { upside: 30000, downside: 10000, confidence: 10 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(bad, /нужно ≥25% · ожидаемо −6 000 €/, 'минусовая ставка показана как плюсовая');
+  assert.match(bad, /betev down/, 'ставка против тебя не отмечена');
+});
+
+test('без названной потери вердикта нет — считать нечего', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { upside: 30000, confidence: 40 })]), { rate: 1.08 });
+  assert.ok(!html.includes('нужно ≥'), 'порог выдуман там, где потеря не названа');
+  assert.match(html, /data-fe="bets:1:downside:num"/, 'потерю нечем вписать');
+});
+
+test('сводка показывает ожидаемую потерю и долю капитала на кону', () => {
+  const html = loadFin().ctx.secBets(DATA([
+    bet(1, { stake: 25000, downside: 10000, confidence: 60, upside: 20000 }),
+  ]), { rate: 1.08 }).replace(/ /g, ' ');
+  assert.match(html, /риск[\s\S]*?−4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
+  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?25% капитала/, 'не видно, какая доля капитала завязана');
+});
+
+test('нечего терять — строки риска в сводке нет', () => {
+  const line = h => (h.match(/<div class="capline betline">[\s\S]*?<\/div>/) || [''])[0];
+  assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('риск'),
+    'пустой риск занимает место');
+});
