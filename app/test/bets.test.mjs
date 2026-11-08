@@ -226,12 +226,14 @@ test('без названной потери вердикта нет — счи�
   assert.match(html, /data-fe="bets:1:downside:num"/, 'потерю нечем вписать');
 });
 
-test('сводка показывает ожидаемую потерю и долю капитала на кону', () => {
-  const html = loadFin().ctx.secBets(DATA([
-    bet(1, { stake: 25000, downside: 10000, confidence: 60, upside: 20000 }),
-  ]), { rate: 1.08 }).replace(/ /g, ' ');
+test('сводка показывает ожидаемую потерю и долю нажитого на кону', () => {
+  const data = DATA([bet(1, { stake: 25000, downside: 10000, confidence: 60, upside: 20000 })]);
+  // вещи вне капитала: иначе «всё» равно капиталу и подмена одного другим незаметна
+  data.targetPortfolio = [...data.targetPortfolio,
+    { id: 2, name: 'Вещи', kind: 'block', side: 'use', eur: 100000, children: [] }];
+  const html = loadFin().ctx.secBets(data, { rate: 1.08 }).replace(/ /g, ' ');
   assert.match(html, /риск[\s\S]*?−4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
-  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?25% всего/,
+  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?13% всего/,
     'доля считается не от всего нажитого — а на кону бывает и имущество вне капитала');
 });
 
