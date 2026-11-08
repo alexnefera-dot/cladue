@@ -1514,6 +1514,9 @@ function secBets(d, s) {
   const weighted = open.reduce((a, b) => a + eur(b.upside, b.currency) * ((b.confidence ?? 50) / 100), 0);
   const perMonth = open.reduce((a, b) => a + eur(b.monthly, b.currency) * ((b.confidence ?? 50) / 100), 0);
   const staked = open.reduce((a, b) => a + eur(b.stake, b.currency), 0);
+  // Высвобождение считаем отдельно от прироста: это не новые деньги, а те, что уже есть,
+  // но лежат вне капитала — продал имущество, и они стали рабочими.
+  const frees = open.reduce((a, b) => a + eur(b.frees, b.currency) * ((b.confidence ?? 50) / 100), 0);
   const capital = capitalSplit(d.targetPortfolio || d.portfolio, rate).capital;
   const wonSum = done.filter(b => b.status === 'won').reduce((a, b) => a + eur(b.actual, b.currency), 0);
   const expSum = done.reduce((a, b) => a + eur(b.upside, b.currency), 0);
@@ -1532,6 +1535,7 @@ function secBets(d, s) {
       <span class="meta" title="сколько уже на кону">на кону <span class="ed" data-fe="bets:${b.id}:stake:num">${b.stake != null ? fmt(b.stake) : '—'}</span> ${fesc(cur)}</span>
       <span class="num" title="что может принести разово">+<span class="ed" data-fe="bets:${b.id}:upside:num">${b.upside != null ? fmt(b.upside) : '—'}</span> ${fesc(cur)}</span>
       <span class="meta" title="или сколько в месяц">+<span class="ed" data-fe="bets:${b.id}:monthly:num">${b.monthly != null ? fmt(b.monthly) : '—'}</span> ${fesc(cur)}/мес</span>
+      <span class="meta" title="сколько капитала ставка высвободит: продажа имущества не создаёт новых денег, но делает их рабочими">⇄<span class="ed" data-fe="bets:${b.id}:frees:num">${b.frees != null ? fmt(b.frees) : '—'}</span> ${fesc(cur)}</span>
       <span class="pill" title="насколько верю">${closed ? '' : '<span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
       <span class="meta ed" data-fe="bets:${b.id}:horizon:text" data-hint="когда станет ясно: 2027-03" title="когда станет ясно">${betMonth(b.horizon)}</span>
       ${closed
@@ -1557,6 +1561,7 @@ function secBets(d, s) {
       <span title="то же, взвешенное по уверенности — реалистичная прибавка">взвешенно <b class="up">${fmtE(weighted)}</b>${
         capital > 0 ? ` <span class="meta">к капиталу +${(weighted / capital * 100).toFixed(0)}%</span>` : ''}</span>
       ${perMonth >= 1 ? `<span title="взвешенная прибавка к доходу">в месяц <b class="up">${fmtE(perMonth)}</b></span>` : ''}
+      ${frees >= 1 ? `<span title="деньги, которые уже есть, но лежат вне капитала: продашь — станут рабочими">высвободит <b>${fmtE(frees)}</b></span>` : ''}
       <span title="сколько уже вложено в открытые ставки">на кону <b>${fmtE(staked)}</b></span>
     </div>
     ${groups.map(g => `<div class="meta betmon">${betMonth(g.key)}</div>${g.items.map(row).join('')}`).join('')
@@ -1572,8 +1577,9 @@ function secBets(d, s) {
     ${done.length ? `<div class="meta betstat">проверено ${done.length} · сыграло ${done.filter(b => b.status === 'won').length}
       · ждал ${fmtE(expSum)} → вышло ${fmtE(wonSum)}</div>${done.map(row).join('')}` : ''}
     <div class="meta">это не прогноз про рынок (он соседним блоком), а твои собственные действия:
-      вложился, запустил, выставил на продажу. Закрывай честно — через год будет видно, сколько
-      твоих ожиданий сбывается</div>
+      вложился, запустил, выставил на продажу. «+» — новые деньги сверх того, что есть;
+      «⇄» — то, что уже есть, но вне капитала и станет рабочим (продажа имущества).
+      Закрывай честно — через год будет видно, сколько твоих ожиданий сбывается</div>
   </div>`;
 }
 

@@ -175,3 +175,30 @@ test('новую ставку можно завести сразу в долла
   await f.ctx.__byId.betAdd._click();
   assert.equal(f.calls.filter(c => c.method === 'POST').at(-1).body.currency, '€');
 });
+
+// Продажа имущества не создаёт новых денег: она превращает замороженное в рабочее.
+// Поэтому высвобождение считается отдельно от прироста — иначе «+120 000» врало бы.
+test('высвобождение капитала — отдельное число, не прирост', () => {
+  const html = loadFin().ctx.secBets(DATA([
+    bet(1, { title: 'Продать квартиру', kind: 'sale', frees: 120000, upside: 8000, confidence: 100 }),
+  ]), { rate: 1.08 }).replace(/ /g, ' ');
+  assert.match(html, /высвободит[\s\S]*?120 000 €/, 'высвобождение не посчитано');
+  const grow = (html.match(/взвешенно[\s\S]*?([\d ]+) €/) || [])[1].trim();
+  assert.equal(grow, '8 000', 'цена продажи попала в прирост — капитал бы вырос дважды');
+  assert.match(html, /data-fe="bets:1:frees:num"/, 'высвобождение нечем вписать в строке');
+});
+
+test('высвобождение взвешивается верой, как и остальное', () => {
+  const html = loadFin().ctx.secBets(DATA([bet(1, { frees: 100000, confidence: 50 })]), { rate: 1.08 })
+    .replace(/ /g, ' ');
+  assert.match(html, /высвободит[\s\S]*?50 000 €/, 'неуверенная продажа обещает всю сумму');
+});
+
+test('нечего высвобождать — числа в сводке нет', () => {
+  // слово есть и в подсказке строки, поэтому смотрим именно сводку сверху
+  const line = h => (h.match(/<div class="capline betline">[\s\S]*?<\/div>/) || [''])[0];
+  assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('высвободит'),
+    'пустое число занимает место в сводке');
+  assert.ok(line(loadFin().ctx.secBets(DATA([bet(1, { frees: 9000, confidence: 100 })]), { rate: 1.08 })).includes('высвободит'),
+    'есть что высвободить, а в сводке не показано');
+});

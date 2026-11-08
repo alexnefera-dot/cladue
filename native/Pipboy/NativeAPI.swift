@@ -122,6 +122,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // 🎲 Ставки на рост: не прогноз про рынок, а мои собственные действия с потенциалом —
         // вложился, запустил, выставил на продажу. stake — что уже на кону, upside/monthly —
         // что может принести, horizon «YYYY-MM» — когда станет ясно, actual — что вышло по факту.
+        // frees — сколько капитала ставка высвобождает: продажа квартиры не создаёт новых денег,
+        // но переводит их из замороженного в рабочее. Прирост и высвобождение — разные числа.
+        _ = try? made.run("ALTER TABLE bets ADD COLUMN frees REAL")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY, title TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'invest', thesis TEXT NOT NULL DEFAULT '', stake REAL, currency TEXT NOT NULL DEFAULT '€', upside REAL, monthly REAL, confidence INTEGER NOT NULL DEFAULT 50, horizon TEXT, status TEXT NOT NULL DEFAULT 'open', actual REAL, item_id INTEGER, ord INTEGER NOT NULL DEFAULT 0, created_at TEXT, resolved_at TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
@@ -1582,8 +1585,8 @@ enum Api {
         "hist": ["name", "amount", "currency", "note", "excluded", "parent_id", "ord"],
         "save": ["name", "target", "pct_min", "pct_max", "currency", "day", "note", "ord", "archived"],
         "savelog": ["date", "amount", "note"],
-        "bets": ["title", "kind", "thesis", "stake", "currency", "upside", "monthly", "confidence",
-                 "horizon", "status", "actual", "item_id", "ord"]]
+        "bets": ["title", "kind", "thesis", "stake", "currency", "upside", "monthly", "frees",
+                 "confidence", "horizon", "status", "actual", "item_id", "ord"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
     private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
         "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",
