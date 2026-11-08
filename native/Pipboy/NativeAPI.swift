@@ -119,6 +119,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0, passive INTEGER NOT NULL DEFAULT 0, digest INTEGER NOT NULL DEFAULT 0, digest_value REAL, digest_base REAL, closed INTEGER NOT NULL DEFAULT 0)")
+        // 🎲 Ставки на рост: не прогноз про рынок, а мои собственные действия с потенциалом —
+        // вложился, запустил, выставил на продажу. stake — что уже на кону, upside/monthly —
+        // что может принести, horizon «YYYY-MM» — когда станет ясно, actual — что вышло по факту.
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY, title TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'invest', thesis TEXT NOT NULL DEFAULT '', stake REAL, currency TEXT NOT NULL DEFAULT '€', upside REAL, monthly REAL, confidence INTEGER NOT NULL DEFAULT 50, horizon TEXT, status TEXT NOT NULL DEFAULT 'open', actual REAL, item_id INTEGER, ord INTEGER NOT NULL DEFAULT 0, created_at TEXT, resolved_at TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
         // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
@@ -1563,7 +1567,7 @@ enum Api {
     private static let finTable = ["accounts": "accounts", "steps": "steps",
         "obligations": "obligations", "items": "target_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
         "budget": "budget_items", "tgt": "target_items", "move": "target_moves", "hist": "history_rows",
-        "save": "save_goals", "savelog": "save_log"]
+        "save": "save_goals", "savelog": "save_log", "bets": "bets"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
@@ -1577,12 +1581,14 @@ enum Api {
         "move": ["from_id", "to_id", "amount", "to_note"],
         "hist": ["name", "amount", "currency", "note", "excluded", "parent_id", "ord"],
         "save": ["name", "target", "pct_min", "pct_max", "currency", "day", "note", "ord", "archived"],
-        "savelog": ["date", "amount", "note"]]
+        "savelog": ["date", "amount", "note"],
+        "bets": ["title", "kind", "thesis", "stake", "currency", "upside", "monthly", "confidence",
+                 "horizon", "status", "actual", "item_id", "ord"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
     private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
         "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",
         "budget": "статьи", "move": "перестановки", "hist": "строки истории",
-        "save": "цели", "savelog": "взноса"]
+        "save": "цели", "savelog": "взноса", "bets": "ставки"]
 
     // ===== Отмена последнего шага на Финансах =====
     // Пишем «как было» перед каждой правкой: удаление — строку целиком (для дерева — с ветвью
@@ -1703,7 +1709,7 @@ enum Api {
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
         if method == "POST", path == "/api/fin/undo" { return (try json(try undoApplyLast(db)), 200) }
-        if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move|hist|save|savelog)(?:/([0-9]+))?$") {
+        if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move|hist|save|savelog|bets)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty {
@@ -1819,6 +1825,16 @@ enum Api {
             try db.run("INSERT INTO passive_income(name, amount, currency, period, next_date, note, principal, rate, rate_period, asset_type) VALUES(?,?,?,?,?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly", b["next_date"] ?? NSNull(), b["note"] as? String ?? "",
                  num(b["principal"]), num(b["rate"]), b["rate_period"] as? String ?? "yearly", b["asset_type"] as? String ?? ""])
+        case "bets":
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM bets")
+            try db.run("""
+                INSERT INTO bets(title, kind, thesis, stake, currency, upside, monthly, confidence,
+                                 horizon, ord, created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?, date('now','localtime'))
+                """,
+                [b["title"] as? String ?? "", b["kind"] as? String ?? "invest", b["thesis"] as? String ?? "",
+                 b["stake"] ?? NSNull(), b["currency"] as? String ?? "€", b["upside"] ?? NSNull(),
+                 b["monthly"] ?? NSNull(), intval(b["confidence"] ?? 50), b["horizon"] ?? NSNull(), ord])
         case "budget":
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM budget_items")
             try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord, month) VALUES(?,?,?,?,?,?)",
@@ -2923,6 +2939,10 @@ enum Api {
             "saveGoals": (try? saveGoals(db)) ?? [],
             "undo": (try? db.rows("SELECT id, at, label FROM fin_undo ORDER BY id DESC LIMIT 1"))?.first ?? NSNull(),
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
+            "bets": try db.rows("""
+                SELECT * FROM bets
+                ORDER BY status <> 'open', horizon IS NULL, horizon, ord, id
+                """),
             "tx": tx, "forecasts": fc, "fire": fireV,
             "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves,
             "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,

@@ -1488,6 +1488,93 @@ function secSpending(d) {
   </div>`;
 }
 
+// ===== Ставки на рост =====
+// Не прогноз про рынок (это соседний блок и другая мышца), а мои собственные действия
+// с потенциалом: вложился, запустил, выставил на продажу. У ставки есть что уже на кону,
+// что она может принести, насколько я в неё верю и когда станет ясно. Сверху — ответ на
+// вопрос «почему будет лучше» в деньгах: потолок, взвешенная прибавка и прибавка в месяц.
+const BET_KIND = { invest: ['📈', 'инвестиция'], project: ['💼', 'проект'],
+  sale: ['🏷', 'продажа'], income: ['👛', 'доход'] };
+const BET_NEXT = { invest: 'project', project: 'sale', sale: 'income', income: 'invest' };
+const betMonth = ym => {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+  return m ? `${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][+m[2] - 1]} ${m[1]}` : 'без срока';
+};
+function secBets(d, s) {
+  const all = d.bets || [];
+  const rate = s.rate || d.rate || 1.08;
+  const eur = (v, cur) => (cur === '$' ? (v || 0) / rate : (v || 0));
+  // порядок задаём здесь, а не надеемся на бэкенд: ближний срок первым, без срока — в конец
+  const open = all.filter(b => (b.status || 'open') === 'open')
+    .slice().sort((a, b) => (a.horizon || '9999').localeCompare(b.horizon || '9999'));
+  const done = all.filter(b => b.status === 'won' || b.status === 'lost');
+  // Потолок — если сыграет всё; взвешенная — то же, умноженное на уверенность. Второе
+  // честнее: ставка на 100k с верой 10% не то же самое, что на 10k с верой 100%.
+  const cap = open.reduce((a, b) => a + eur(b.upside, b.currency), 0);
+  const weighted = open.reduce((a, b) => a + eur(b.upside, b.currency) * ((b.confidence ?? 50) / 100), 0);
+  const perMonth = open.reduce((a, b) => a + eur(b.monthly, b.currency) * ((b.confidence ?? 50) / 100), 0);
+  const staked = open.reduce((a, b) => a + eur(b.stake, b.currency), 0);
+  const capital = capitalSplit(d.targetPortfolio || d.portfolio, rate).capital;
+  const wonSum = done.filter(b => b.status === 'won').reduce((a, b) => a + eur(b.actual, b.currency), 0);
+  const expSum = done.reduce((a, b) => a + eur(b.upside, b.currency), 0);
+  const row = b => {
+    const [ico, kindName] = BET_KIND[b.kind] || BET_KIND.invest;
+    const cur = b.currency || '€';
+    const closed = b.status === 'won' || b.status === 'lost';
+    return `<div class="task bet${closed ? ' betdone' : ''}">
+      <span class="pill btn" data-betkind="${b.id}:${b.kind || 'invest'}" title="тип ставки — клик">${ico} ${kindName}</span>
+      <span class="t">
+        <span class="ed" data-fe="bets:${b.id}:title:text">${fesc(b.title || 'без названия')}</span>
+        <div class="meta"><span class="ed" data-fe="bets:${b.id}:thesis:text" data-hint="почему верю, что сыграет">${
+          b.thesis ? fesc(b.thesis) : '<span class="muted">почему верю — клик</span>'}</span></div>
+      </span>
+      <span class="meta" title="сколько уже на кону">на кону <span class="ed" data-fe="bets:${b.id}:stake:num">${b.stake != null ? fmt(b.stake) : '—'}</span> ${fesc(cur)}</span>
+      <span class="num" title="что может принести разово">+<span class="ed" data-fe="bets:${b.id}:upside:num">${b.upside != null ? fmt(b.upside) : '—'}</span> ${fesc(cur)}</span>
+      <span class="meta" title="или сколько в месяц">+<span class="ed" data-fe="bets:${b.id}:monthly:num">${b.monthly != null ? fmt(b.monthly) : '—'}</span> ${fesc(cur)}/мес</span>
+      <span class="pill" title="насколько верю">${closed ? '' : '<span class="ed" data-fe="bets:' + b.id + ':confidence:num">' + (b.confidence ?? 50) + '</span>%'}</span>
+      <span class="meta ed" data-fe="bets:${b.id}:horizon:text" data-hint="когда станет ясно: 2027-03" title="когда станет ясно">${betMonth(b.horizon)}</span>
+      ${closed
+        ? `<span class="pill ${b.status === 'won' ? 'ok' : 'p0'}">${b.status === 'won'
+            ? `✓ сыграла${b.actual != null ? ` · ${fmt(b.actual)} ${fesc(cur)}` : ''}` : '✗ не сыграла'}</span>
+           <span class="rowbtn" data-betopen="${b.id}" title="вернуть в работу">↩</span>`
+        : `<span class="pill btn ok" data-betwon="${b.id}" title="сыграла — вписать, сколько принесла">✓</span>
+           <span class="pill btn" data-betlost="${b.id}" title="не сыграла">✗</span>`}
+      <span class="rowbtn del" data-betdel="${b.id}">✕</span>
+    </div>`;
+  };
+  // открытые — по сроку, как навыки: видно, что и когда проверится
+  const groups = [];
+  open.forEach(b => {
+    const key = b.horizon || 'none';
+    (groups.find(g => g.key === key) || (groups.push({ key, items: [] }), groups.at(-1))).items.push(b);
+  });
+  return `
+  <div class="sec">Ставки на рост · почему будет лучше<span class="pr">${fmtE(weighted)}</span></div>
+  <div class="card">
+    <div class="capline betline">
+      <span title="если сыграют все открытые ставки">потолок <b>${fmtE(cap)}</b></span>
+      <span title="то же, взвешенное по уверенности — реалистичная прибавка">взвешенно <b class="up">${fmtE(weighted)}</b>${
+        capital > 0 ? ` <span class="meta">к капиталу +${(weighted / capital * 100).toFixed(0)}%</span>` : ''}</span>
+      ${perMonth >= 1 ? `<span title="взвешенная прибавка к доходу">в месяц <b class="up">${fmtE(perMonth)}</b></span>` : ''}
+      <span title="сколько уже вложено в открытые ставки">на кону <b>${fmtE(staked)}</b></span>
+    </div>
+    ${groups.map(g => `<div class="meta betmon">${betMonth(g.key)}</div>${g.items.map(row).join('')}`).join('')
+      || '<div class="empty">ставок пока нет — впиши первую: что ты уже сделал, от чего ждёшь прироста</div>'}
+    <div class="task finadd">
+      <input id="betTitle" placeholder="ставка: «доля в студии», «EXUS на 30%», «продать машину»…" style="flex:1">
+      <input id="betUp" placeholder="+ сколько" style="width:110px">
+      <input id="betConf" placeholder="% веры" style="width:80px">
+      <input id="betWhen" placeholder="2027-03" style="width:95px">
+      <span class="pill btn ok" id="betAdd">＋</span>
+    </div>
+    ${done.length ? `<div class="meta betstat">проверено ${done.length} · сыграло ${done.filter(b => b.status === 'won').length}
+      · ждал ${fmtE(expSum)} → вышло ${fmtE(wonSum)}</div>${done.map(row).join('')}` : ''}
+    <div class="meta">это не прогноз про рынок (он соседним блоком), а твои собственные действия:
+      вложился, запустил, выставил на продажу. Закрывай честно — через год будет видно, сколько
+      твоих ожиданий сбывается</div>
+  </div>`;
+}
+
 function secFire(d, s) {
   return `
   <div class="sec">FIRE · Макро</div>
@@ -1675,6 +1762,7 @@ function renderFin() {
     + (show('flow') ? renderBudget(d.budgetItems, d.rates) + secSpending(d) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
+    + (show('plans') ? secBets(d, s) : '')
     + (show('fire') ? secFire(d, s) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   finFoldSections();
@@ -2035,6 +2123,46 @@ function bindFin() {
           target_value: Math.round((cur === '$' ? eur * +rate : eur) * 100) / 100 });
       });
     }));
+  // ----- ставки на рост -----
+  document.querySelectorAll('[data-betkind]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, kind] = el.dataset.betkind.split(':');
+      await finApi.patch('bets', +id, { kind: BET_NEXT[kind] || 'invest' });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-betwon]').forEach(el =>
+    el.addEventListener('click', async () => {
+      // сколько принесла на самом деле — это и есть проверка ожиданий, поэтому спрашиваем
+      const v = prompt('Сколько ставка принесла на самом деле? (в её валюте, можно 0)');
+      if (v == null) return;
+      const n = parseNum(v);
+      await finApi.patch('bets', +el.dataset.betwon, { status: 'won', actual: n ?? 0 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-betlost]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.patch('bets', +el.dataset.betlost, { status: 'lost', actual: 0 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-betopen]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.patch('bets', +el.dataset.betopen, { status: 'open', actual: null });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-betdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.del('bets', +el.dataset.betdel);
+      window.loadFin();
+    }));
+  $('betAdd')?.addEventListener('click', async () => {
+    const title = ($('betTitle')?.value || '').trim();
+    if (!title) { alert('Назови ставку: что ты сделал, от чего ждёшь прироста.'); return; }
+    const when = ($('betWhen')?.value || '').trim();
+    await finApi.add('bets', { title, upside: parseNum($('betUp')?.value || ''),
+      confidence: parseNum($('betConf')?.value || '') ?? 50,
+      horizon: /^\d{4}-\d{2}$/.test(when) ? when : null });
+    window.loadFin();
+  });
   document.querySelectorAll('[data-fdig]').forEach(el =>
     el.addEventListener('click', () => toggleFlag(el.dataset.fdig, 'digest', 'отметка в сведение капитала')));
   document.querySelectorAll('[data-fclosed]').forEach(el =>

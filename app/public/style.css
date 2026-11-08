@@ -460,6 +460,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable .ed.derived{color:var(--muted);font-weight:400}
 .porttable td.goal .sub .ed{font-size:11px}
 .porttable td.goal .ed.pinned{color:var(--green)}
+/* Ставки на рост: строка-ставка и её сводка */
+.betline{flex-wrap:wrap;gap:14px}
+.betmon{font:700 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+.task.bet{flex-wrap:wrap;gap:8px}
+.task.bet .t{flex:1;min-width:180px}
+.task.betdone{opacity:.6}
+.betstat{margin-top:10px;border-top:1px solid var(--line);padding-top:6px}
+.task.bet .rowbtn{opacity:.55}.task.bet:hover .rowbtn{opacity:1}
 /* 🔒 закрытая цель не правится кликом, но читается как закреплённая */
 .porttable td.goal .pinned{color:var(--green);font-weight:600}
 .bgrip{color:var(--line2);cursor:grab;font-size:11px;line-height:1;user-select:none}
