@@ -231,11 +231,26 @@ test('сводка показывает ожидаемую потерю и до�
     bet(1, { stake: 25000, downside: 10000, confidence: 60, upside: 20000 }),
   ]), { rate: 1.08 }).replace(/ /g, ' ');
   assert.match(html, /риск[\s\S]*?−4 000 €/, 'ожидаемая потеря не посчитана (10 000 × 40%)');
-  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?25% капитала/, 'не видно, какая доля капитала завязана');
+  assert.match(html, /на кону[\s\S]*?25 000 €[\s\S]*?25% всего/,
+    'доля считается не от всего нажитого — а на кону бывает и имущество вне капитала');
 });
 
 test('нечего терять — строки риска в сводке нет', () => {
   const line = h => (h.match(/<div class="capline betline">[\s\S]*?<\/div>/) || [''])[0];
   assert.ok(!line(loadFin().ctx.secBets(DATA([bet(1, { upside: 5000 })]), { rate: 1.08 })).includes('риск'),
     'пустой риск занимает место');
+});
+
+test('у потоковой ставки вердикт — срок окупаемости, а не порог', () => {
+  const ctx = loadFin().ctx;
+  // теряю 4 000, поток 600 в месяц → вернётся за 7 месяцев
+  const fast = ctx.secBets(DATA([bet(1, { monthly: 600, downside: 4000, confidence: 70 })]), { rate: 1.08 });
+  assert.match(fast, /окупится за 7 мес/, 'у потока нет вердикта — а риск у него есть');
+  assert.match(fast, /betev up/, 'быстрая окупаемость не отмечена как хорошая');
+  assert.ok(!fast.includes('нужно ≥'), 'потоку приписан порог разовой ставки');
+
+  // теряю 40 000 при том же потоке → почти шесть лет, это уже плохо
+  const slow = ctx.secBets(DATA([bet(2, { monthly: 600, downside: 40000 })]), { rate: 1.08 });
+  assert.match(slow, /окупится за 67 мес/);
+  assert.match(slow, /betev down/, 'долгая окупаемость выглядит как хорошая');
 });
