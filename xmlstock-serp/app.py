@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "статус-доменов"
+APP_BUILD = "статус-истёк"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1018,13 +1018,21 @@ _PARK_MARKERS = (
     "this domain is parked", "domain parking", "domain has expired", "domain expired",
     "is for sale", "продаётся домен", "продается домен", "купить домен",
     "домен припаркован", "срок регистрации домена",
+    # паркинг/заглушки регистраторов (в т.ч. рус.) и страницы «домен истёк/не делегирован»
+    "domain is expired", "this domain has expired", "domain not configured",
+    "domain default page", "parking page", "domainparking", "parklogic",
+    "sedo gmbh", "pageprovider", "срок регистрации истёк", "домен не делегирован",
+    "домен не настроен", "домен припаркован", "домен продаётся", "домен свободен",
+    "reg.ru", "nic.ru", "r01.ru", "timeweb", "domain expired or", "недоступен",
+    "соответствующих записей", "домен зарегистрирован, но не делегирован",
 )
 _EMPTY_MARKERS = ("welcome to nginx", "it works!", "apache2 ubuntu default",
-                  "apache2 debian default", "default web page", "index of /")
+                  "apache2 debian default", "default web page", "index of /",
+                  "test page for the apache", "http server test page")
 
 
 def check_status(domain, cfg, cancel):
-    """DNS + HTTP + (опц.) срок WHOIS. Вердикт: ok / moved / error / dead."""
+    """DNS + HTTP + (опц.) срок WHOIS. Вердикт: ok / moved / error / dead / expired."""
     host = url_host(domain) or clean_host(domain)
     row = {"domain": domain, "host": host, "ip": "", "status": None, "final": "",
            "verdict": "", "note": "", "expires": "", "exp_days": None}
@@ -1084,13 +1092,27 @@ def check_status(domain, cfg, cancel):
 
     if cfg.get("whois") and not cancel.is_set():
         try:
-            rec = domain_whois(registrable_domain(host), {"whois_timeout": 15, "whois_retries": 1})
+            root = registrable_domain(host)
+            wc, wl = cfg.get("_wcache"), cfg.get("_wlock")
+            rec = None
+            if wc is not None:
+                with wl:
+                    rec = wc.get(root)
+            if rec is None:
+                rec = domain_whois(root, {"whois_timeout": 15, "whois_retries": 1})
+                if wc is not None:
+                    with wl:
+                        wc[root] = rec
             row["expires"] = _date_only(rec.get("expires") or "")
             d = _parse_date(rec.get("expires") or "")
             if d:
                 row["exp_days"] = (d - datetime.utcnow()).days
-                if row["exp_days"] < 0 and row["verdict"] == "ok":
-                    row["note"] += " · WHOIS: срок истёк"
+                if row["exp_days"] < 0:
+                    # Истёкший домен часто ещё резолвится и даёт 200 (паркинг регистратора),
+                    # поэтому WHOIS-срок — главный признак: перебиваем вердикт на «истёк».
+                    was = row["note"]
+                    row["verdict"] = "expired"
+                    row["note"] = f"WHOIS: срок истёк {row['expires']}" + (f" · было: {was}" if was else "")
         except Exception:
             pass
     return row
@@ -1098,6 +1120,7 @@ def check_status(domain, cfg, cancel):
 
 def run_dstat(job_id, cfg, domains):
     job = DSTATJOBS[job_id]
+    cfg["_wcache"], cfg["_wlock"] = {}, Lock()   # кэш WHOIS по корню на время прогона
     try:
         with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
             futs = {ex.submit(check_status, d, cfg, job["cancel"]): d for d in domains}
@@ -2219,7 +2242,7 @@ def api_dstat_status(job_id):
         return jsonify({"error": "Задача не найдена"}), 404
     with job["lock"]:
         rows = list(job["rows"])
-        counts = {"ok": 0, "moved": 0, "error": 0, "dead": 0}
+        counts = {"ok": 0, "moved": 0, "error": 0, "dead": 0, "expired": 0}
         for r in rows:
             counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
         return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
@@ -2243,7 +2266,8 @@ def api_dstat_download(job_id):
     with job["lock"]:
         rows = list(job["rows"])
     _V = {"ok": "рабочий", "moved": "редирект/паркинг", "error": "ошибка",
-          "dead": "не резолвится", "bad": "плохой домен", "cancel": "отменено"}
+          "dead": "не резолвится", "expired": "истёк (WHOIS)", "bad": "плохой домен",
+          "cancel": "отменено"}
     headers = ["домен", "вердикт", "IP", "HTTP", "финальный_URL", "срок_WHOIS",
                "осталось_дней", "примечание"]
 
