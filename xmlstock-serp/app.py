@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "блок-таймаут"
+APP_BUILD = "блок-v2"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1233,11 +1233,15 @@ def _http_blockpage(host, timeout, ua):
 
 
 def _proxy_control_ok(proxies, cfg):
-    """Рабочий ли прокси: открывается ли через него нейтральный (не блокируемый) сайт."""
+    """Рабочий ли прокси: открывается ли через него нейтральный (не блокируемый) сайт.
+    Успех кэшируем на прогон (прокси один) — чтобы не дёргать контроль на каждый домен."""
+    if cfg.get("_ctrl"):
+        return True
     for url in ("https://www.google.com/generate_204", "https://example.com/"):
         try:
             requests.get(url, headers={"User-Agent": cfg["ua"]}, timeout=cfg["timeout"],
                          verify=False, proxies=proxies).close()
+            cfg["_ctrl"] = True
             return True
         except Exception:
             continue
@@ -1252,19 +1256,20 @@ def _block_via_proxy(domain, host, cfg):
     doh = _doh_resolve(host, cfg["timeout"])
     row["global_ip"] = doh[0] if doh else ""
     proxies = {"http": cfg["proxy"], "https": cfg["proxy"]}
-    ssl_reset = timed_out = False
+    ssl_reset = timed_out = proxy_err = False
     for scheme in ("https://", "http://"):
         try:
             r = requests.get(scheme + host, headers={"User-Agent": cfg["ua"]},
                              timeout=cfg["timeout"], allow_redirects=True, verify=False,
                              stream=True, proxies=proxies)
-        except requests.exceptions.ProxyError as e:
-            return {**row, "verdict": "odd", "note": "прокси не отвечает/неверный: " + str(e)[:80]}
         except requests.exceptions.SSLError:
             ssl_reset = True              # TLS рвётся — вероятно DPI по SNI
             continue
         except requests.exceptions.Timeout:
             timed_out = True              # соединение висит (тихий дроп DPI) или медленный прокси
+            continue
+        except requests.exceptions.ProxyError:
+            proxy_err = True              # прокси не смог достучаться (tunnel failed) — но, может, виноват домен
             continue
         except requests.exceptions.ConnectionError:
             continue
@@ -1292,18 +1297,23 @@ def _block_via_proxy(domain, host, cfg):
                     "note": f"через прокси открылась заглушка «доступ ограничен» (HTTP {r.status_code})"}
         return {**row, "verdict": "ok",
                 "note": f"через прокси доступен (HTTP {r.status_code}, {scheme[:-3]})"}
-    # домен не открылся ни по https, ни по http. Виноват домен или прокси?
+    # домен не открылся. Сперва убедимся, что виноват НЕ прокси.
     if not _proxy_control_ok(proxies, cfg):
         return {**row, "verdict": "odd",
                 "note": "прокси не тянет даже нейтральный сайт — смени прокси или подними таймаут"}
+    # прокси рабочий → дело в самом домене
     if ssl_reset:
-        return {**row, "verdict": "sni",
-                "note": "TLS рвётся (сброс), прокси рабочий — DPI по SNI (ТСПУ)"}
+        return {**row, "verdict": "sni", "note": "TLS рвётся (сброс), прокси рабочий — DPI по SNI (ТСПУ)"}
     if timed_out:
         return {**row, "verdict": "sni",
                 "note": "соединение к домену висит и отваливается по таймауту, прокси рабочий — тихий дроп DPI"}
-    return {**row, "verdict": "ip",
-            "note": "нет соединения к домену, прокси рабочий — IP-блок"}
+    if not doh:
+        return {**row, "verdict": "dead",
+                "note": "глобально не резолвится — домена нет/опечатка (прокси при этом рабочий)"}
+    if proxy_err:
+        return {**row, "verdict": "ip",
+                "note": "прокси не смог достучаться до домена (tunnel failed) — IP недоступен/блок"}
+    return {**row, "verdict": "ip", "note": "нет соединения к домену, прокси рабочий — IP-блок"}
 
 
 def check_block(domain, cfg, cancel):
