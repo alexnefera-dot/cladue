@@ -46,6 +46,12 @@ $sc h3{font-size:1.1rem;margin:0 0 10px;padding-left:15px;border-left:2px solid 
     };
 }
 
+/** Тонкая черта под заголовком раздела — поле темы «черта». */
+function v7Черта(array $т, string $sc): string {
+    if ($т['черта'] !== 'есть') { return ''; }
+    return "\n$sc h2{padding-bottom:9px;border-bottom:1px solid var(--рам)}";
+}
+
 function v7Маркер(array $т, string $sc): string {
     $а = $т['акцент']; $на = $т['наАкценте'];
     return match ($т['метка']) {
@@ -135,7 +141,7 @@ $sc table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.94rem;c
 $sc th,$sc td{padding:9px 12px;border-bottom:1px solid var(--рам);text-align:left;color:var(--тек)}
 $sc th{color:$а;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
 $sc pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:auto;max-width:100%;margin:0 0 12px}
-" . v7Заголовок($т, $sc) . "
+" . v7Заголовок($т, $sc) . v7Черта($т, $sc) . "
 
 /* --- герой --- */
 $sc .hero-value{ $карточка;padding:clamp(18px,3vw,30px);$скос}
