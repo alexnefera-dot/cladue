@@ -871,10 +871,14 @@
       <label>Домены — по одному в строке <span class="count" id="bk_count">0</span></label>
       <textarea id="bk_domains" placeholder="spacewin.k4r.team&#10;example.casino&#10;mysite.top"></textarea>
       <div class="hint" style="border-left:3px solid var(--warn);padding-left:10px">
-        <b>Важно:</b> проверка идёт <b>с этого соединения</b>. Чтобы увидеть именно <b>мобильную блокировку РФ</b> —
-        раздай интернет с телефона (РФ-оператор) на этот компьютер и запусти отсюда. С домашнего/зарубежного интернета результат будет «доступен», даже если с мобилок режут.
+        <b>Важно:</b> проверка идёт <b>с того IP, с которого запущена</b>. Ты не в РФ — значит без прокси всё покажет «доступен».
+        Чтобы увидеть блокировку как у российских пользователей, <b>укажи РФ-прокси ниже</b> (лучше <b>мобильный</b> — казино режут именно на мобильных). Запрос пойдёт через него, т.е. «из России».
       </div>
-      <div class="hint">По каждому домену определяем, <b>как</b> он блокируется: сравниваем DNS (ваш vs глобальный), коннект по IP, TLS-рукопожатие с вашим SNI против нейтрального (ловит <b>SNI-DPI/ТСПУ</b>) и ищем страницу-заглушку оператора.</div>
+      <div style="margin-top:12px">
+        <label>РФ-прокси (необязательно, но для тебя — нужно)</label>
+        <input id="bk_proxy" placeholder="http://user:pass@ip:port  или  socks5://user:pass@ip:port  или  ip:port">
+        <div class="hint">Арендуй <b>мобильный прокси РФ</b> (любой сервис мобильных прокси, оператор МТС/Мегафон/и т.п.). Формат — как в примере. Для <code>socks5://</code> один раз выполни <code>.venv/bin/pip install pysocks</code>. Без прокси проверка идёт с твоего текущего IP.</div>
+      </div>
 
       <div class="grid g4" style="margin-top:12px">
         <div><label>Таймаут, сек</label><input id="bk_timeout" type="number" value="8" min="3" max="30"></div>
@@ -1871,8 +1875,9 @@ $("ds_dlCsv").onclick =()=> dsJob && (location.href="/api/dstat/download/"+dsJob
 
 // ===================== ВКЛАДКА 12: БЛОК-ЧЕК РФ =====================
 let bkPoll=null, bkJob=null, bkRows=[], bkFilter="";
-(function(){ try{ const v=localStorage.getItem("xmlstock_block"); if(v) $("bk_domains").value=v; }catch(e){} })();
+(function(){ try{ const v=localStorage.getItem("xmlstock_block"); if(v) $("bk_domains").value=v; const px=localStorage.getItem("xmlstock_block_proxy"); if(px) $("bk_proxy").value=px; }catch(e){} })();
 $("bk_domains").addEventListener("input", ()=>{ $("bk_count").textContent=lines("bk_domains")+" стр."; try{ localStorage.setItem("xmlstock_block",$("bk_domains").value); }catch(e){} });
+$("bk_proxy").addEventListener("input", ()=>{ try{ localStorage.setItem("xmlstock_block_proxy",$("bk_proxy").value); }catch(e){} });
 $("bk_count").textContent=lines("bk_domains")+" стр.";
 const BK_V={ok:{t:"🟢 доступен",c:"p-top",g:"ok"},dns:{t:"🔴 DNS-подмена",c:"p-no",g:"blocked"},ip:{t:"🔴 IP-блок",c:"p-no",g:"blocked"},sni:{t:"🔴 SNI-DPI",c:"p-no",g:"blocked"},page:{t:"🔴 заглушка",c:"p-no",g:"blocked"},dead:{t:"⚫ нет домена",c:"miss",g:"dead"},odd:{t:"🟡 неясно",c:"p-mid",g:"odd"},bad:{t:"плохой домен",c:"p-no",g:"odd"},cancel:{t:"отменено",c:"miss",g:"odd"}};
 function bkRender(){
@@ -1892,7 +1897,7 @@ $("bk_go").onclick = async ()=>{
   $("bk_dlXlsx").classList.add("hidden"); $("bk_dlCsv").classList.add("hidden"); $("bk_stop").classList.remove("hidden");
   $("bk_panel").scrollIntoView({behavior:"smooth"});
   try{
-    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value})});
+    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value,proxy:$("bk_proxy").value})});
     const d=await r.json();
     if(!r.ok){ showErr(d.error||"Ошибка"); $("bk_go").disabled=false; $("bk_stop").classList.add("hidden"); return; }
     bkJob=d.job_id; bkPoll=setInterval(bkRefresh,1000); bkRefresh();

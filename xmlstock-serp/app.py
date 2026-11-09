@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "блок-чек"
+APP_BUILD = "блок-прокси"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1232,14 +1232,68 @@ def _http_blockpage(host, timeout, ua):
     return (None, "")
 
 
+def _block_via_proxy(domain, host, cfg):
+    """Проверка через прокси (напр. РФ-мобильный): запрос идёт с IP прокси, поэтому
+    проходит через фильтрацию РФ. Вердикт по тому, что видно с той стороны."""
+    row = {"domain": domain, "host": host, "sys_ip": "(через прокси)",
+           "global_ip": "", "verdict": "", "note": ""}
+    doh = _doh_resolve(host, cfg["timeout"])
+    row["global_ip"] = doh[0] if doh else ""
+    proxies = {"http": cfg["proxy"], "https": cfg["proxy"]}
+    ssl_reset = False
+    for scheme in ("https://", "http://"):
+        try:
+            r = requests.get(scheme + host, headers={"User-Agent": cfg["ua"]},
+                             timeout=cfg["timeout"], allow_redirects=True, verify=False,
+                             stream=True, proxies=proxies)
+        except requests.exceptions.ProxyError as e:
+            return {**row, "verdict": "odd", "note": "прокси не отвечает/неверный: " + str(e)[:80]}
+        except requests.exceptions.SSLError:
+            ssl_reset = True              # TLS рвётся — вероятно DPI по SNI
+            continue
+        except requests.exceptions.ConnectionError:
+            continue
+        except requests.RequestException as e:
+            if "socks" in str(e).lower():
+                return {**row, "verdict": "odd",
+                        "note": "для socks-прокси нужен пакет: .venv/bin/pip install pysocks"}
+            return {**row, "verdict": "odd", "note": "ошибка: " + str(e)[:80]}
+        buf = b""
+        try:
+            for chunk in r.iter_content(4096):
+                buf += chunk
+                if len(buf) >= 8000:
+                    break
+        except Exception:
+            pass
+        finally:
+            try:
+                r.close()
+            except Exception:
+                pass
+        text = buf.decode("utf-8", "ignore").lower()
+        if any(m in text for m in _BLOCKPAGE_MARKERS):
+            return {**row, "verdict": "page",
+                    "note": f"через прокси открылась заглушка «доступ ограничен» (HTTP {r.status_code})"}
+        return {**row, "verdict": "ok",
+                "note": f"через прокси доступен (HTTP {r.status_code}, {scheme[:-3]})"}
+    if ssl_reset:
+        return {**row, "verdict": "sni",
+                "note": "через прокси TLS рвётся (сброс) — DPI по SNI (ТСПУ)"}
+    return {**row, "verdict": "ip",
+            "note": "через прокси нет соединения (reset/timeout) — IP-блок или DPI"}
+
+
 def check_block(domain, cfg, cancel):
-    """Как домен блокируется с текущего соединения. Вердикт: ok/dns/ip/sni/page/dead/odd."""
+    """Как домен блокируется. Вердикт: ok/dns/ip/sni/page/dead/odd."""
     host = url_host(domain) or clean_host(domain)
     row = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "", "verdict": "", "note": ""}
     if cancel.is_set():
         return {**row, "verdict": "cancel", "note": "отменено"}
     if not host:
         return {**row, "verdict": "bad", "note": "плохой домен"}
+    if cfg.get("proxy"):
+        return _block_via_proxy(domain, host, cfg)
     to = cfg["timeout"]
     doh = _doh_resolve(host, to)
     try:
@@ -2472,8 +2526,11 @@ def api_block_run():
         except (TypeError, ValueError):
             return df
 
+    proxy = (data.get("proxy") or "").strip()
+    if proxy and "://" not in proxy:
+        proxy = "http://" + proxy
     cfg = {"ua": _UA["desktop"], "timeout": clamp(data.get("timeout"), 3, 30, 8),
-           "workers": clamp(data.get("workers"), 1, 20, 8)}
+           "workers": clamp(data.get("workers"), 1, 20, 8), "proxy": proxy}
     job_id = uuid.uuid4().hex
     with BLOCK_LOCK:
         BLOCKJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
