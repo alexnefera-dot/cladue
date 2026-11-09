@@ -145,6 +145,7 @@
     <button class="tab" data-tab="wm">🔍 Я.Вебмастер</button>
     <button class="tab" data-tab="inow">📤 IndexNow</button>
     <button class="tab" data-tab="dstat">🚦 Статус доменов</button>
+    <button class="tab" data-tab="block">🛡 Блок-чек РФ</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -864,6 +865,58 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 12: БЛОК-ЧЕК РФ ================= -->
+  <div id="panel-block" class="hidden">
+    <div class="card">
+      <label>Домены — по одному в строке <span class="count" id="bk_count">0</span></label>
+      <textarea id="bk_domains" placeholder="spacewin.k4r.team&#10;example.casino&#10;mysite.top"></textarea>
+      <div class="hint" style="border-left:3px solid var(--warn);padding-left:10px">
+        <b>Важно:</b> проверка идёт <b>с этого соединения</b>. Чтобы увидеть именно <b>мобильную блокировку РФ</b> —
+        раздай интернет с телефона (РФ-оператор) на этот компьютер и запусти отсюда. С домашнего/зарубежного интернета результат будет «доступен», даже если с мобилок режут.
+      </div>
+      <div class="hint">По каждому домену определяем, <b>как</b> он блокируется: сравниваем DNS (ваш vs глобальный), коннект по IP, TLS-рукопожатие с вашим SNI против нейтрального (ловит <b>SNI-DPI/ТСПУ</b>) и ищем страницу-заглушку оператора.</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>Таймаут, сек</label><input id="bk_timeout" type="number" value="8" min="3" max="30"></div>
+        <div><label>Параллельно</label><input id="bk_workers" type="number" value="8" min="1" max="20"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn-go" id="bk_go">▶ Проверить блокировку</button>
+        <button class="btn-cancel hidden" id="bk_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="bk_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Проверено</span><b id="bk_done">0 / 0</b></div>
+          <div class="ok"><span class="muted">🟢 Доступны</span><b id="bk_ok">0</b></div>
+          <div><span class="muted">🔴 Заблокированы</span><b id="bk_blocked">0</b></div>
+          <div><span class="muted">⚫ Нет домена</span><b id="bk_dead">0</b></div>
+        </div>
+        <div class="row">
+          <button class="btn-dl hidden" id="bk_dlXlsx">⬇ XLSX</button>
+          <button class="btn-dl hidden" id="bk_dlCsv">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="bar" style="margin:10px 0 14px"><i id="bk_barFill"></i></div>
+      <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="btn-ghost bkf active" data-f="" type="button" style="padding:5px 10px">Все</button>
+        <button class="btn-ghost bkf" data-f="ok" type="button" style="padding:5px 10px">🟢 Доступны</button>
+        <button class="btn-ghost bkf" data-f="blocked" type="button" style="padding:5px 10px">🔴 Заблокированы</button>
+        <button class="btn-ghost bkf" data-f="dead" type="button" style="padding:5px 10px">⚫ Нет домена</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="pos" id="bk_table">
+          <thead><tr><th>Домен</th><th>Вердикт</th><th>IP (ваш DNS)</th><th>IP (глобально)</th><th>Что именно</th></tr></thead>
+          <tbody id="bk_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint">🟢 доступен · <b>DNS-подмена</b> (ваш резолвер врёт) · <b>IP-блок</b> (не коннектится) · <b>SNI-DPI</b> (ТСПУ рвёт TLS по имени домена) · <b>заглушка</b> (страница «доступ ограничен»). SNI-DPI — самый частый для казино.</div>
+      <div class="hint err-text" id="bk_err" style="color:var(--warn)"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
@@ -912,6 +965,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-wm").classList.toggle("hidden", t.dataset.tab!=="wm");
   $("panel-inow").classList.toggle("hidden", t.dataset.tab!=="inow");
   $("panel-dstat").classList.toggle("hidden", t.dataset.tab!=="dstat");
+  $("panel-block").classList.toggle("hidden", t.dataset.tab!=="block");
 });
 
 // ---- движок / свой URL ----
@@ -1814,6 +1868,55 @@ async function dsRefresh(){
 $("ds_stop").onclick = async ()=>{ if(dsJob){ await fetch("/api/dstat/cancel/"+dsJob,{method:"POST"}); } };
 $("ds_dlXlsx").onclick=()=> dsJob && (location.href="/api/dstat/download/"+dsJob+"?fmt=xlsx");
 $("ds_dlCsv").onclick =()=> dsJob && (location.href="/api/dstat/download/"+dsJob+"?fmt=csv");
+
+// ===================== ВКЛАДКА 12: БЛОК-ЧЕК РФ =====================
+let bkPoll=null, bkJob=null, bkRows=[], bkFilter="";
+(function(){ try{ const v=localStorage.getItem("xmlstock_block"); if(v) $("bk_domains").value=v; }catch(e){} })();
+$("bk_domains").addEventListener("input", ()=>{ $("bk_count").textContent=lines("bk_domains")+" стр."; try{ localStorage.setItem("xmlstock_block",$("bk_domains").value); }catch(e){} });
+$("bk_count").textContent=lines("bk_domains")+" стр.";
+const BK_V={ok:{t:"🟢 доступен",c:"p-top",g:"ok"},dns:{t:"🔴 DNS-подмена",c:"p-no",g:"blocked"},ip:{t:"🔴 IP-блок",c:"p-no",g:"blocked"},sni:{t:"🔴 SNI-DPI",c:"p-no",g:"blocked"},page:{t:"🔴 заглушка",c:"p-no",g:"blocked"},dead:{t:"⚫ нет домена",c:"miss",g:"dead"},odd:{t:"🟡 неясно",c:"p-mid",g:"odd"},bad:{t:"плохой домен",c:"p-no",g:"odd"},cancel:{t:"отменено",c:"miss",g:"odd"}};
+function bkRender(){
+  const rows = bkFilter ? bkRows.filter(r=>(BK_V[r.verdict]||{}).g===bkFilter) : bkRows;
+  $("bk_tbody").innerHTML = rows.map(r=>{
+    const v=BK_V[r.verdict]||{t:r.verdict,c:""};
+    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td><td>${esc(r.note||"")}</td></tr>`;
+  }).join("") || '<tr><td colspan="5" class="miss">Нет доменов под фильтр.</td></tr>';
+}
+document.querySelectorAll(".bkf").forEach(b=> b.onclick=()=>{ document.querySelectorAll(".bkf").forEach(x=>x.classList.remove("active")); b.classList.add("active"); bkFilter=b.dataset.f; bkRender(); });
+$("bk_go").onclick = async ()=>{
+  hideErr();
+  if(!$("bk_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
+  $("bk_go").disabled=true;
+  $("bk_panel").classList.remove("hidden"); $("bk_tbody").innerHTML=""; $("bk_err").textContent="";
+  ["bk_ok","bk_blocked","bk_dead"].forEach(id=>$(id).textContent="0"); $("bk_done").textContent="0 / 0"; $("bk_barFill").style.width="0%";
+  $("bk_dlXlsx").classList.add("hidden"); $("bk_dlCsv").classList.add("hidden"); $("bk_stop").classList.remove("hidden");
+  $("bk_panel").scrollIntoView({behavior:"smooth"});
+  try{
+    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value})});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); $("bk_go").disabled=false; $("bk_stop").classList.add("hidden"); return; }
+    bkJob=d.job_id; bkPoll=setInterval(bkRefresh,1000); bkRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("bk_go").disabled=false; }
+};
+async function bkRefresh(){
+  if(!bkJob) return; let d;
+  try{ d=await (await fetch("/api/block/status/"+bkJob)).json(); }catch(e){ return; }
+  if(d.error){ clearInterval(bkPoll); bkPoll=null; $("bk_go").disabled=false; $("bk_stop").classList.add("hidden"); $("bk_err").textContent="остановлено (сервер перезапущен?)"; return; }
+  $("bk_done").textContent=d.done+" / "+d.total;
+  $("bk_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  const c=d.counts||{};
+  const blocked=(c.dns||0)+(c.ip||0)+(c.sni||0)+(c.page||0);
+  $("bk_ok").textContent=c.ok||0; $("bk_blocked").textContent=blocked; $("bk_dead").textContent=c.dead||0;
+  bkRows=d.rows||[]; bkRender();
+  if(d.status!=="running"){
+    clearInterval(bkPoll); bkPoll=null; $("bk_go").disabled=false; $("bk_stop").classList.add("hidden");
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(bkRows.length){ $("bk_dlXlsx").classList.remove("hidden"); $("bk_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("bk_stop").onclick = async ()=>{ if(bkJob){ await fetch("/api/block/cancel/"+bkJob,{method:"POST"}); } };
+$("bk_dlXlsx").onclick=()=> bkJob && (location.href="/api/block/download/"+bkJob+"?fmt=xlsx");
+$("bk_dlCsv").onclick =()=> bkJob && (location.href="/api/block/download/"+bkJob+"?fmt=csv");
 </script>
 </body>
 </html>

@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import socket
+import ssl
 import subprocess
 import time
 import uuid
@@ -47,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "порт-5050"
+APP_BUILD = "блок-чек"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -163,6 +164,11 @@ ACTIVE_WHOIS = {"id": None}
 DSTATJOBS = {}
 DSTAT_LOCK = Lock()
 ACTIVE_DSTAT = {"id": None}
+
+# Хранилище задач блок-чека (как сайт блокируется в РФ: DNS / IP / SNI-DPI / заглушка).
+BLOCKJOBS = {}
+BLOCK_LOCK = Lock()
+ACTIVE_BLOCK = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -1131,6 +1137,153 @@ def run_dstat(job_id, cfg, domains):
                     res = {"domain": futs[fut], "host": futs[fut], "ip": "", "status": None,
                            "final": "", "verdict": "error", "note": "сбой: " + str(e)[:100],
                            "expires": "", "exp_days": None}
+                with job["lock"]:
+                    job["done"] += 1
+                    job["rows"].append(res)
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"], job["fatal"] = "error", str(e)[:200]
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+
+
+# --------------------------------------------------------------------------- #
+#  Блок-чек РФ: КАК сайт блокируется с текущего соединения (DNS/IP/SNI-DPI)     #
+# --------------------------------------------------------------------------- #
+# Проверка идёт С ТОГО соединения, где запущен скрипт. Чтобы увидеть именно
+# МОБИЛЬНУЮ блокировку РФ — раздайте интернет с телефона (РФ-оператор) на этот
+# компьютер и запустите проверку оттуда.
+_DOH_URL = "https://dns.google/resolve"
+_NEUTRAL_SNI = "example.com"         # заведомо не заблокированный SNI (контроль DPI)
+_BLOCKPAGE_MARKERS = (
+    "доступ ограничен", "доступ к запрашиваемому ресурсу ограничен", "ограничен доступ",
+    "единый реестр", "роскомнадзор", "roskomnadzor", "ресурс заблокирован",
+    "сайт заблокирован", "доступ к сайту ограничен", "включен в единый реестр",
+    "ограничение доступа", "запрещённой на территории", "по решению суда",
+)
+
+
+def _doh_resolve(host, timeout):
+    """A-записи домена через глобальный DoH (Google). Список IP или []."""
+    try:
+        r = requests.get(_DOH_URL, params={"name": host, "type": "A"}, timeout=timeout,
+                         headers={"Accept": "application/dns-json"})
+        if r.status_code != 200:
+            return []
+        return [a.get("data", "") for a in (r.json().get("Answer") or [])
+                if a.get("type") == 1 and a.get("data")]
+    except Exception:
+        return []
+
+
+def _tcp_ok(ip, port, timeout):
+    try:
+        socket.create_connection((ip, port), timeout=timeout).close()
+        return True
+    except OSError:
+        return False
+
+
+def _tls_sni_ok(ip, sni, timeout):
+    """True, если TLS-рукопожатие к ip:443 с данным SNI прошло (серт не проверяем)."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        raw = socket.create_connection((ip, 443), timeout=timeout)
+    except OSError:
+        return False
+    raw.settimeout(timeout)
+    try:
+        ctx.wrap_socket(raw, server_hostname=sni).close()
+        return True
+    except Exception:
+        try:
+            raw.close()
+        except Exception:
+            pass
+        return False
+
+
+def _http_blockpage(host, timeout, ua):
+    """(True/False/None, scheme). True — поймали страницу-заглушку оператора."""
+    for scheme in ("https://", "http://"):
+        try:
+            r = requests.get(scheme + host, headers={"User-Agent": ua}, timeout=timeout,
+                             allow_redirects=True, verify=False, stream=True)
+        except requests.RequestException:
+            continue
+        buf = b""
+        try:
+            for chunk in r.iter_content(4096):
+                buf += chunk
+                if len(buf) >= 8000:
+                    break
+        except Exception:
+            pass
+        finally:
+            try:
+                r.close()
+            except Exception:
+                pass
+        text = buf.decode("utf-8", "ignore").lower()
+        return (any(m in text for m in _BLOCKPAGE_MARKERS), scheme)
+    return (None, "")
+
+
+def check_block(domain, cfg, cancel):
+    """Как домен блокируется с текущего соединения. Вердикт: ok/dns/ip/sni/page/dead/odd."""
+    host = url_host(domain) or clean_host(domain)
+    row = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "", "verdict": "", "note": ""}
+    if cancel.is_set():
+        return {**row, "verdict": "cancel", "note": "отменено"}
+    if not host:
+        return {**row, "verdict": "bad", "note": "плохой домен"}
+    to = cfg["timeout"]
+    doh = _doh_resolve(host, to)
+    try:
+        sys_ip = socket.gethostbyname(host)
+    except Exception:
+        sys_ip = ""
+    row["global_ip"], row["sys_ip"] = (doh[0] if doh else ""), sys_ip
+    if not doh and not sys_ip:
+        return {**row, "verdict": "dead", "note": "не резолвится нигде — домена нет/истёк"}
+    if sys_ip and doh and sys_ip not in doh:
+        return {**row, "verdict": "dns",
+                "note": f"DNS-подмена: ваш резолвер даёт {sys_ip}, глобально {', '.join(doh[:2])}"}
+    ip = doh[0] if doh else sys_ip
+    if cancel.is_set():
+        return {**row, "verdict": "cancel", "note": "отменено"}
+    if not _tcp_ok(ip, 443, to):
+        if _tcp_ok(ip, 80, to):
+            return {**row, "verdict": "ip", "note": f"443 закрыт, 80 открыт — блок HTTPS/IP ({ip})"}
+        return {**row, "verdict": "ip", "note": f"IP {ip} не отвечает (reset/timeout) — IP-блок или сервер лёг"}
+    if not _tls_sni_ok(ip, host, to):
+        if _tls_sni_ok(ip, _NEUTRAL_SNI, to):
+            return {**row, "verdict": "sni",
+                    "note": "TLS рвётся на вашем домене, но проходит на нейтральном SNI — SNI-DPI (ТСПУ)"}
+        return {**row, "verdict": "odd",
+                "note": "TLS не проходит (и на нейтральном тоже) — похоже на сервер/сертификат, не блок"}
+    blk, _ = _http_blockpage(host, to, cfg["ua"])
+    if blk is True:
+        return {**row, "verdict": "page", "note": "открылась страница-заглушка «доступ ограничен»"}
+    if blk is None:
+        return {**row, "verdict": "odd", "note": "TLS ок, но HTTP без ответа"}
+    return {**row, "verdict": "ok", "note": "доступен (DNS+IP+TLS+HTTP ок)"}
+
+
+def run_block(job_id, cfg, domains):
+    job = BLOCKJOBS[job_id]
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(check_block, d, cfg, job["cancel"]): d for d in domains}
+            for fut in as_completed(futs):
+                try:
+                    res = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    res = {"domain": futs[fut], "host": futs[fut], "sys_ip": "", "global_ip": "",
+                           "verdict": "odd", "note": "сбой: " + str(e)[:100]}
                 with job["lock"]:
                     job["done"] += 1
                     job["rows"].append(res)
@@ -2301,6 +2454,99 @@ def api_dstat_download(job_id):
     payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
     return send_file(io.BytesIO(payload), as_attachment=True,
                      download_name=f"domains_status_{job_id[:8]}.csv", mimetype="text/csv")
+
+
+# --------------------------------------------------------------------------- #
+#  Блок-чек РФ: маршруты                                                       #
+# --------------------------------------------------------------------------- #
+@app.route("/api/block/run", methods=["POST"])
+def api_block_run():
+    data = request.get_json(force=True, silent=True) or {}
+    domains = [d for d in _split_unique(data.get("domains"), 5000) if d]
+    if not domains:
+        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+
+    def clamp(v, lo, hi, df):
+        try:
+            return max(lo, min(hi, int(v)))
+        except (TypeError, ValueError):
+            return df
+
+    cfg = {"ua": _UA["desktop"], "timeout": clamp(data.get("timeout"), 3, 30, 8),
+           "workers": clamp(data.get("workers"), 1, 20, 8)}
+    job_id = uuid.uuid4().hex
+    with BLOCK_LOCK:
+        BLOCKJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
+                             "done": 0, "rows": [], "lock": Lock(), "cancel": Event(),
+                             "started_at": time.time(), "fatal": None}
+        ACTIVE_BLOCK["id"] = job_id
+    Thread(target=run_block, args=(job_id, cfg, domains), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(domains)})
+
+
+@app.route("/api/block/status/<job_id>")
+def api_block_status(job_id):
+    job = BLOCKJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+        counts = {}
+        for r in rows:
+            counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+        return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
+                        "counts": counts, "rows": rows, "fatal": job.get("fatal")})
+
+
+@app.route("/api/block/cancel/<job_id>", methods=["POST"])
+def api_block_cancel(job_id):
+    job = BLOCKJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/block/download/<job_id>")
+def api_block_download(job_id):
+    job = BLOCKJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+    _V = {"ok": "доступен", "dns": "DNS-подмена", "ip": "IP-блок", "sni": "SNI-DPI",
+          "page": "страница-заглушка", "dead": "не резолвится", "odd": "неясно",
+          "bad": "плохой домен", "cancel": "отменено"}
+    headers = ["домен", "вердикт", "IP (ваш DNS)", "IP (глобально)", "примечание"]
+
+    def cells(r):
+        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r["sys_ip"], r["global_ip"], r["note"]]
+
+    fmt = request.args.get("fmt", "csv")
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "blockcheck"
+        ws.append(headers)
+        for r in rows:
+            ws.append(cells(r))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"blockcheck_{job_id[:8]}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(cells(r))
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"blockcheck_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 @app.route("/api/run", methods=["POST"])
