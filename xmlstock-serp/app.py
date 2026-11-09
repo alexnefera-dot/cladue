@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "indexnow"
+APP_BUILD = "статус-доменов"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -158,6 +158,11 @@ ACTIVE_WATCH = {"id": None}
 WHOISJOBS = {}
 WHOIS_LOCK = Lock()
 ACTIVE_WHOIS = {"id": None}
+
+# Хранилище задач проверки статуса доменов (рабочий / ошибка / не резолвится / паркинг).
+DSTATJOBS = {}
+DSTAT_LOCK = Lock()
+ACTIVE_DSTAT = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -1000,6 +1005,118 @@ def run_live(job_id, cfg, domains):
     with job["lock"]:
         job["status"] = "cancelled" if job["cancel"].is_set() else "done"
         job["finished_at"] = time.time()
+
+
+# --------------------------------------------------------------------------- #
+#  Статус доменов: рабочий / ошибка / не резолвится (истёк) / редирект-паркинг  #
+# --------------------------------------------------------------------------- #
+# Проверка идёт С МАШИНЫ ПОЛЬЗОВАТЕЛЯ (локальный запуск) — значит с его IP, как он
+# и просил: дорвеи, которые режут чужие/дата-центровые IP, отвечают нормально.
+_PARK_MARKERS = (
+    "sedoparking", "bodis", "parkingcrew", "dan.com", "afternic", "hugedomains",
+    "domain is for sale", "this domain is for sale", "buy this domain",
+    "this domain is parked", "domain parking", "domain has expired", "domain expired",
+    "is for sale", "продаётся домен", "продается домен", "купить домен",
+    "домен припаркован", "срок регистрации домена",
+)
+_EMPTY_MARKERS = ("welcome to nginx", "it works!", "apache2 ubuntu default",
+                  "apache2 debian default", "default web page", "index of /")
+
+
+def check_status(domain, cfg, cancel):
+    """DNS + HTTP + (опц.) срок WHOIS. Вердикт: ok / moved / error / dead."""
+    host = url_host(domain) or clean_host(domain)
+    row = {"domain": domain, "host": host, "ip": "", "status": None, "final": "",
+           "verdict": "", "note": "", "expires": "", "exp_days": None}
+    if cancel.is_set():
+        return {**row, "verdict": "cancel", "note": "отменено"}
+    if not host:
+        return {**row, "verdict": "bad", "note": "плохой домен"}
+    try:
+        row["ip"] = socket.gethostbyname(host)
+    except Exception:
+        return {**row, "verdict": "dead", "note": "не резолвится — домен удалён/истёк"}
+
+    headers = {"User-Agent": cfg["ua"], "Accept": "text/html,*/*"}
+    resp, last_err = None, None
+    for scheme in ("https://", "http://"):
+        if cancel.is_set():
+            break
+        try:
+            resp = requests.get(scheme + host, headers=headers, timeout=cfg["timeout"],
+                                allow_redirects=True, verify=False, stream=True)
+            break
+        except requests.RequestException as e:
+            last_err = str(e)[:140]
+    if resp is None:
+        row["verdict"], row["note"] = "error", "не отвечает: " + (last_err or "")
+        return row
+
+    row["status"], row["final"] = resp.status_code, resp.url
+    buf = b""
+    try:
+        for chunk in resp.iter_content(4096):
+            buf += chunk
+            if len(buf) >= 8000:
+                break
+    except Exception:
+        pass
+    finally:
+        try:
+            resp.close()
+        except Exception:
+            pass
+    text = buf.decode("utf-8", "ignore").lower()
+    fh = url_host(row["final"])
+    moved = bool(fh) and registrable_domain(fh) != registrable_domain(host)
+    parked = any(m in text for m in _PARK_MARKERS)
+    empty = any(m in text for m in _EMPTY_MARKERS)
+    if row["status"] >= 400:
+        row["verdict"], row["note"] = "error", f"код {row['status']}"
+    elif moved:
+        row["verdict"], row["note"] = "moved", "редирект на " + registrable_domain(fh)
+    elif parked:
+        row["verdict"], row["note"] = "moved", "паркинг / страница продажи"
+    elif empty:
+        row["verdict"], row["note"] = "moved", "пустая заглушка сервера"
+    else:
+        row["verdict"], row["note"] = "ok", f"код {row['status']}"
+
+    if cfg.get("whois") and not cancel.is_set():
+        try:
+            rec = domain_whois(registrable_domain(host), {"whois_timeout": 15, "whois_retries": 1})
+            row["expires"] = _date_only(rec.get("expires") or "")
+            d = _parse_date(rec.get("expires") or "")
+            if d:
+                row["exp_days"] = (d - datetime.utcnow()).days
+                if row["exp_days"] < 0 and row["verdict"] == "ok":
+                    row["note"] += " · WHOIS: срок истёк"
+        except Exception:
+            pass
+    return row
+
+
+def run_dstat(job_id, cfg, domains):
+    job = DSTATJOBS[job_id]
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(check_status, d, cfg, job["cancel"]): d for d in domains}
+            for fut in as_completed(futs):
+                try:
+                    res = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    res = {"domain": futs[fut], "host": futs[fut], "ip": "", "status": None,
+                           "final": "", "verdict": "error", "note": "сбой: " + str(e)[:100],
+                           "expires": "", "exp_days": None}
+                with job["lock"]:
+                    job["done"] += 1
+                    job["rows"].append(res)
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"], job["fatal"] = "error", str(e)[:200]
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
 
 
 # --------------------------------------------------------------------------- #
@@ -2065,6 +2182,101 @@ def api_indexnow_check():
             rows.append(r)
     rows.sort(key=lambda x: (x["ok"], x["host"]))
     return jsonify({"hosts": len(rows), "ok": sum(1 for r in rows if r["ok"]), "rows": rows})
+
+
+# --------------------------------------------------------------------------- #
+#  Статус доменов: маршруты                                                    #
+# --------------------------------------------------------------------------- #
+@app.route("/api/dstat/run", methods=["POST"])
+def api_dstat_run():
+    data = request.get_json(force=True, silent=True) or {}
+    domains = [d for d in _split_unique(data.get("domains"), 5000) if d]
+    if not domains:
+        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+
+    def clamp(v, lo, hi, df):
+        try:
+            return max(lo, min(hi, int(v)))
+        except (TypeError, ValueError):
+            return df
+
+    cfg = {"ua": _UA["desktop"], "timeout": clamp(data.get("timeout"), 3, 60, 15),
+           "workers": clamp(data.get("workers"), 1, 20, 10), "whois": bool(data.get("whois"))}
+    job_id = uuid.uuid4().hex
+    with DSTAT_LOCK:
+        DSTATJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
+                             "done": 0, "rows": [], "lock": Lock(), "cancel": Event(),
+                             "started_at": time.time(), "fatal": None}
+        ACTIVE_DSTAT["id"] = job_id
+    Thread(target=run_dstat, args=(job_id, cfg, domains), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(domains), "whois": cfg["whois"]})
+
+
+@app.route("/api/dstat/status/<job_id>")
+def api_dstat_status(job_id):
+    job = DSTATJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+        counts = {"ok": 0, "moved": 0, "error": 0, "dead": 0}
+        for r in rows:
+            counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+        return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
+                        "counts": counts, "rows": rows, "fatal": job.get("fatal")})
+
+
+@app.route("/api/dstat/cancel/<job_id>", methods=["POST"])
+def api_dstat_cancel(job_id):
+    job = DSTATJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/dstat/download/<job_id>")
+def api_dstat_download(job_id):
+    job = DSTATJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+    _V = {"ok": "рабочий", "moved": "редирект/паркинг", "error": "ошибка",
+          "dead": "не резолвится", "bad": "плохой домен", "cancel": "отменено"}
+    headers = ["домен", "вердикт", "IP", "HTTP", "финальный_URL", "срок_WHOIS",
+               "осталось_дней", "примечание"]
+
+    def cells(r):
+        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r["ip"], r["status"] or "",
+                r["final"], r["expires"], r["exp_days"] if r["exp_days"] is not None else "",
+                r["note"]]
+
+    fmt = request.args.get("fmt", "csv")
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "status"
+        ws.append(headers)
+        for r in rows:
+            ws.append(cells(r))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"domains_status_{job_id[:8]}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(cells(r))
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"domains_status_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 @app.route("/api/run", methods=["POST"])

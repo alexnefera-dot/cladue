@@ -144,6 +144,7 @@
     <button class="tab" data-tab="whois">🕵 Проверка WHOIS</button>
     <button class="tab" data-tab="wm">🔍 Я.Вебмастер</button>
     <button class="tab" data-tab="inow">📤 IndexNow</button>
+    <button class="tab" data-tab="dstat">🚦 Статус доменов</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -805,6 +806,62 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 11: СТАТУС ДОМЕНОВ ================= -->
+  <div id="panel-dstat" class="hidden">
+    <div class="card">
+      <label>Домены или URL — по одному в строке <span class="count" id="ds_count">0</span></label>
+      <textarea id="ds_domains" placeholder="spacewin.k4r.team&#10;https://example.casino&#10;old-domain.top"></textarea>
+      <div class="hint">Проверяем каждый домен <b>с этого компьютера</b> (значит — с вашего IP): резолвится ли DNS, что отвечает по HTTP, куда редиректит. Классифицируем: 🟢 рабочий · 🟡 редирект/паркинг · 🔴 ошибка · ⚫ не резолвится (домен удалён/истёк).</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>Таймаут, сек</label><input id="ds_timeout" type="number" value="15" min="3" max="60"></div>
+        <div><label>Параллельно</label><input id="ds_workers" type="number" value="10" min="1" max="20"></div>
+        <div style="display:flex;align-items:flex-end;grid-column:span 2">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:14px;color:var(--txt)">
+            <input type="checkbox" id="ds_whois" style="width:auto"> Проверять срок регистрации (WHOIS) — ловит «закончился»
+          </label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="btn-go" id="ds_go">▶ Проверить домены</button>
+        <button class="btn-cancel hidden" id="ds_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="ds_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Проверено</span><b id="ds_done">0 / 0</b></div>
+          <div class="ok"><span class="muted">🟢 Рабочих</span><b id="ds_ok">0</b></div>
+          <div><span class="muted">🟡 Редирект/паркинг</span><b id="ds_moved">0</b></div>
+          <div><span class="muted">🔴 Ошибок</span><b id="ds_err">0</b></div>
+          <div><span class="muted">⚫ Не резолвится</span><b id="ds_dead">0</b></div>
+        </div>
+        <div class="row">
+          <button class="btn-dl hidden" id="ds_dlXlsx">⬇ XLSX</button>
+          <button class="btn-dl hidden" id="ds_dlCsv">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="bar" style="margin:10px 0 14px"><i id="ds_barFill"></i></div>
+
+      <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="btn-ghost dsf active" data-f="" type="button" style="padding:5px 10px">Все</button>
+        <button class="btn-ghost dsf" data-f="ok" type="button" style="padding:5px 10px">🟢 Рабочие</button>
+        <button class="btn-ghost dsf" data-f="moved" type="button" style="padding:5px 10px">🟡 Редирект/паркинг</button>
+        <button class="btn-ghost dsf" data-f="error" type="button" style="padding:5px 10px">🔴 Ошибки</button>
+        <button class="btn-ghost dsf" data-f="dead" type="button" style="padding:5px 10px">⚫ Не резолвится</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="pos" id="ds_table">
+          <thead><tr><th>Домен</th><th>Статус</th><th>IP</th><th>HTTP</th><th>Куда ведёт</th><th id="ds_th_exp" class="hidden">Срок</th><th>Примечание</th></tr></thead>
+          <tbody id="ds_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint err-text" id="ds_err_t" style="color:var(--warn)"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
@@ -852,6 +909,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-whois").classList.toggle("hidden", t.dataset.tab!=="whois");
   $("panel-wm").classList.toggle("hidden", t.dataset.tab!=="wm");
   $("panel-inow").classList.toggle("hidden", t.dataset.tab!=="inow");
+  $("panel-dstat").classList.toggle("hidden", t.dataset.tab!=="dstat");
 });
 
 // ---- движок / свой URL ----
@@ -1693,6 +1751,67 @@ $("in_dlCsv").onclick = ()=>{
   const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="indexnow.csv"; a.click();
 };
+
+// ===================== ВКЛАДКА 11: СТАТУС ДОМЕНОВ =====================
+let dsPoll=null, dsJob=null, dsRows=[], dsFilter="", dsWhois=false;
+const DSTAT_FIELDS=["ds_domains","ds_timeout","ds_workers","ds_whois"];
+(function(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_dstat")||"{}"); DSTAT_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} })();
+DSTAT_FIELDS.forEach(f=>{ const el=$(f); if(el){ el.addEventListener("input", dsSave); el.addEventListener("change", dsSave);} });
+function dsSave(){ const o={}; DSTAT_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); try{ localStorage.setItem("xmlstock_dstat",JSON.stringify(o)); }catch(e){} }
+$("ds_domains").addEventListener("input", ()=> $("ds_count").textContent=lines("ds_domains")+" стр.");
+$("ds_count").textContent=lines("ds_domains")+" стр.";
+const DS_V={ok:{t:"🟢 рабочий",c:"p-top"},moved:{t:"🟡 редирект/паркинг",c:"p-mid"},error:{t:"🔴 ошибка",c:"p-no"},dead:{t:"⚫ не резолвится",c:"p-no"},bad:{t:"плохой домен",c:"p-no"},cancel:{t:"отменено",c:"miss"}};
+function dsExp(r){
+  if(r.exp_days==null) return r.expires?esc(r.expires):"—";
+  const cls = r.exp_days<0?"p-no":(r.exp_days<30?"p-mid":"");
+  const lbl = r.exp_days<0?"истёк":r.exp_days+" дн";
+  return `<span class="${cls}" title="${esc(r.expires)}">${esc(r.expires)} · ${lbl}</span>`;
+}
+function dsRender(){
+  const rows = dsFilter ? dsRows.filter(r=>r.verdict===dsFilter) : dsRows;
+  $("ds_tbody").innerHTML = rows.map(r=>{
+    const v=DS_V[r.verdict]||{t:r.verdict,c:""};
+    const fin = r.final ? `<a href="${esc(r.final)}" target="_blank" rel="noopener noreferrer" title="${esc(r.final)}">${esc(r.final.replace(/^https?:\/\//,"").slice(0,48))}</a>` : "—";
+    const exp = dsWhois ? `<td>${dsExp(r)}</td>` : "";
+    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td class="muted">${esc(r.ip||"—")}</td><td>${r.status!=null?r.status:"—"}</td><td class="seq" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fin}</td>${exp}<td>${esc(r.note||"")}</td></tr>`;
+  }).join("") || '<tr><td colspan="7" class="miss">Нет доменов под фильтр.</td></tr>';
+}
+document.querySelectorAll(".dsf").forEach(b=> b.onclick=()=>{ document.querySelectorAll(".dsf").forEach(x=>x.classList.remove("active")); b.classList.add("active"); dsFilter=b.dataset.f; dsRender(); });
+$("ds_go").onclick = async ()=>{
+  hideErr();
+  if(!$("ds_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
+  dsWhois=$("ds_whois").checked;
+  const payload={ domains:$("ds_domains").value, timeout:$("ds_timeout").value, workers:$("ds_workers").value, whois:dsWhois };
+  $("ds_go").disabled=true;
+  $("ds_panel").classList.remove("hidden"); $("ds_tbody").innerHTML=""; $("ds_err_t").textContent="";
+  ["ds_ok","ds_moved","ds_err","ds_dead"].forEach(id=>$(id).textContent="0"); $("ds_done").textContent="0 / 0"; $("ds_barFill").style.width="0%";
+  $("ds_th_exp").classList.toggle("hidden", !dsWhois);
+  $("ds_dlXlsx").classList.add("hidden"); $("ds_dlCsv").classList.add("hidden"); $("ds_stop").classList.remove("hidden");
+  $("ds_panel").scrollIntoView({behavior:"smooth"});
+  try{
+    const r=await fetch("/api/dstat/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); $("ds_go").disabled=false; $("ds_stop").classList.add("hidden"); return; }
+    dsJob=d.job_id; dsPoll=setInterval(dsRefresh,1000); dsRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("ds_go").disabled=false; }
+};
+async function dsRefresh(){
+  if(!dsJob) return; let d;
+  try{ d=await (await fetch("/api/dstat/status/"+dsJob)).json(); }catch(e){ return; }
+  if(d.error){ clearInterval(dsPoll); dsPoll=null; $("ds_go").disabled=false; $("ds_stop").classList.add("hidden"); $("ds_err_t").textContent="остановлено (сервер перезапущен?)"; return; }
+  $("ds_done").textContent=d.done+" / "+d.total;
+  $("ds_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  const c=d.counts||{}; $("ds_ok").textContent=c.ok||0; $("ds_moved").textContent=c.moved||0; $("ds_err").textContent=c.error||0; $("ds_dead").textContent=c.dead||0;
+  dsRows=d.rows||[]; dsRender();
+  if(d.status!=="running"){
+    clearInterval(dsPoll); dsPoll=null; $("ds_go").disabled=false; $("ds_stop").classList.add("hidden");
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(dsRows.length){ $("ds_dlXlsx").classList.remove("hidden"); $("ds_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("ds_stop").onclick = async ()=>{ if(dsJob){ await fetch("/api/dstat/cancel/"+dsJob,{method:"POST"}); } };
+$("ds_dlXlsx").onclick=()=> dsJob && (location.href="/api/dstat/download/"+dsJob+"?fmt=xlsx");
+$("ds_dlCsv").onclick =()=> dsJob && (location.href="/api/dstat/download/"+dsJob+"?fmt=csv");
 </script>
 </body>
 </html>
