@@ -8,7 +8,7 @@ XMLStock SERP — локальный сборщик ТОП-выдачи Янде
 выгружаете в файл (XLSX / CSV).
 
 Запуск:  python app.py
-Открыть: http://127.0.0.1:5000  (откроется автоматически)
+Открыть: http://127.0.0.1:5050  (откроется автоматически; порт 5000 на macOS занят AirPlay)
 """
 
 import csv
@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "статус-истёк"
+APP_BUILD = "порт-5050"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -3873,10 +3873,26 @@ def _open_browser(url):
         pass
 
 
+def _free_port(host, start):
+    """Первый свободный порт начиная со start (на macOS 5000 занят AirPlay → 403)."""
+    bind_host = "" if host == "0.0.0.0" else host
+    for p in range(start, start + 40):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((bind_host, p))
+                return p
+            except OSError:
+                continue
+    return start
+
+
 if __name__ == "__main__":
     host = os.environ.get("HOST", "127.0.0.1")
-    port = int(os.environ.get("PORT", "5000"))
+    want = int(os.environ.get("PORT", "5050"))
+    port = _free_port(host, want)
     url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{port}"
+    if port != want:
+        print(f"\n  ⚠ порт {want} занят — выбрал свободный {port}")
     print(f"\n  XMLStock SERP запущен → {url}\n  (Ctrl+C для остановки)\n")
     if os.environ.get("NO_BROWSER") != "1":
         Thread(target=lambda: (time.sleep(1.0), _open_browser(url)), daemon=True).start()
