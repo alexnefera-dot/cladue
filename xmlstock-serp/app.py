@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "блок-v2"
+APP_BUILD = "реестр-ркн"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1316,16 +1316,34 @@ def _block_via_proxy(domain, host, cfg):
     return {**row, "verdict": "ip", "note": "нет соединения к домену, прокси рабочий — IP-блок"}
 
 
-def check_block(domain, cfg, cancel):
-    """Как домен блокируется. Вердикт: ok/dns/ip/sni/page/dead/odd."""
-    host = url_host(domain) or clean_host(domain)
+def _rkn_registry(host, cfg):
+    """Проверка домена по публичному реестру РКН (antizapret / rublacklist), опц. через
+    прокси. Возвращает короткий статус для колонки «Реестр»."""
+    proxies = {"http": cfg["proxy"], "https": cfg["proxy"]} if cfg.get("proxy") else None
+    pos = ("найден в реестре", "заблокирован", "внесен в реестр", "внесён в реестр",
+           "в едином реестре", "в реестре запрещ", "запрещен", "запрещён",
+           "блокируется", "domain is blocked", "is blocked")
+    neg = ("не найден", "отсутствует в реестре", "не заблокирован", "не в реестре",
+           "ничего не найдено", "не внесен", "не внесён", "not blocked", "not found")
+    for url in ("https://antizapret.info/?search=" + host,
+                "https://reestr.rublacklist.net/ru/search/?q=" + host):
+        try:
+            r = requests.get(url, headers={"User-Agent": cfg["ua"]}, timeout=cfg["timeout"],
+                             verify=False, proxies=proxies)
+        except Exception:
+            continue
+        t = (r.text or "").lower()
+        if any(m in t for m in pos) and not any(m in t for m in neg):
+            return "🔴 в реестре РКН"
+        if any(m in t for m in neg):
+            return "— не в реестре"
+        return "ответ есть, не распознал — пришли скрин, подстрою"
+    return "не удалось проверить (нет ответа)"
+
+
+def _check_block_local(domain, host, cfg, cancel):
+    """Локальная проверка (с текущего соединения, без прокси)."""
     row = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "", "verdict": "", "note": ""}
-    if cancel.is_set():
-        return {**row, "verdict": "cancel", "note": "отменено"}
-    if not host:
-        return {**row, "verdict": "bad", "note": "плохой домен"}
-    if cfg.get("proxy"):
-        return _block_via_proxy(domain, host, cfg)
     to = cfg["timeout"]
     doh = _doh_resolve(host, to)
     try:
@@ -1357,6 +1375,26 @@ def check_block(domain, cfg, cancel):
     if blk is None:
         return {**row, "verdict": "odd", "note": "TLS ок, но HTTP без ответа"}
     return {**row, "verdict": "ok", "note": "доступен (DNS+IP+TLS+HTTP ок)"}
+
+
+def check_block(domain, cfg, cancel):
+    """Диспетчер: прокси/локально + опц. проверка реестра РКН. Вердикт: ok/dns/ip/sni/page/dead/odd."""
+    host = url_host(domain) or clean_host(domain)
+    if cancel.is_set():
+        base = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "",
+                "verdict": "cancel", "note": "отменено"}
+    elif not host:
+        base = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "",
+                "verdict": "bad", "note": "плохой домен"}
+    elif cfg.get("proxy"):
+        base = _block_via_proxy(domain, host, cfg)
+    else:
+        base = _check_block_local(domain, host, cfg, cancel)
+    base.setdefault("registry", "")
+    if cfg.get("registry") and base["verdict"] not in ("cancel", "bad") and not cancel.is_set():
+        base["registry"] = _rkn_registry(host, cfg)
+    return base
+
 
 
 def run_block(job_id, cfg, domains):
@@ -2562,7 +2600,8 @@ def api_block_run():
     if proxy and "://" not in proxy:
         proxy = "http://" + proxy
     cfg = {"ua": _UA["desktop"], "timeout": clamp(data.get("timeout"), 3, 60, 12),
-           "workers": clamp(data.get("workers"), 1, 20, 8), "proxy": proxy}
+           "workers": clamp(data.get("workers"), 1, 20, 8), "proxy": proxy,
+           "registry": bool(data.get("registry"))}
     job_id = uuid.uuid4().hex
     with BLOCK_LOCK:
         BLOCKJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
@@ -2606,10 +2645,11 @@ def api_block_download(job_id):
     _V = {"ok": "доступен", "dns": "DNS-подмена", "ip": "IP-блок", "sni": "SNI-DPI",
           "page": "страница-заглушка", "dead": "не резолвится", "odd": "неясно",
           "bad": "плохой домен", "cancel": "отменено"}
-    headers = ["домен", "вердикт", "IP (ваш DNS)", "IP (глобально)", "примечание"]
+    headers = ["домен", "вердикт", "IP (ваш DNS)", "IP (глобально)", "реестр РКН", "примечание"]
 
     def cells(r):
-        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r["sys_ip"], r["global_ip"], r["note"]]
+        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r["sys_ip"], r["global_ip"],
+                r.get("registry", ""), r["note"]]
 
     fmt = request.args.get("fmt", "csv")
     if fmt == "xlsx":

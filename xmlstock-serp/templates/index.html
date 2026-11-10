@@ -884,6 +884,9 @@
         <div><label>Таймаут, сек</label><input id="bk_timeout" type="number" value="12" min="3" max="60"></div>
         <div><label>Параллельно</label><input id="bk_workers" type="number" value="8" min="1" max="20"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:12px 0 0;font-size:14px;color:var(--txt)">
+        <input type="checkbox" id="bk_registry" style="width:auto"> Проверить и по реестру РКН (antizapret/rublacklist, через тот же прокси) — отдельная колонка
+      </label>
       <div class="row" style="margin-top:14px">
         <button class="btn-go" id="bk_go">▶ Проверить блокировку</button>
         <button class="btn-cancel hidden" id="bk_stop">■ Остановить</button>
@@ -912,7 +915,7 @@
       </div>
       <div class="tbl-wrap">
         <table class="pos" id="bk_table">
-          <thead><tr><th>Домен</th><th>Вердикт</th><th>IP (ваш DNS)</th><th>IP (глобально)</th><th>Что именно</th></tr></thead>
+          <thead><tr><th>Домен</th><th>Вердикт</th><th>IP (ваш DNS)</th><th>IP (глобально)</th><th id="bk_th_reg" class="hidden">Реестр РКН</th><th>Что именно</th></tr></thead>
           <tbody id="bk_tbody"></tbody>
         </table>
       </div>
@@ -1874,7 +1877,7 @@ $("ds_dlXlsx").onclick=()=> dsJob && (location.href="/api/dstat/download/"+dsJob
 $("ds_dlCsv").onclick =()=> dsJob && (location.href="/api/dstat/download/"+dsJob+"?fmt=csv");
 
 // ===================== ВКЛАДКА 12: БЛОК-ЧЕК РФ =====================
-let bkPoll=null, bkJob=null, bkRows=[], bkFilter="";
+let bkPoll=null, bkJob=null, bkRows=[], bkFilter="", bkReg=false;
 (function(){ try{ const v=localStorage.getItem("xmlstock_block"); if(v) $("bk_domains").value=v; const px=localStorage.getItem("xmlstock_block_proxy"); if(px) $("bk_proxy").value=px; }catch(e){} })();
 $("bk_domains").addEventListener("input", ()=>{ $("bk_count").textContent=lines("bk_domains")+" стр."; try{ localStorage.setItem("xmlstock_block",$("bk_domains").value); }catch(e){} });
 $("bk_proxy").addEventListener("input", ()=>{ try{ localStorage.setItem("xmlstock_block_proxy",$("bk_proxy").value); }catch(e){} });
@@ -1884,20 +1887,22 @@ function bkRender(){
   const rows = bkFilter ? bkRows.filter(r=>(BK_V[r.verdict]||{}).g===bkFilter) : bkRows;
   $("bk_tbody").innerHTML = rows.map(r=>{
     const v=BK_V[r.verdict]||{t:r.verdict,c:""};
-    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td><td>${esc(r.note||"")}</td></tr>`;
-  }).join("") || '<tr><td colspan="5" class="miss">Нет доменов под фильтр.</td></tr>';
+    const reg = bkReg ? `<td>${r.registry&&r.registry.indexOf("реестре")>-1&&r.registry.indexOf("не")===-1?'<b class="p-no">'+esc(r.registry)+'</b>':esc(r.registry||"—")}</td>` : "";
+    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td>${reg}<td>${esc(r.note||"")}</td></tr>`;
+  }).join("") || `<tr><td colspan="${bkReg?6:5}" class="miss">Нет доменов под фильтр.</td></tr>`;
 }
 document.querySelectorAll(".bkf").forEach(b=> b.onclick=()=>{ document.querySelectorAll(".bkf").forEach(x=>x.classList.remove("active")); b.classList.add("active"); bkFilter=b.dataset.f; bkRender(); });
 $("bk_go").onclick = async ()=>{
   hideErr();
   if(!$("bk_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
   $("bk_go").disabled=true;
+  bkReg=$("bk_registry").checked; $("bk_th_reg").classList.toggle("hidden", !bkReg);
   $("bk_panel").classList.remove("hidden"); $("bk_tbody").innerHTML=""; $("bk_err").textContent="";
   ["bk_ok","bk_blocked","bk_dead"].forEach(id=>$(id).textContent="0"); $("bk_done").textContent="0 / 0"; $("bk_barFill").style.width="0%";
   $("bk_dlXlsx").classList.add("hidden"); $("bk_dlCsv").classList.add("hidden"); $("bk_stop").classList.remove("hidden");
   $("bk_panel").scrollIntoView({behavior:"smooth"});
   try{
-    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value,proxy:$("bk_proxy").value})});
+    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value,proxy:$("bk_proxy").value,registry:bkReg})});
     const d=await r.json();
     if(!r.ok){ showErr(d.error||"Ошибка"); $("bk_go").disabled=false; $("bk_stop").classList.add("hidden"); return; }
     bkJob=d.job_id; bkPoll=setInterval(bkRefresh,1000); bkRefresh();
