@@ -1,0 +1,243 @@
+ДОМЕНЫ, СОЗДАННЫЕ 2026-10-11 .. 2026-11-10
+  отбор по domain_created (оно же site_created), не по переобходу
+  доменов 218, сайтов на них 44908
+  из них с отправленным переобходом: 8; без единой отправки: 210
+
+ПО ДАТАМ СОЗДАНИЯ
+  дата          доменов   сайтов  запущено сайтов  доменов с переобходом
+  2026-10-11         35     7210              399                      4
+  2026-10-14         30     6180              447                      3
+  2026-10-21          5     1030                0                      0
+  2026-10-24         40     8240              150                      1
+  2026-10-25         20     4120                0                      0
+  2026-10-26          1      206                0                      0
+  2026-11-07         15     3090                0                      0
+  2026-11-09         42     8652                0                      0
+  2026-11-10         30     6180                0                      0
+
+СТАДИИ КОНВЕЙЕРА ПО ВСЕМ ЭТИМ САЙТАМ
+  idle             43054   95.9%
+  done               996    2.2%
+  recrawl            477    1.1%
+  error              381    0.8%
+
+ТАБЛИЦА
+  домен                  зона    создан      сайтов  запущ переобход              стадии                                   контент
+  0312.lol               lol     2026-10-11     206    150 2026-10-11             done 150, error 56                       content-2026-10-10-10str-oform-2_27
+  0588.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_21
+  1876.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_15
+  3674.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-808-812-oformlennye_5
+  3962.lol               lol     2026-10-11     206    150 2026-10-11             done 150, error 56                       content-2026-10-10-10str-oform-2_30
+  5963.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_22
+  7093.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-808-812-oformlennye_1
+  7141.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_13
+  7553.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_18
+  7762.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_24
+  7895.lol               lol     2026-10-11     206     49 2026-10-29             recrawl 106, error 51, done 49           content-2026-10-10-10str-oform-2_29
+  8859.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_20
+  b2j5.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_16
+  bjlo.lol               lol     2026-10-11     206     50 2026-10-29             recrawl 105, error 51, done 50           nabory-803-807-oformlennye_1
+  c1x3.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-803-807-oformlennye_3
+  c2n7.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_10
+  c3t8.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_7
+  iblg.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-808-812-oformlennye_3
+  j9x7.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-808-812-oformlennye_2
+  k2z1.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-803-807-oformlennye_4
+  lfmg.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_26
+  mqcf.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_23
+  nnnx.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-803-807-oformlennye_2
+  o9m1.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_25
+  ohif.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_14
+  qzgq.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_11
+  tzpb.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_12
+  vmqz.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_19
+  x0w5.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-803-807-oformlennye_5
+  xbyr.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_9
+  xhpe.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_8
+  xktp.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_28
+  xzcn.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 nabory-808-812-oformlennye_4
+  yzyy.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_17
+  zacn.lol               lol     2026-10-11     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_31
+  0559.lol               lol     2026-10-14     206     50 2026-10-28             recrawl 105, error 51, done 50           content-2026-10-10-10str-oform-2_5
+  0664.lol               lol     2026-10-14     206    199 2026-10-28             done 199, error 7                        content-2026-10-10-10str-oform-1_22
+  0737.lol               lol     2026-10-14     206    198 2026-10-28             done 198, error 8                        content-2026-10-10-10str-oform-1_25
+  1869.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-863-867_2
+  2444.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-858-862_1
+  2672.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-863-867_1
+  2830.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_28
+  2845.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_15
+  3278.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-863-867_5
+  3374.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_18
+  3762.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_26
+  4176.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-863-867_3
+  4237.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-858-862_5
+  5009.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_17
+  5443.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_2
+  5563.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_21
+  6837.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-863-867_4
+  7254.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_4
+  7510.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-858-862_2
+  8994.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_19
+  9370.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_20
+  h4r7.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_1
+  nnlj.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-858-862_3
+  shhm.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_16
+  t8u0.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_6
+  tsqo.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 partiya-858-862_4
+  vnxy.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_23
+  w5e4.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-2_3
+  z8n7.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_27
+  zmqv.lol               lol     2026-10-14     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_24
+  1369.lol               lol     2026-10-21     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_14
+  4730.lol               lol     2026-10-21     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_10
+  5846.lol               lol     2026-10-21     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_11
+  8235.lol               lol     2026-10-21     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_13
+  ffqi.lol               lol     2026-10-21     206      0 не отправлялся         idle 206                                 content-2026-10-10-10str-oform-1_12
+  0384.lol               lol     2026-10-24     206    150 2026-10-28             done 150, error 51, recrawl 5            nabor-10154-10165_2
+  1164.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10154-10165_5
+  1879.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_9
+  1979.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_1
+  2843.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_6
+  4039.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_2
+  4101.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_4
+  4671.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_13
+  4867.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10154-10165_4
+  5317.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_2
+  5418.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_4
+  5424.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_8
+  5754.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_3
+  5778.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_9
+  5871.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_6
+  6234.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10154-10165_3
+  6236.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_11
+  6505.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-9931-100085_6
+  6832.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-9931-100085_9
+  8331.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_4
+  8528.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_7
+  8572.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_3
+  8738.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-9931-100085_8
+  9355.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_1
+  blcv.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_5
+  c7t4.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10154-10165_6
+  cflw.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_12
+  gayh.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_7
+  hbxw.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_5
+  m4n6.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_2
+  o4k9.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-9931-100085_7
+  o7n5.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_1
+  onnq.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_6
+  oyzi.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_8
+  pqag.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10154-10165_1
+  q2q2.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_7
+  rimw.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_3
+  rwox.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 content-2026-10-23-12str-oform_5
+  xure.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10181-10190_10
+  zfpj.lol               lol     2026-10-24     206      0 не отправлялся         idle 206                                 nabor-10093-100155_10
+  1102.lol               lol     2026-10-25     206      0 не отправлялся         recrawl 156, error 50                    nabor-9931-100085_3
+  1692.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_8
+  2772.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_3
+  5661.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 partiya-868-887_18
+  8152.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 partiya-868-887_17
+  8338.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 partiya-868-887_20
+  8453.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 partiya-868-887_16
+  8713.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_6
+  9455.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_1
+  9894.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_4
+  9910.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-9931-100085_2
+  a9i7.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_7
+  brcj.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-9931-100085_5
+  dmnw.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_2
+  k2t5.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-9931-100085_4
+  sunw.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-9931-100085_1
+  suts.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_5
+  t0o0.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 partiya-868-887_19
+  y0s7.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_9
+  znyb.lol               lol     2026-10-25     206      0 не отправлялся         idle 206                                 nabor-10191-10205_10
+  jhgv.lol               lol     2026-10-26     206      0 не отправлялся         idle 206                                 content-2026-10-25-12str-oform_9
+  3657.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_21
+  4699.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_12
+  6517.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_8
+  6900.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_14
+  7117.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_16
+  8677.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_11
+  e5s3.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_13
+  ithd.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_9
+  j9w6.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_7
+  k5r3.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_15
+  p1g9.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_18
+  qmib.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_10
+  rmbo.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_17
+  tdhd.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_20
+  znuf.lol               lol     2026-11-07     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_19
+  0325.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_6
+  0573.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_2
+  0803.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_18
+  0827.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_5
+  0919.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_15
+  1051.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_3
+  2705.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_9
+  2864.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_14
+  3010.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_13
+  4183.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_9
+  6123.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_15
+  6173.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_10
+  7225.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_1
+  7257.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_5
+  7703.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_13
+  7980.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_5
+  8122.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_21
+  8923.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_11
+  9354.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_16
+  9571.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_10
+  9675.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_22
+  adfx.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_12
+  b9v6.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_1
+  cnqi.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_4
+  dujy.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_11
+  ecph.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_20
+  fqlx.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_25
+  hnrd.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_17
+  j6t8.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_8
+  j7x8.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_19
+  lvle.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_2
+  n7c4.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_12
+  o0v3.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_7
+  o3x9.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_14
+  o7y1.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_4
+  oyha.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_6
+  rhjd.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_7
+  s6x3.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_6
+  x9q1.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-2_8
+  xfth.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-12str-oform_3
+  xxkv.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_24
+  ztmv.lol               lol     2026-11-09     206      0 не отправлялся         idle 206                                 content-2026-11-02-10str-oform-1_23
+  1834.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_9
+  1897.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_1
+  2206.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_7
+  2517.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_20
+  2812.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_11
+  3099.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_12
+  3306.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_7
+  3927.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_2
+  4520.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_17
+  4683.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_4
+  4940.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_22
+  5799.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_1
+  5990.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_8
+  6622.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_18
+  7404.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_6
+  8612.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_16
+  8873.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_3
+  9756.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_19
+  aoog.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_4
+  btib.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_3
+  eghm.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_8
+  i2u7.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_13
+  l2q2.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_14
+  q6u9.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_15
+  qlyo.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_2
+  qpuz.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_6
+  s4t7.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_5
+  vpbg.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_10
+  xvms.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-4_5
+  zevz.lol               lol     2026-11-10     206      0 не отправлялся         idle 206                                 content-2026-11-09-10str-oform-3_21
