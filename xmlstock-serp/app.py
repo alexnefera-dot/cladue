@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "реестр-ркн"
+APP_BUILD = "реестр-raw"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1316,29 +1316,41 @@ def _block_via_proxy(domain, host, cfg):
     return {**row, "verdict": "ip", "note": "нет соединения к домену, прокси рабочий — IP-блок"}
 
 
+def _strip_html(html):
+    txt = re.sub(r"(?is)<(script|style|noscript).*?</\1>", " ", html or "")
+    txt = re.sub(r"(?s)<[^>]+>", " ", txt)
+    return re.sub(r"\s+", " ", txt).strip()
+
+
 def _rkn_registry(host, cfg):
     """Проверка домена по публичному реестру РКН (antizapret / rublacklist), опц. через
-    прокси. Возвращает короткий статус для колонки «Реестр»."""
+    прокси. Если формат не распознан — вернём ВЫДЕРЖКУ ответа, чтобы настроить парсер."""
     proxies = {"http": cfg["proxy"], "https": cfg["proxy"]} if cfg.get("proxy") else None
     pos = ("найден в реестре", "заблокирован", "внесен в реестр", "внесён в реестр",
-           "в едином реестре", "в реестре запрещ", "запрещен", "запрещён",
-           "блокируется", "domain is blocked", "is blocked")
+           "в едином реестре", "в реестре запрещ", "запрещен", "запрещён", "блокируется",
+           "ресурс заблокирован", "ограничен доступ", "дата блокировки", "является запрещ",
+           "is blocked", "domain is blocked", "да, заблокирован")
     neg = ("не найден", "отсутствует в реестре", "не заблокирован", "не в реестре",
-           "ничего не найдено", "не внесен", "не внесён", "not blocked", "not found")
-    for url in ("https://antizapret.info/?search=" + host,
-                "https://reestr.rublacklist.net/ru/search/?q=" + host):
+           "ничего не найдено", "не внесен", "не внесён", "not blocked", "not found",
+           "нет, не заблокирован", "не является запрещ")
+    best = ""
+    for name, url in (("antizapret", "https://antizapret.info/?search=" + host),
+                      ("rublacklist", "https://reestr.rublacklist.net/ru/search/?q=" + host)):
         try:
             r = requests.get(url, headers={"User-Agent": cfg["ua"]}, timeout=cfg["timeout"],
                              verify=False, proxies=proxies)
-        except Exception:
+        except Exception as e:
+            best = best or f"{name}: ошибка {str(e)[:40]}"
             continue
         t = (r.text or "").lower()
-        if any(m in t for m in pos) and not any(m in t for m in neg):
-            return "🔴 в реестре РКН"
-        if any(m in t for m in neg):
+        if any(m in t for m in neg) and not any(m in t for m in pos):
             return "— не в реестре"
-        return "ответ есть, не распознал — пришли скрин, подстрою"
-    return "не удалось проверить (нет ответа)"
+        if any(m in t for m in pos):
+            return "🔴 в реестре РКН"
+        excerpt = _strip_html(r.text)[:140] or "(пусто — похоже на JS-страницу)"
+        best = f"не распознал [{name} HTTP {r.status_code}]: {excerpt}"
+    return best or "не удалось проверить (нет ответа)"
+
 
 
 def _check_block_local(domain, host, cfg, cancel):
