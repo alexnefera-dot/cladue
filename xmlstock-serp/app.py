@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "реестр-список"
+APP_BUILD = "реестр-антизапрет"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1318,10 +1318,24 @@ def _block_via_proxy(domain, host, cfg):
 
 RKN_LIST_FILE = os.path.join(OUTPUT_DIR, "rkn_domains.txt")
 _RKN = {"set": None, "ts": 0.0, "err": "", "lock": Lock()}
-# Публичные выгрузки доменов из реестра РКН (antizapret). Качаем НАПРЯМУЮ (не через
-# прокси — список публичный), кэшируем на диск на сутки, проверка — локально по set.
-_RKN_SOURCES = ("https://api.antizapret.info/all.php?type=domain",
-                "https://antizapret.info/domains.txt")
+# Публичная выгрузка доменов из реестра РКН (antizapret, зеркало ЕАИС). Качаем
+# НАПРЯМУЮ (не через прокси — список публичный), кэш на диск на сутки, проверка
+# локально по set. domains-export.txt — простой список, по одному домену в строке.
+_RKN_SOURCES = ("https://antizapret.prostovpn.org/domains-export.txt",)
+
+
+def _rkn_parse(fh):
+    """Множество доменов из файла-списка (простой список; терпит csv ip;domain;…)."""
+    out = set()
+    for ln in fh:
+        t = ln.strip()
+        if not t or t[0] in "#!":
+            continue
+        if ";" in t:                       # на случай csv-дампа (ip;domain;url;…)
+            cols = [c.strip() for c in t.split(";")]
+            t = cols[1] if len(cols) > 1 and cols[1] else cols[0]
+        out.add(t.lower().lstrip("*."))
+    return out
 
 
 def _rkn_load_list(timeout):
@@ -1333,7 +1347,7 @@ def _rkn_load_list(timeout):
         if os.path.exists(RKN_LIST_FILE) and now - os.path.getmtime(RKN_LIST_FILE) < 86400:
             try:
                 with open(RKN_LIST_FILE, encoding="utf-8", errors="ignore") as f:
-                    _RKN["set"] = {ln.strip().lower().lstrip("*.") for ln in f if ln.strip()}
+                    _RKN["set"] = _rkn_parse(f)
                 _RKN["ts"] = now
                 return _RKN["set"]
             except Exception:
@@ -1354,7 +1368,7 @@ def _rkn_load_list(timeout):
                     continue
                 os.replace(tmp, RKN_LIST_FILE)
                 with open(RKN_LIST_FILE, encoding="utf-8", errors="ignore") as f:
-                    _RKN["set"] = {ln.strip().lower().lstrip("*.") for ln in f if ln.strip()}
+                    _RKN["set"] = _rkn_parse(f)
                 _RKN["ts"] = now
                 return _RKN["set"]
             except Exception as e:
