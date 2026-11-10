@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "реестр-антизапрет"
+APP_BUILD = "база-и-прокси"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1429,6 +1429,50 @@ def _check_block_local(domain, host, cfg, cancel):
     return {**row, "verdict": "ok", "note": "доступен (DNS+IP+TLS+HTTP ок)"}
 
 
+def _base_probe(host, cfg):
+    """Прямой заход с текущего (не-РФ) соединения — жив ли сайт вообще.
+    True — сервер ответил (любой HTTP-код); False — не достучались ни по https, ни по http."""
+    for scheme in ("https://", "http://"):
+        try:
+            r = requests.get(scheme + host, headers={"User-Agent": cfg["ua"]},
+                             timeout=cfg["timeout"], allow_redirects=True,
+                             verify=False, stream=True)
+            code = r.status_code
+            try:
+                r.close()
+            except Exception:
+                pass
+            return True, f"HTTP {code}"
+        except requests.exceptions.RequestException:
+            continue
+    return False, ""
+
+
+def _annotate_base(row, host, cfg, cancel):
+    """Колонка «База (прямой)» + уточнение вердикта: РФ-блок vs просто мёртвый домен.
+    Пробуем домен напрямую (без прокси, с не-РФ канала), только когда через прокси он не
+    открылся — чтобы отличить «живой, но режет РФ» от «домен сдох везде»."""
+    v = row.get("verdict")
+    if v in ("ok", "page"):                 # ответил через прокси → заведомо жив
+        row["base"] = "alive"
+        return
+    if v not in ("sni", "ip", "dead") or cancel.is_set():
+        row["base"] = ""                    # odd/bad/cancel — сравнивать нечего
+        return
+    alive, _ = _base_probe(host, cfg)
+    if alive:
+        row["base"] = "alive"
+        if v == "dead":                     # глобально DoH молчал, но напрямую открылся → режут маршрут
+            row["verdict"] = "ip"
+            row["note"] = "жив напрямую, но через РФ не открывается — блок по IP/маршруту"
+        else:
+            row["note"] = (row.get("note") or "") + " · жив напрямую ⇒ это РФ-блок, не дохлый домен"
+    else:
+        row["base"] = "dead"
+        row["verdict"] = "dead"
+        row["note"] = "не отвечает ни напрямую, ни через прокси — домен мёртв/снят (не РФ-блок)"
+
+
 def check_block(domain, cfg, cancel):
     """Диспетчер: прокси/локально + опц. проверка реестра РКН. Вердикт: ok/dns/ip/sni/page/dead/odd."""
     host = url_host(domain) or clean_host(domain)
@@ -1440,9 +1484,11 @@ def check_block(domain, cfg, cancel):
                 "verdict": "bad", "note": "плохой домен"}
     elif cfg.get("proxy"):
         base = _block_via_proxy(domain, host, cfg)
+        _annotate_base(base, host, cfg, cancel)
     else:
         base = _check_block_local(domain, host, cfg, cancel)
     base.setdefault("registry", "")
+    base.setdefault("base", "")
     if cfg.get("registry") and base["verdict"] not in ("cancel", "bad") and not cancel.is_set():
         base["registry"] = _rkn_registry(host, cfg)
     return base
@@ -2697,11 +2743,13 @@ def api_block_download(job_id):
     _V = {"ok": "доступен", "dns": "DNS-подмена", "ip": "IP-блок", "sni": "SNI-DPI",
           "page": "страница-заглушка", "dead": "не резолвится", "odd": "неясно",
           "bad": "плохой домен", "cancel": "отменено"}
-    headers = ["домен", "вердикт", "IP (ваш DNS)", "IP (глобально)", "реестр РКН", "примечание"]
+    _B = {"alive": "жив", "dead": "мёртв"}
+    headers = ["домен", "вердикт", "база (прямой)", "IP (ваш DNS)", "IP (глобально)",
+               "реестр РКН", "примечание"]
 
     def cells(r):
-        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r["sys_ip"], r["global_ip"],
-                r.get("registry", ""), r["note"]]
+        return [r["domain"], _V.get(r["verdict"], r["verdict"]), _B.get(r.get("base", ""), ""),
+                r["sys_ip"], r["global_ip"], r.get("registry", ""), r["note"]]
 
     fmt = request.args.get("fmt", "csv")
     if fmt == "xlsx":

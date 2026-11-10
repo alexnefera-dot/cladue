@@ -915,7 +915,7 @@
       </div>
       <div class="tbl-wrap">
         <table class="pos" id="bk_table">
-          <thead><tr><th>Домен</th><th>Вердикт</th><th>IP (ваш DNS)</th><th>IP (глобально)</th><th id="bk_th_reg" class="hidden">Реестр РКН</th><th>Что именно</th></tr></thead>
+          <thead><tr><th>Домен</th><th>Вердикт (через РФ)</th><th>База (прямой)</th><th>IP (ваш DNS)</th><th>IP (глобально)</th><th id="bk_th_reg" class="hidden">Реестр РКН</th><th>Что именно</th></tr></thead>
           <tbody id="bk_tbody"></tbody>
         </table>
       </div>
@@ -1887,9 +1887,10 @@ function bkRender(){
   const rows = bkFilter ? bkRows.filter(r=>(BK_V[r.verdict]||{}).g===bkFilter) : bkRows;
   $("bk_tbody").innerHTML = rows.map(r=>{
     const v=BK_V[r.verdict]||{t:r.verdict,c:""};
+    const bs = r.base==="alive" ? '<b class="p-top">🟢 жив</b>' : r.base==="dead" ? '<b class="miss">⚫ мёртв</b>' : '<span class="muted">—</span>';
     const reg = bkReg ? `<td>${r.registry&&r.registry.indexOf("реестре")>-1&&r.registry.indexOf("не")===-1?'<b class="p-no">'+esc(r.registry)+'</b>':esc(r.registry||"—")}</td>` : "";
-    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td>${reg}<td>${esc(r.note||"")}</td></tr>`;
-  }).join("") || `<tr><td colspan="${bkReg?6:5}" class="miss">Нет доменов под фильтр.</td></tr>`;
+    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td>${bs}</td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td>${reg}<td>${esc(r.note||"")}</td></tr>`;
+  }).join("") || `<tr><td colspan="${bkReg?7:6}" class="miss">Нет доменов под фильтр.</td></tr>`;
 }
 document.querySelectorAll(".bkf").forEach(b=> b.onclick=()=>{ document.querySelectorAll(".bkf").forEach(x=>x.classList.remove("active")); b.classList.add("active"); bkFilter=b.dataset.f; bkRender(); });
 $("bk_go").onclick = async ()=>{
