@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "реестр-raw"
+APP_BUILD = "реестр-список"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1316,41 +1316,67 @@ def _block_via_proxy(domain, host, cfg):
     return {**row, "verdict": "ip", "note": "нет соединения к домену, прокси рабочий — IP-блок"}
 
 
-def _strip_html(html):
-    txt = re.sub(r"(?is)<(script|style|noscript).*?</\1>", " ", html or "")
-    txt = re.sub(r"(?s)<[^>]+>", " ", txt)
-    return re.sub(r"\s+", " ", txt).strip()
+RKN_LIST_FILE = os.path.join(OUTPUT_DIR, "rkn_domains.txt")
+_RKN = {"set": None, "ts": 0.0, "err": "", "lock": Lock()}
+# Публичные выгрузки доменов из реестра РКН (antizapret). Качаем НАПРЯМУЮ (не через
+# прокси — список публичный), кэшируем на диск на сутки, проверка — локально по set.
+_RKN_SOURCES = ("https://api.antizapret.info/all.php?type=domain",
+                "https://antizapret.info/domains.txt")
+
+
+def _rkn_load_list(timeout):
+    """set доменов РКН (из кэша/скачиваем). None — если не удалось. Ошибка в _RKN['err']."""
+    now = time.time()
+    with _RKN["lock"]:
+        if _RKN["set"] is not None and now - _RKN["ts"] < 86400:
+            return _RKN["set"]
+        if os.path.exists(RKN_LIST_FILE) and now - os.path.getmtime(RKN_LIST_FILE) < 86400:
+            try:
+                with open(RKN_LIST_FILE, encoding="utf-8", errors="ignore") as f:
+                    _RKN["set"] = {ln.strip().lower().lstrip("*.") for ln in f if ln.strip()}
+                _RKN["ts"] = now
+                return _RKN["set"]
+            except Exception:
+                pass
+        _RKN["err"] = ""
+        tmp = RKN_LIST_FILE + ".tmp"
+        for url in _RKN_SOURCES:
+            try:
+                with requests.get(url, timeout=max(timeout, 90), stream=True) as r:
+                    if r.status_code != 200:
+                        _RKN["err"] = f"HTTP {r.status_code} от {url.split('/')[2]}"
+                        continue
+                    with open(tmp, "wb") as f:
+                        for chunk in r.iter_content(65536):
+                            f.write(chunk)
+                if os.path.getsize(tmp) < 10000:        # подозрительно мало — не список
+                    _RKN["err"] = f"слишком маленький ответ от {url.split('/')[2]}"
+                    continue
+                os.replace(tmp, RKN_LIST_FILE)
+                with open(RKN_LIST_FILE, encoding="utf-8", errors="ignore") as f:
+                    _RKN["set"] = {ln.strip().lower().lstrip("*.") for ln in f if ln.strip()}
+                _RKN["ts"] = now
+                return _RKN["set"]
+            except Exception as e:
+                _RKN["err"] = f"{url.split('/')[2]}: {str(e)[:50]}"
+                continue
+        return None
 
 
 def _rkn_registry(host, cfg):
-    """Проверка домена по публичному реестру РКН (antizapret / rublacklist), опц. через
-    прокси. Если формат не распознан — вернём ВЫДЕРЖКУ ответа, чтобы настроить парсер."""
-    proxies = {"http": cfg["proxy"], "https": cfg["proxy"]} if cfg.get("proxy") else None
-    pos = ("найден в реестре", "заблокирован", "внесен в реестр", "внесён в реестр",
-           "в едином реестре", "в реестре запрещ", "запрещен", "запрещён", "блокируется",
-           "ресурс заблокирован", "ограничен доступ", "дата блокировки", "является запрещ",
-           "is blocked", "domain is blocked", "да, заблокирован")
-    neg = ("не найден", "отсутствует в реестре", "не заблокирован", "не в реестре",
-           "ничего не найдено", "не внесен", "не внесён", "not blocked", "not found",
-           "нет, не заблокирован", "не является запрещ")
-    best = ""
-    for name, url in (("antizapret", "https://antizapret.info/?search=" + host),
-                      ("rublacklist", "https://reestr.rublacklist.net/ru/search/?q=" + host)):
-        try:
-            r = requests.get(url, headers={"User-Agent": cfg["ua"]}, timeout=cfg["timeout"],
-                             verify=False, proxies=proxies)
-        except Exception as e:
-            best = best or f"{name}: ошибка {str(e)[:40]}"
-            continue
-        t = (r.text or "").lower()
-        if any(m in t for m in neg) and not any(m in t for m in pos):
-            return "— не в реестре"
-        if any(m in t for m in pos):
-            return "🔴 в реестре РКН"
-        excerpt = _strip_html(r.text)[:140] or "(пусто — похоже на JS-страницу)"
-        best = f"не распознал [{name} HTTP {r.status_code}]: {excerpt}"
-    return best or "не удалось проверить (нет ответа)"
-
+    """В реестре РКН или нет — по скачанному списку antizapret (локально)."""
+    s = _rkn_load_list(cfg["timeout"])
+    if s is None:
+        return "список РКН не скачался (" + (_RKN.get("err") or "нет источника") + ")"
+    h = (host[4:] if host.startswith("www.") else host).lower().strip(".")
+    parts = h.split(".")
+    cands = {h, registrable_domain(h)}
+    for i in range(1, len(parts) - 1):          # родительские домены
+        cands.add(".".join(parts[i:]))
+    for c in cands:
+        if c and c in s:
+            return "🔴 в реестре РКН" + (f" (блок {c})" if c != h else "")
+    return "— не в реестре"
 
 
 def _check_block_local(domain, host, cfg, cancel):
