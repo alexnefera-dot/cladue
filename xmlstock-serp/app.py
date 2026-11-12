@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "строгий-вердикт"
+APP_BUILD = "ханипот-мультипрогон"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1488,6 +1488,73 @@ def _annotate_base(row, host, cfg, cancel):
         row["note"] = "не отвечает ни напрямую, ни через прокси — домен мёртв/снят (не РФ-блок)"
 
 
+_BLOCKED_V = ("sni", "ip", "page", "dns")
+# Заведомо заблокированные в РФ сайты — контроль, что прокси реально сидит за ТСПУ.
+_PROXY_HONEYPOT = ("rutracker.org", "rutor.org", "nnmclub.to")
+
+
+def _proxy_rf_warn(cfg, cancel):
+    """Проверяет прокси по заведомо заблокированным в РФ сайтам. Если они открываются —
+    прокси НЕ за ТСПУ (дата-центр/утечка). Возвращает текст предупреждения или ''."""
+    opened = []
+    with ThreadPoolExecutor(max_workers=len(_PROXY_HONEYPOT)) as ex:
+        futs = {ex.submit(_block_via_proxy, c, c, cfg): c for c in _PROXY_HONEYPOT}
+        for fut in as_completed(futs):
+            if cancel.is_set():
+                break
+            try:
+                if fut.result().get("verdict") == "ok":
+                    opened.append(futs[fut])
+            except Exception:
+                continue
+    if len(opened) >= 2:            # два эталонно-заблокированных открылись → прокси не РФ
+        return ("⚠️ Прокси НЕ похож на настоящую РФ-точку: заведомо заблокированные в РФ сайты "
+                "открылись через него (" + ", ".join(sorted(opened)) + "). Значит он не за ТСПУ — "
+                "зелёным вердиктам тут верить нельзя. Нужен реальный мобильный РФ-прокси.")
+    return ""
+
+
+def _run_honeypot(job, cfg):
+    try:
+        warn = _proxy_rf_warn(cfg, job["cancel"])
+    except Exception:
+        warn = ""
+    if warn:
+        with job["lock"]:
+            job["proxy_warn"] = warn
+
+
+def _aggregate_passes(rows):
+    """Свести N прогонов одного домена в одну строку: вердикт по большинству + «блок X/N»."""
+    n = len(rows)
+    blocked = sum(1 for r in rows if r["verdict"] in _BLOCKED_V)
+
+    def most_common(pool):
+        best, bestc = rows[-1]["verdict"], -1
+        for v in set(pool):
+            c = pool.count(v)
+            if c > bestc:
+                best, bestc = v, c
+        return best
+
+    if blocked * 2 >= n and blocked > 0:        # половина и более — показываем как блок
+        top = most_common([r["verdict"] for r in rows if r["verdict"] in _BLOCKED_V])
+    else:
+        top = most_common([r["verdict"] for r in rows])
+    rep = next((r for r in rows if r["verdict"] == top), rows[-1])
+    out = dict(rep)
+    out["stab"] = f"{blocked}/{n}"
+    bnote = rep.get("note", "")
+    if blocked == 0:
+        pref = f"за {n} прогон(ов) ни разу не заблокирован"
+    elif blocked == n:
+        pref = f"заблокирован во ВСЕХ {n} прогонах — твёрдый бан"
+    else:
+        pref = f"заблокирован {blocked} из {n} — НЕСТАБИЛЬНО (вероятностный ТСПУ или слабый прокси)"
+    out["note"] = pref + (" · " + bnote if bnote else "")
+    return out
+
+
 def check_block(domain, cfg, cancel):
     """Диспетчер: прокси/локально + опц. проверка реестра РКН. Вердикт: ok/dns/ip/sni/page/dead/odd."""
     host = url_host(domain) or clean_host(domain)
@@ -1498,12 +1565,24 @@ def check_block(domain, cfg, cancel):
         base = {"domain": domain, "host": host, "sys_ip": "", "global_ip": "",
                 "verdict": "bad", "note": "плохой домен"}
     elif cfg.get("proxy"):
-        base = _block_via_proxy(domain, host, cfg)
+        passes = cfg.get("passes", 1)
+        if passes > 1:
+            rows = []
+            for _ in range(passes):
+                if cancel.is_set():
+                    break
+                rows.append(_block_via_proxy(domain, host, cfg))
+            base = _aggregate_passes(rows) if rows else {
+                "domain": domain, "host": host, "sys_ip": "", "global_ip": "",
+                "verdict": "cancel", "note": "отменено"}
+        else:
+            base = _block_via_proxy(domain, host, cfg)
         _annotate_base(base, host, cfg, cancel)
     else:
         base = _check_block_local(domain, host, cfg, cancel)
     base.setdefault("registry", "")
     base.setdefault("base", "")
+    base.setdefault("stab", "")
     if cfg.get("registry") and base["verdict"] not in ("cancel", "bad") and not cancel.is_set():
         base["registry"] = _rkn_registry(host, cfg)
     return base
@@ -1512,6 +1591,8 @@ def check_block(domain, cfg, cancel):
 
 def run_block(job_id, cfg, domains):
     job = BLOCKJOBS[job_id]
+    if cfg.get("proxy"):                 # ханипот-проверка прокси в фоне, не тормозит прогон
+        Thread(target=_run_honeypot, args=(job, cfg), daemon=True).start()
     try:
         with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
             futs = {ex.submit(check_block, d, cfg, job["cancel"]): d for d in domains}
@@ -2714,12 +2795,12 @@ def api_block_run():
         proxy = "http://" + proxy
     cfg = {"ua": _UA["desktop"], "timeout": clamp(data.get("timeout"), 3, 60, 12),
            "workers": clamp(data.get("workers"), 1, 20, 8), "proxy": proxy,
-           "registry": bool(data.get("registry"))}
+           "registry": bool(data.get("registry")), "passes": clamp(data.get("passes"), 1, 5, 1)}
     job_id = uuid.uuid4().hex
     with BLOCK_LOCK:
         BLOCKJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
                              "done": 0, "rows": [], "lock": Lock(), "cancel": Event(),
-                             "started_at": time.time(), "fatal": None}
+                             "started_at": time.time(), "fatal": None, "proxy_warn": ""}
         ACTIVE_BLOCK["id"] = job_id
     Thread(target=run_block, args=(job_id, cfg, domains), daemon=True).start()
     return jsonify({"job_id": job_id, "total": len(domains)})
@@ -2736,7 +2817,8 @@ def api_block_status(job_id):
         for r in rows:
             counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
         return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
-                        "counts": counts, "rows": rows, "fatal": job.get("fatal")})
+                        "counts": counts, "rows": rows, "fatal": job.get("fatal"),
+                        "proxy_warn": job.get("proxy_warn", "")})
 
 
 @app.route("/api/block/cancel/<job_id>", methods=["POST"])
@@ -2759,12 +2841,13 @@ def api_block_download(job_id):
           "page": "страница-заглушка", "dead": "не резолвится", "odd": "неясно",
           "bad": "плохой домен", "cancel": "отменено"}
     _B = {"alive": "жив", "dead": "мёртв"}
-    headers = ["домен", "вердикт", "база (прямой)", "IP (ваш DNS)", "IP (глобально)",
+    headers = ["домен", "вердикт", "блок X/N", "база (прямой)", "IP (ваш DNS)", "IP (глобально)",
                "реестр РКН", "примечание"]
 
     def cells(r):
-        return [r["domain"], _V.get(r["verdict"], r["verdict"]), _B.get(r.get("base", ""), ""),
-                r["sys_ip"], r["global_ip"], r.get("registry", ""), r["note"]]
+        return [r["domain"], _V.get(r["verdict"], r["verdict"]), r.get("stab", ""),
+                _B.get(r.get("base", ""), ""), r["sys_ip"], r["global_ip"],
+                r.get("registry", ""), r["note"]]
 
     fmt = request.args.get("fmt", "csv")
     if fmt == "xlsx":

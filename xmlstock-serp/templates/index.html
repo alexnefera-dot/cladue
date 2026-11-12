@@ -883,7 +883,9 @@
       <div class="grid g4" style="margin-top:12px">
         <div><label>Таймаут, сек</label><input id="bk_timeout" type="number" value="12" min="3" max="60"></div>
         <div><label>Параллельно</label><input id="bk_workers" type="number" value="8" min="1" max="20"></div>
+        <div><label>Прогонов (×раз)</label><input id="bk_passes" type="number" value="1" min="1" max="5"></div>
       </div>
+      <div class="hint">Прогонов &gt;1 — прогонит каждый домен несколько раз и покажет «блок X/N»: твёрдый бан (N/N) отделится от флапающих (ТСПУ режет не всегда / слабый прокси). Дольше, но надёжнее.</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:12px 0 0;font-size:14px;color:var(--txt)">
         <input type="checkbox" id="bk_registry" style="width:auto"> Сверять с реестром РКН — качает список antizapret (напрямую, 1 раз в сутки, ~2–3 МБ) и проверяет локально; колонка «Реестр РКН»
       </label>
@@ -894,6 +896,7 @@
     </div>
 
     <div class="card hidden" id="bk_panel">
+      <div id="bk_pxwarn" class="hidden" style="margin:0 0 14px;padding:11px 14px;border:1px solid var(--warn);border-radius:8px;background:rgba(240,160,0,.10);color:var(--warn);font-weight:600;font-size:14px"></div>
       <div class="row" style="justify-content:space-between">
         <div class="stat" style="margin:0">
           <div><span class="muted">Проверено</span><b id="bk_done">0 / 0</b></div>
@@ -1887,9 +1890,10 @@ function bkRender(){
   const rows = bkFilter ? bkRows.filter(r=>(BK_V[r.verdict]||{}).g===bkFilter) : bkRows;
   $("bk_tbody").innerHTML = rows.map(r=>{
     const v=BK_V[r.verdict]||{t:r.verdict,c:""};
+    const stab = r.stab ? ` <span class="muted" style="font-weight:600">${esc(r.stab)}</span>` : "";
     const bs = r.base==="alive" ? '<b class="p-top">🟢 жив</b>' : r.base==="dead" ? '<b class="miss">⚫ мёртв</b>' : '<span class="muted">—</span>';
     const reg = bkReg ? `<td>${r.registry&&r.registry.indexOf("реестре")>-1&&r.registry.indexOf("не")===-1?'<b class="p-no">'+esc(r.registry)+'</b>':esc(r.registry||"—")}</td>` : "";
-    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b></td><td>${bs}</td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td>${reg}<td>${esc(r.note||"")}</td></tr>`;
+    return `<tr><td>${esc(r.domain)}</td><td><b class="${v.c}">${v.t}</b>${stab}</td><td>${bs}</td><td class="muted">${esc(r.sys_ip||"—")}</td><td class="muted">${esc(r.global_ip||"—")}</td>${reg}<td>${esc(r.note||"")}</td></tr>`;
   }).join("") || `<tr><td colspan="${bkReg?7:6}" class="miss">Нет доменов под фильтр.</td></tr>`;
 }
 document.querySelectorAll(".bkf").forEach(b=> b.onclick=()=>{ document.querySelectorAll(".bkf").forEach(x=>x.classList.remove("active")); b.classList.add("active"); bkFilter=b.dataset.f; bkRender(); });
@@ -1899,11 +1903,12 @@ $("bk_go").onclick = async ()=>{
   $("bk_go").disabled=true;
   bkReg=$("bk_registry").checked; $("bk_th_reg").classList.toggle("hidden", !bkReg);
   $("bk_panel").classList.remove("hidden"); $("bk_tbody").innerHTML=""; $("bk_err").textContent="";
+  $("bk_pxwarn").classList.add("hidden"); $("bk_pxwarn").textContent="";
   ["bk_ok","bk_blocked","bk_dead"].forEach(id=>$(id).textContent="0"); $("bk_done").textContent="0 / 0"; $("bk_barFill").style.width="0%";
   $("bk_dlXlsx").classList.add("hidden"); $("bk_dlCsv").classList.add("hidden"); $("bk_stop").classList.remove("hidden");
   $("bk_panel").scrollIntoView({behavior:"smooth"});
   try{
-    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value,proxy:$("bk_proxy").value,registry:bkReg})});
+    const r=await fetch("/api/block/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({domains:$("bk_domains").value,timeout:$("bk_timeout").value,workers:$("bk_workers").value,proxy:$("bk_proxy").value,registry:bkReg,passes:$("bk_passes").value})});
     const d=await r.json();
     if(!r.ok){ showErr(d.error||"Ошибка"); $("bk_go").disabled=false; $("bk_stop").classList.add("hidden"); return; }
     bkJob=d.job_id; bkPoll=setInterval(bkRefresh,1000); bkRefresh();
@@ -1918,6 +1923,7 @@ async function bkRefresh(){
   const c=d.counts||{};
   const blocked=(c.dns||0)+(c.ip||0)+(c.sni||0)+(c.page||0);
   $("bk_ok").textContent=c.ok||0; $("bk_blocked").textContent=blocked; $("bk_dead").textContent=c.dead||0;
+  if(d.proxy_warn){ $("bk_pxwarn").textContent=d.proxy_warn; $("bk_pxwarn").classList.remove("hidden"); }
   bkRows=d.rows||[]; bkRender();
   if(d.status!=="running"){
     clearInterval(bkPoll); bkPoll=null; $("bk_go").disabled=false; $("bk_stop").classList.add("hidden");
