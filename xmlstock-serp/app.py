@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "база-и-прокси"
+APP_BUILD = "строгий-вердикт"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1257,16 +1257,19 @@ def _block_via_proxy(domain, host, cfg):
     row["global_ip"] = doh[0] if doh else ""
     proxies = {"http": cfg["proxy"], "https": cfg["proxy"]}
     ssl_reset = timed_out = proxy_err = False
+    http_fail = None                      # (код, схема) ответа 4xx/5xx — НЕ чистый доступ
     for scheme in ("https://", "http://"):
         try:
             r = requests.get(scheme + host, headers={"User-Agent": cfg["ua"]},
                              timeout=cfg["timeout"], allow_redirects=True, verify=False,
                              stream=True, proxies=proxies)
         except requests.exceptions.SSLError:
-            ssl_reset = True              # TLS рвётся — вероятно DPI по SNI
+            if scheme == "https://":
+                ssl_reset = True          # TLS рвётся на https — вероятно DPI по SNI
             continue
         except requests.exceptions.Timeout:
-            timed_out = True              # соединение висит (тихий дроп DPI) или медленный прокси
+            if scheme == "https://":
+                timed_out = True          # https висит (тихий дроп DPI) или медленный прокси
             continue
         except requests.exceptions.ProxyError:
             proxy_err = True              # прокси не смог достучаться (tunnel failed) — но, может, виноват домен
@@ -1292,21 +1295,33 @@ def _block_via_proxy(domain, host, cfg):
             except Exception:
                 pass
         text = buf.decode("utf-8", "ignore").lower()
+        code = r.status_code
         if any(m in text for m in _BLOCKPAGE_MARKERS):
             return {**row, "verdict": "page",
-                    "note": f"через прокси открылась заглушка «доступ ограничен» (HTTP {r.status_code})"}
-        return {**row, "verdict": "ok",
-                "note": f"через прокси доступен (HTTP {r.status_code}, {scheme[:-3]})"}
-    # домен не открылся. Сперва убедимся, что виноват НЕ прокси.
+                    "note": f"через прокси открылась заглушка «доступ ограничен» (HTTP {code})"}
+        # «доступен» — только реальный ответ 2xx/3xx. И если https срезали DPI,
+        # ответ по голому http (даже 200) НЕ считаем доступом: юзер ходит по https.
+        if 200 <= code < 400 and (scheme == "https://" or not (ssl_reset or timed_out)):
+            return {**row, "verdict": "ok",
+                    "note": f"через прокси доступен (HTTP {code}, {scheme[:-3]})"}
+        if http_fail is None and not (200 <= code < 400):
+            http_fail = (code, scheme[:-3])      # 403/5xx — запомним, но это не доступ
+        continue
+    # домен нормально не открылся. Сперва убедимся, что виноват НЕ прокси.
     if not _proxy_control_ok(proxies, cfg):
         return {**row, "verdict": "odd",
                 "note": "прокси не тянет даже нейтральный сайт — смени прокси или подними таймаут"}
-    # прокси рабочий → дело в самом домене
+    # прокси рабочий → дело в самом домене/маршруте
     if ssl_reset:
-        return {**row, "verdict": "sni", "note": "TLS рвётся (сброс), прокси рабочий — DPI по SNI (ТСПУ)"}
+        return {**row, "verdict": "sni", "note": "TLS рвётся (сброс) на https, прокси рабочий — DPI по SNI (ТСПУ)"}
     if timed_out:
         return {**row, "verdict": "sni",
-                "note": "соединение к домену висит и отваливается по таймауту, прокси рабочий — тихий дроп DPI"}
+                "note": "https висит и отваливается по таймауту, прокси рабочий — тихий дроп DPI"}
+    if http_fail is not None:             # вернулся 403/5xx — не РФ-блок, но и не чистый доступ
+        code, sch = http_fail
+        return {**row, "verdict": "odd",
+                "note": f"через прокси вернулся HTTP {code} ({sch}) — не чистый доступ: вероятно "
+                        "Cloudflare режет IP прокси/просит капчу, проверь с другого прокси"}
     if not doh:
         return {**row, "verdict": "dead",
                 "note": "глобально не резолвится — домена нет/опечатка (прокси при этом рабочий)"}
