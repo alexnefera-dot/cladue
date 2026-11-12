@@ -217,6 +217,14 @@ final class PanelTest
         Assert::same($selected, $s1['stats']['new_domains'], 'все домены новые в первый раз');
         Assert::true(is_file($dir . '/runs/domains-base.txt'), 'база доменов создана');
 
+        // СТРАНИЦЫ ПРОШЛОГО СБОРА, которые должен пережить пустой пересбор: новый сбор стирает их
+        // только тогда, когда новый список и правда набрался. Иначе таблица остаётся прошлая, а файлы
+        // под ней уже стёрты — на реальном прогоне это дало 235 строк «нет файла на диске».
+        mkdir($runDir . '/pages/9-стр/okna-moskva.ru', 0777, true);
+        file_put_contents($runDir . '/pages/9-стр/okna-moskva.ru/main.html', '<html>страница</html>');
+        mkdir($runDir . '/content/9-стр/okna-moskva.ru', 0777, true);
+        file_put_contents($runDir . '/content/9-стр/okna-moskva.ru/main.html', '<p>статья</p>');
+
         // Повторный сбор с теми же запросами: все домены уже в базе — новых нет
         file_put_contents($runDir . '/settings.json', $settings);
         $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
@@ -232,6 +240,10 @@ final class PanelTest
         Assert::same($selected, count($s2['sites']), 'таблица в статусе — прошлый список');
         Assert::contains('прошлый список', $s2['message']);
         Assert::true(($s2['stats']['cache_hits'] ?? 0) > 0 && ($s2['stats']['cache_misses'] ?? 0) === 0, 'повтор тех же запросов — ответы из кэша, к источнику не обращались');
+        clearstatcache();
+        Assert::true(is_file($runDir . '/pages/9-стр/okna-moskva.ru/main.html'),
+            'пустой сбор оставил страницы прошлого — иначе прошлая таблица осталась бы без файлов');
+        Assert::true(is_file($runDir . '/content/9-стр/okna-moskva.ru/main.html'), 'и очищенный контент тоже');
 
         // «Свежая выдача» + без пропуска известных доменов: ответы получены заново, сайты отобраны снова.
         file_put_contents($runDir . '/settings.json', json_encode(array_merge((array) json_decode($settings, true), ['no_cache' => true, 'skip_known' => false])));
@@ -241,6 +253,10 @@ final class PanelTest
         Assert::same('done', $s3['state']);
         Assert::true(($s3['stats']['cache_misses'] ?? 0) > 0 && ($s3['stats']['cache_hits'] ?? 0) === 0, 'со «свежей выдачей» кэш не используется');
         Assert::true($s3['stats']['sites_selected'] > 0, 'без пропуска известных доменов сайты отобраны снова');
+        // А этот сбор список набрал — значит он и есть новый, и страницы прошлого списка уходят.
+        clearstatcache();
+        Assert::false(is_file($runDir . '/pages/9-стр/okna-moskva.ru/main.html'),
+            'сбор, который отобрал новый список, начинает с чистого листа');
     }
 
     public function testResumeCollectContinuesQueueAndMergesTable(): void

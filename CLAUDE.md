@@ -198,7 +198,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `PanelTest::testXmlstockLiveModeUsesLiveEndpointAndPaginatesByTen`.
 - XML response: `yandexsearch/response/results/grouping/group/doc/{url,domain,title,headline,passages/passage}`;
   `<hlword>` tags are flattened; `response/error@code` — 15 = no results (not an error),
-  55 = rate limit (retry), 32/33/42/43/44/48 = fatal.
+  20 and 55 = transient, RETRY, 32/33/42/43/44/48 = fatal. `ApiException::looksTransient()` also
+  treats any message that ASKS to repeat («повторите», «попробуйте позже», «try again») as retryable
+  whatever its code: XMLStock numbers its own failures differently but words the request the same way.
 - Live SERP: `GET {live.domain}/search/?text=…&lr=…&p=…`; `HtmlResponseParser` looks for `.serp-item`
   elements, `a.OrganicTitle-Link` (fallback: first external link, `/clck/` links are unwrapped),
   `.OrganicTextContentSpan`, skips ads (`serp-adv-item`, yabs links, «Реклама» label) and detects
@@ -1845,6 +1847,28 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `PanelTest::testResumeCollectContinuesQueueAndMergesTable` (asserts both directions: a fresh collect
   removes the old `pages`/`content`/`content.zip`, a resume keeps the previous part),
   `testRedownloadClearsPreviousPages` and `testCleanStageRunsInBackgroundForKeptSitesOnly`.
+- TWO FAILURES FROM ONE REAL COLLECT (1.55.1), both from the user's job log — a 1552-query run that
+  died on query 17 and left a table of 307 problem sites.
+  (1) THE SOURCE ASKED US TO REPEAT AND WE QUIT. XMLStock answered `error code="20"` — «Не удалось
+  получить данные. Повторите запрос еще раз» — and `fromYandexCode()` marked only 55 retryable, so the
+  query failed on its FIRST attempt, `Runner`'s `search.max_consecutive_errors` (5) counted five of
+  them in a row and stopped the whole run. The retry machinery was there and simply never entered:
+  `api.retries` 3 with 1/2/4 s backoff. Code 20 and the «повторите» wording are retryable now, so a
+  flaky source costs seconds instead of 1535 un-run queries. The abort message also names the way back
+  («Пройдено N из M … кнопка «Продолжить сбор» возьмёт список с этого места»), because the queue was
+  always saved and the log did not say so.
+  (2) THE WIPE RAN BEFORE WE KNEW THERE WAS A NEW LIST. `wipeRunOutput()` fired at the START of a fresh
+  collect, and when that collect selected NOTHING (every domain `seen_before`, or the source died as in
+  (1)) the previous `sites.json` was deliberately kept — pointing at pages that had just been deleted.
+  Hence «нет файла на диске — 235» and a content archive gone for nothing. The wipe (and
+  `RemovedSites::clear()` for a fresh list) moved into the `$onSelected` hook, which `Runner` calls
+  once the selection is known and BEFORE the preview visits write anything: a collect that selected
+  something still starts from a clean disk, a collect that selected nothing leaves the previous result
+  alone. `$resetSites` on a resume still clears the removed set up front — there is no wipe on that path.
+  Covered by `XmlStockFetcherTest::testTransientErrorIsRetriedInsteadOfKillingTheRun` (code 20, an
+  unknown code whose text asks to repeat, and a 102 that must NOT be retried) and
+  `PanelTest::testLedgerSkipsAlreadyCollectedDomains` (pages and content written before an empty
+  re-collect survive it, and the next collect that does select a list removes them).
 - `Support\QueryDupes` finds queries whose SERP is the same SET of sites
  (registrable domains, `www` folded,
   positions ignored): `find(rows, queries)` groups queries by the sorted domain set, keeps the first query of

@@ -1043,17 +1043,8 @@ while (true) {
                 $queries = $listed;
             }
             $queueOffset = $queue['done'];
-            if (!$resume || $resetSites) {
-                RemovedSites::clear($runDir); // новый список (или продолжение с чистой таблицей): прежние удаления неактуальны
-            }
-            if (!$resume) {
-                // НОВЫЙ сбор — чистый лист: прошлые скачанные страницы и очищенный контент относятся к
-                // прошлому списку сайтов, их архив уже скачан. Иначе после очистки новый контент ложился
-                // к старому, и архив приходил со всеми прежними сайтами. «Продолжить сбор» это не трогает.
-                $wiped = wipeRunOutput($runDir);
-                if ($wiped > 0) {
-                    $logger->info(sprintf('Новый сбор: прежние страницы и контент удалены (%d файлов)', $wiped));
-                }
+            if ($resume && $resetSites) {
+                RemovedSites::clear($runDir); // продолжение с чистой таблицей: прежние удаления неактуальны
             }
             $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
             $errors = $config->validate(true);
@@ -1079,6 +1070,18 @@ while (true) {
             // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
             $historyId = '';
             $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownBases): void {
+                // НОВЫЙ сбор — чистый лист: прошлые страницы и контент относятся к прошлому списку
+                // сайтов. Но чистим ТОЛЬКО когда новый список и правда набрался: сбор, который ничего
+                // не отобрал (всё уже в базе пересечений или источник отвалился), оставляет прошлую
+                // таблицу — и если страницы уже стёрты, в ней 235 строк «нет файла на диске», а архив
+                // контента пропал ни за что. Здесь отбор уже известен, а скриншоты ещё не начались.
+                if (!$resume && $sites !== []) {
+                    RemovedSites::clear($runDir); // новый список — прежние удаления неактуальны
+                    $wiped = wipeRunOutput($runDir);
+                    if ($wiped > 0) {
+                        $logger->info(sprintf('Новый сбор: прежние страницы и контент удалены (%d файлов)', $wiped));
+                    }
+                }
                 $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownBases);
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);

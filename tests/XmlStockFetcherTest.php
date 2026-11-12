@@ -22,6 +22,12 @@ final class XmlStockFetcherTest
         ], $extra));
     }
 
+    /** Конфиг с повторами: по умолчанию в тестах их 0, а здесь проверяется именно повтор. */
+    private function config2(): Config
+    {
+        return $this->config(['api' => ['retries' => 2, 'retry_delay_ms' => 0]]);
+    }
+
     private function logger(): Logger
     {
         return new Logger(Logger::QUIET, fopen('php://memory', 'w+'));
@@ -119,6 +125,41 @@ final class XmlStockFetcherTest
         Assert::false($e->isRetryable());
         Assert::same(-34, $e->getYandexCode());
         Assert::same(1, count($http->calls), 'ошибка доступа не повторяется');
+    }
+
+    public function testTransientErrorIsRetriedInsteadOfKillingTheRun(): void
+    {
+        // Ошибка 20 — «Не удалось получить данные. Повторите запрос еще раз»: источник сам просит
+        // повторить. Пока она считалась обычной, запрос падал с первой попытки, и пятый подряд
+        // останавливал весь сбор — на реальном прогоне на 17-м запросе из 1552.
+        $fail = '<?xml version="1.0"?><yandexsearch version="1.0"><response><error code="20">'
+            . 'Не удалось получить данные. Повторите запрос еще раз</error></response></yandexsearch>';
+        $good = (string) file_get_contents(TESTS_ROOT . '/fixtures/response.xml');
+        $http = new StubHttpClient([new HttpResponse(200, $fail), new HttpResponse(200, $good)]);
+        $fetcher = new XmlStockFetcher($this->config2(), $http, new XmlResponseParser(), $this->logger());
+
+        $xml = $fetcher->fetch('окна', 0);
+
+        Assert::contains('yandexsearch', $xml, 'со второй попытки ответ получен');
+        Assert::same(2, count($http->calls), 'запрос повторён, а не брошен');
+
+        // И то же самое, когда источник нумерует сбой по-своему, но просит повторить словами.
+        $other = '<?xml version="1.0"?><yandexsearch version="1.0"><response><error code="71">'
+            . 'Сервис временно недоступен, попробуйте позже</error></response></yandexsearch>';
+        $http = new StubHttpClient([new HttpResponse(200, $other), new HttpResponse(200, $good)]);
+        $fetcher = new XmlStockFetcher($this->config2(), $http, new XmlResponseParser(), $this->logger());
+        Assert::contains('yandexsearch', $fetcher->fetch('окна', 0));
+        Assert::same(2, count($http->calls), 'просьба повторить важнее номера ошибки');
+
+        // А ошибка в самом запросе повторов не стоит: повторять её бессмысленно.
+        $bad = '<?xml version="1.0"?><yandexsearch version="1.0"><response><error code="102">'
+            . 'Пустой поисковый запрос</error></response></yandexsearch>';
+        $http = new StubHttpClient([new HttpResponse(200, $bad)]);
+        $fetcher = new XmlStockFetcher($this->config2(), $http, new XmlResponseParser(), $this->logger());
+        /** @var ApiException $e */
+        $e = Assert::throws(ApiException::class, static fn () => $fetcher->fetch('q', 0), '102');
+        Assert::false($e->isRetryable());
+        Assert::same(1, count($http->calls));
     }
 
     public function testConfigRequiresCredentials(): void

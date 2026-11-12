@@ -177,7 +177,15 @@ final class Runner
             if ($failed) {
                 $consecutiveErrors++;
                 if ($maxErrors > 0 && $consecutiveErrors >= $maxErrors && !$result->aborted) {
-                    $this->log->error(sprintf('%d запросов подряд завершились ошибкой — работа остановлена.', $consecutiveErrors));
+                    // Пройденные запросы уже в очереди, и список не потерян — говорим это сразу,
+                    // иначе остановка на 17-м запросе из 1552 выглядит как потеря всей работы.
+                    $this->log->error(sprintf(
+                        '%d запросов подряд завершились ошибкой — работа остановлена. Пройдено %d из %d,'
+                        . ' остальное не потеряно: кнопка «Продолжить сбор» возьмёт список с этого места.',
+                        $consecutiveErrors,
+                        $result->processed,
+                        count($queries),
+                    ));
                     $result->aborted = true;
                     break;
                 }
