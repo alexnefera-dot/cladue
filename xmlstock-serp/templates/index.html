@@ -897,6 +897,7 @@
 
     <div class="card hidden" id="bk_panel">
       <div id="bk_pxwarn" class="hidden" style="margin:0 0 14px;padding:11px 14px;border:1px solid var(--warn);border-radius:8px;background:rgba(240,160,0,.10);color:var(--warn);font-weight:600;font-size:14px"></div>
+      <div id="bk_changes" class="hidden" style="margin:0 0 14px;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(127,127,127,.06);font-size:14px"></div>
       <div class="row" style="justify-content:space-between">
         <div class="stat" style="margin:0">
           <div><span class="muted">Проверено</span><b id="bk_done">0 / 0</b></div>
@@ -1886,6 +1887,20 @@ $("bk_domains").addEventListener("input", ()=>{ $("bk_count").textContent=lines(
 $("bk_proxy").addEventListener("input", ()=>{ try{ localStorage.setItem("xmlstock_block_proxy",$("bk_proxy").value); }catch(e){} });
 $("bk_count").textContent=lines("bk_domains")+" стр.";
 const BK_V={ok:{t:"🟢 доступен",c:"p-top",g:"ok"},dns:{t:"🔴 DNS-подмена",c:"p-no",g:"blocked"},ip:{t:"🔴 IP-блок",c:"p-no",g:"blocked"},sni:{t:"🔴 SNI-DPI",c:"p-no",g:"blocked"},page:{t:"🔴 заглушка",c:"p-no",g:"blocked"},dead:{t:"⚫ нет домена",c:"miss",g:"dead"},odd:{t:"🟡 неясно",c:"p-mid",g:"odd"},bad:{t:"плохой домен",c:"p-no",g:"odd"},cancel:{t:"отменено",c:"miss",g:"odd"}};
+function bkRenderChanges(ch){
+  const box=$("bk_changes"); if(!ch){ box.classList.add("hidden"); return; }
+  const esc2=s=>esc(s||"");
+  const d=ch.prev_ts?new Date(ch.prev_ts*1000):null;
+  const when=d?` (с прошлого прогона ${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")})`:"";
+  const line=it=>{const wr=it.was_ratio?` ${it.was_ratio}`:"", nr=it.now_ratio?` ${it.now_ratio}`:""; return `<div style="margin:2px 0">${esc2(it.domain)} <span class="muted">(${esc2(it.was)}${wr} → ${esc2(it.now)}${nr})</span></div>`;};
+  if(ch.first_run){ box.innerHTML=`<b>Первый прогон</b> — сравнивать не с чем, сохранил как базу. Со следующего пересъёма буду показывать изменения.`; box.classList.remove("hidden"); return; }
+  const parts=[];
+  if(ch.banned&&ch.banned.length) parts.push(`<div style="margin-bottom:8px"><b class="p-no">🔴 Новые баны — ${ch.banned.length}</b> (были рабочими):${ch.banned.map(line).join("")}</div>`);
+  if(ch.working&&ch.working.length) parts.push(`<div style="margin-bottom:8px"><b class="p-top">🟢 Выпали в рабочие — ${ch.working.length}</b> (были забанены):${ch.working.map(line).join("")}</div>`);
+  if(ch.died&&ch.died.length) parts.push(`<div style="margin-bottom:8px"><b class="miss">⚫ Умерли — ${ch.died.length}</b> (домена больше нет):${ch.died.map(line).join("")}</div>`);
+  box.innerHTML = parts.length ? `<div style="margin-bottom:6px"><b>Изменения${when}</b></div>`+parts.join("") : `<b>Изменений нет${when}</b> — состав тот же.`;
+  box.classList.remove("hidden");
+}
 function bkRender(){
   const rows = bkFilter ? bkRows.filter(r=>(BK_V[r.verdict]||{}).g===bkFilter) : bkRows;
   $("bk_tbody").innerHTML = rows.map(r=>{
@@ -1904,6 +1919,7 @@ $("bk_go").onclick = async ()=>{
   bkReg=$("bk_registry").checked; $("bk_th_reg").classList.toggle("hidden", !bkReg);
   $("bk_panel").classList.remove("hidden"); $("bk_tbody").innerHTML=""; $("bk_err").textContent="";
   $("bk_pxwarn").classList.add("hidden"); $("bk_pxwarn").textContent="";
+  $("bk_changes").classList.add("hidden"); $("bk_changes").innerHTML="";
   ["bk_ok","bk_blocked","bk_dead"].forEach(id=>$(id).textContent="0"); $("bk_done").textContent="0 / 0"; $("bk_barFill").style.width="0%";
   $("bk_dlXlsx").classList.add("hidden"); $("bk_dlCsv").classList.add("hidden"); $("bk_stop").classList.remove("hidden");
   $("bk_panel").scrollIntoView({behavior:"smooth"});
@@ -1928,6 +1944,7 @@ async function bkRefresh(){
   if(d.status!=="running"){
     clearInterval(bkPoll); bkPoll=null; $("bk_go").disabled=false; $("bk_stop").classList.add("hidden");
     if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.status==="done") bkRenderChanges(d.changes);
     if(bkRows.length){ $("bk_dlXlsx").classList.remove("hidden"); $("bk_dlCsv").classList.remove("hidden"); }
   }
 }

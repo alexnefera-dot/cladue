@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "ханипот-мультипрогон"
+APP_BUILD = "дифф-прогонов"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1589,6 +1589,62 @@ def check_block(domain, cfg, cancel):
 
 
 
+BLOCK_SNAP_FILE = os.path.join(OUTPUT_DIR, "block_snapshot.json")
+_SNAP_LOCK = Lock()
+
+
+def _block_status(verdict):
+    """Три состояния для сравнения прогонов (odd/bad/cancel — не сравниваем)."""
+    if verdict in _BLOCKED_V:
+        return "banned"
+    if verdict == "ok":
+        return "working"
+    if verdict == "dead":
+        return "dead"
+    return ""
+
+
+def _compute_changes(rows):
+    """Сравнить текущий прогон с прошлым снимком; вернуть изменения и обновить снимок.
+    Снимок на диске — переживает перезапуск. Сравнение по домену, статусу (бан/рабочий/мёртв)."""
+    with _SNAP_LOCK:
+        try:
+            with open(BLOCK_SNAP_FILE, encoding="utf-8") as f:
+                snap = json.load(f)
+        except Exception:
+            snap = {"ts": 0, "domains": {}}
+        prev = snap.get("domains", {}) if isinstance(snap, dict) else {}
+        prev_ts = snap.get("ts", 0) if isinstance(snap, dict) else 0
+        banned, working, died = [], [], []
+        merged = dict(prev)
+        for r in rows:
+            d = r.get("domain", "")
+            st = _block_status(r.get("verdict", ""))
+            if not st or not d:
+                continue                          # неинформативный вердикт — прошлый статус храним как есть
+            cur = {"status": st, "ratio": r.get("stab") or "", "ts": time.time()}
+            p = prev.get(d)
+            if p and p.get("status") and p["status"] != st:
+                item = {"domain": d, "was": p["status"], "now": st,
+                        "was_ratio": p.get("ratio", ""), "now_ratio": cur["ratio"]}
+                if st == "banned":
+                    banned.append(item)
+                elif st == "working":
+                    working.append(item)
+                elif st == "dead":
+                    died.append(item)
+            merged[d] = cur
+        try:
+            tmp = BLOCK_SNAP_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"ts": time.time(), "domains": merged}, f, ensure_ascii=False)
+            os.replace(tmp, BLOCK_SNAP_FILE)
+        except Exception:
+            pass
+        return {"first_run": not prev, "prev_ts": prev_ts,
+                "banned": banned, "working": working, "died": died}
+
+
 def run_block(job_id, cfg, domains):
     job = BLOCKJOBS[job_id]
     if cfg.get("proxy"):                 # ханипот-проверка прокси в фоне, не тормозит прогон
@@ -1609,6 +1665,13 @@ def run_block(job_id, cfg, domains):
         with job["lock"]:
             job["status"], job["fatal"] = "error", str(e)[:200]
         return
+    if not job["cancel"].is_set():                 # полный прогон → сравнить с прошлым и обновить снимок
+        try:
+            ch = _compute_changes(list(job["rows"]))
+            with job["lock"]:
+                job["changes"] = ch
+        except Exception:
+            pass
     with job["lock"]:
         job["status"] = "cancelled" if job["cancel"].is_set() else "done"
 
@@ -2800,7 +2863,8 @@ def api_block_run():
     with BLOCK_LOCK:
         BLOCKJOBS[job_id] = {"id": job_id, "status": "running", "total": len(domains),
                              "done": 0, "rows": [], "lock": Lock(), "cancel": Event(),
-                             "started_at": time.time(), "fatal": None, "proxy_warn": ""}
+                             "started_at": time.time(), "fatal": None, "proxy_warn": "",
+                             "changes": None}
         ACTIVE_BLOCK["id"] = job_id
     Thread(target=run_block, args=(job_id, cfg, domains), daemon=True).start()
     return jsonify({"job_id": job_id, "total": len(domains)})
@@ -2818,7 +2882,7 @@ def api_block_status(job_id):
             counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
         return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
                         "counts": counts, "rows": rows, "fatal": job.get("fatal"),
-                        "proxy_warn": job.get("proxy_warn", "")})
+                        "proxy_warn": job.get("proxy_warn", ""), "changes": job.get("changes")})
 
 
 @app.route("/api/block/cancel/<job_id>", methods=["POST"])
