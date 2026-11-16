@@ -935,6 +935,167 @@
    ]
   }
  ],
+ "okna": [
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "den": "2026-11-02",
+   "mest": 9,
+   "sovpalo": 6,
+   "smenilos": 3,
+   "raznyh": 12,
+   "oborot": 3
+  },
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "den": "2026-11-09",
+   "mest": 9,
+   "sovpalo": 4,
+   "smenilos": 5,
+   "raznyh": 16,
+   "oborot": 7
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "den": "2026-11-02",
+   "mest": 9,
+   "sovpalo": 6,
+   "smenilos": 3,
+   "raznyh": 12,
+   "oborot": 3
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "den": "2026-11-09",
+   "mest": 9,
+   "sovpalo": 3,
+   "smenilos": 6,
+   "raznyh": 18,
+   "oborot": 9
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "den": "2026-11-02",
+   "mest": 10,
+   "sovpalo": 7,
+   "smenilos": 3,
+   "raznyh": 13,
+   "oborot": 3
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "den": "2026-11-09",
+   "mest": 10,
+   "sovpalo": 8,
+   "smenilos": 2,
+   "raznyh": 12,
+   "oborot": 2
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "den": "2026-11-02",
+   "mest": 10,
+   "sovpalo": 7,
+   "smenilos": 3,
+   "raznyh": 16,
+   "oborot": 6
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "den": "2026-11-09",
+   "mest": 10,
+   "sovpalo": 3,
+   "smenilos": 7,
+   "raznyh": 18,
+   "oborot": 8
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "den": "2026-11-02",
+   "mest": 10,
+   "sovpalo": 7,
+   "smenilos": 3,
+   "raznyh": 13,
+   "oborot": 3
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "den": "2026-11-09",
+   "mest": 10,
+   "sovpalo": 6,
+   "smenilos": 4,
+   "raznyh": 15,
+   "oborot": 5
+  }
+ ],
+ "brend_okna": [
+  {
+   "brend": "Lilbet",
+   "den": "2026-11-02",
+   "pervyy": 18,
+   "posledniy": 18,
+   "sovpalo": 14,
+   "smenilos": 4,
+   "raznyh": 24
+  },
+  {
+   "brend": "Lilbet",
+   "den": "2026-11-09",
+   "pervyy": 14,
+   "posledniy": 16,
+   "sovpalo": 7,
+   "smenilos": 7,
+   "raznyh": 26
+  },
+  {
+   "brend": "Lilbet",
+   "den": "2026-11-02 → 2026-11-09",
+   "pervyy": 24,
+   "posledniy": 26,
+   "sovpalo": 13,
+   "smenilos": 11,
+   "raznyh": 37
+  },
+  {
+   "brend": "SpaceWin",
+   "den": "2026-11-02",
+   "pervyy": 16,
+   "posledniy": 17,
+   "sovpalo": 11,
+   "smenilos": 5,
+   "raznyh": 22
+  },
+  {
+   "brend": "SpaceWin",
+   "den": "2026-11-09",
+   "pervyy": 16,
+   "posledniy": 15,
+   "sovpalo": 10,
+   "smenilos": 6,
+   "raznyh": 22
+  },
+  {
+   "brend": "SpaceWin",
+   "den": "2026-11-02 → 2026-11-09",
+   "pervyy": 22,
+   "posledniy": 22,
+   "sovpalo": 10,
+   "smenilos": 12,
+   "raznyh": 34
+  }
+ ],
+ "sredn_mest": 9.6,
+ "sredn_smenilos": 3.9,
+ "sredn_raznyh": 14.5,
  "vozrasta": [
   {
    "imya": "ядро (в 90%+ снимков)",

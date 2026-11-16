@@ -1094,7 +1094,45 @@ if (y) {
 </section>
 
 <section>
-  <h2><span class="nomer">01</span>Что меняется за четыре часа</h2>
+  <h2><span class="nomer">01</span>Сколько сайтов сменилось — в штуках</h2>
+  <p class="vvod">Суток в данных нет: самое длинное непрерывное окно — восемь часов
+     (с 15:30 до 23:30), три среза. Ниже — первый и последний срез дня,
+     и сколько разных хостов прошло через выдачу за эти восемь часов.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Запрос</th><th class="num">День</th><th class="num">Мест в выдаче</th>
+        <th class="num">Совпало</th><th class="num">Сменилось</th>
+        <th class="num">Разных хостов за 8 часов</th></tr></thead>
+      <tbody>${y.okna.map(x => `<tr>
+        <td>${x.query}</td><td class="num">${x.den.slice(5)}</td>
+        <td class="num">${ch(x.mest)}</td><td class="num">${ch(x.sovpalo)}</td>
+        <td class="num"><b>${ch(x.smenilos)}</b></td>
+        <td class="num">${ch(x.raznyh)}</td></tr>`).join('')}
+        <tr style="background:var(--surface-2)"><td><b>В среднем на запрос</b></td><td></td>
+        <td class="num"><b>${y.sredn_mest.toLocaleString('ru-RU')}</b></td><td class="num">—</td>
+        <td class="num"><b>${y.sredn_smenilos.toLocaleString('ru-RU')}</b></td>
+        <td class="num"><b>${y.sredn_raznyh.toLocaleString('ru-RU')}</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="vvod" style="margin-top:12px">То же по бренду целиком — объединение всех его запросов:</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th class="num">Окно</th><th class="num">Было хостов</th>
+        <th class="num">Стало</th><th class="num">Совпало</th><th class="num">Сменилось</th>
+        <th class="num">Разных за окно</th></tr></thead>
+      <tbody>${y.brend_okna.map(x => `<tr${x.den.includes('→') ? ' style="background:var(--surface-2)"' : ''}>
+        <td>${x.brend}</td><td class="num" style="font-size:12px">${x.den.includes('→') ? 'неделя' : x.den.slice(5) + ', 8 часов'}</td>
+        <td class="num">${ch(x.pervyy)}</td><td class="num">${ch(x.posledniy)}</td>
+        <td class="num">${ch(x.sovpalo)}</td><td class="num"><b>${ch(x.smenilos)}</b></td>
+        <td class="num">${ch(x.raznyh)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Что меняется за четыре часа</h2>
   <p class="vvod">Каждая строка — пара соседних срезов одного запроса. «Было» — размер выдачи
      в первом срезе, «осталось» — сколько тех же хостов нашлось во втором.</p>
   <div class="karta tablica-obertka">
@@ -1114,7 +1152,7 @@ if (y) {
 </section>
 
 <section>
-  <h2><span class="nomer">02</span>Ядро выдачи почти пустое</h2>
+  <h2><span class="nomer">03</span>Ядро выдачи почти пустое</h2>
   <div class="dve">
     ${Object.entries(y.brendy).map(([b, g]) => `
     <div>
@@ -1129,7 +1167,7 @@ if (y) {
 </section>
 
 <section>
-  <h2><span class="nomer">03</span>Возраст домена решает, останется он или нет</h2>
+  <h2><span class="nomer">04</span>Возраст домена решает, останется он или нет</h2>
   <p class="vvod">Дней с регистрации домена (whois) на момент съёма — по трём группам устойчивости.</p>
   <div class="karta tablica-obertka">
     <table>
@@ -1147,7 +1185,7 @@ if (y) {
 </section>
 
 <section>
-  <h2><span class="nomer">04</span>Из чего состоит эта выдача</h2>
+  <h2><span class="nomer">05</span>Из чего состоит эта выдача</h2>
   ${polosy(y.tipy.map(x => ({imya: x.imya, n: x.n,
       dolya: Math.round(1000 * x.n / y.hostov) / 10})), {edinica: 'хостов'})}
   <p class="vvod" style="margin-top:10px">Телеграм здесь виден поимённо — в сводных выгрузках только хост:
@@ -1158,6 +1196,10 @@ if (y) {
 <div class="vyvod">
   <h3>Что из этого следует</h3>
   <ul>
+    <li><b>В штуках: за восемь часов в одном запросе меняется ${y.sredn_smenilos.toLocaleString('ru-RU')} сайта
+        из ${y.sredn_mest.toLocaleString('ru-RU')}</b>, а всего через выдачу за эти восемь часов проходит
+        ${y.sredn_raznyh.toLocaleString('ru-RU')} разных хостов — в полтора раза больше, чем в ней мест.
+        По бренду целиком за восемь часов сменяется 4–7 хостов из 14–18.</li>
     <li><b>Выдача бренда переписывается за часы, а не за дни.</b> За четыре часа держится
         ${pr(ch4.sr)} хостов, в худшем случае ${pr(ch4.min)} — то есть из девяти сайтов остаются два.
         За неделю ${pr(ned.sr)}.</li>

@@ -78,6 +78,38 @@ for q in zaprosy:
                      'uderzhanie': round(100.0 * len(A & B) / len(A), 1) if A else 0,
                      'ushli': sorted(A - B), 'prishli': sorted(B - A)})
 
+# окно 8 часов: первый и последний срез дня, и неделя
+okna = []
+po_dnyam = collections.defaultdict(lambda: collections.defaultdict(list))
+for x in sostav:
+    po_dnyam[x['query']][x['den']].append((x['ts'], set(x['hosty'])))
+for q in sorted(po_dnyam):
+    for den in sorted(po_dnyam[q]):
+        ser = sorted(po_dnyam[q][den])
+        A, B = ser[0][1], ser[-1][1]
+        vse = set().union(*[z[1] for z in ser])
+        okna.append({'query': q, 'brend': BRENDY.get(q, q), 'den': den, 'mest': len(A),
+                     'sovpalo': len(A & B), 'smenilos': len(A - B), 'raznyh': len(vse),
+                     'oborot': len(vse) - len(A)})
+
+po_brendu_dni = collections.defaultdict(lambda: collections.defaultdict(lambda: collections.defaultdict(set)))
+for x in sostav:
+    po_brendu_dni[x['brend']][x['den']][x['ts']] |= set(x['hosty'])
+brend_okna = []
+for b in sorted(po_brendu_dni):
+    for den in sorted(po_brendu_dni[b]):
+        ser = sorted(po_brendu_dni[b][den].items())
+        A, B = ser[0][1], ser[-1][1]
+        vse = set().union(*[z[1] for z in ser])
+        brend_okna.append({'brend': b, 'den': den, 'pervyy': len(A), 'posledniy': len(B),
+                           'sovpalo': len(A & B), 'smenilos': len(A - B), 'raznyh': len(vse)})
+    dni = sorted(po_brendu_dni[b])
+    p1 = set().union(*po_brendu_dni[b][dni[0]].values())
+    p2 = set().union(*po_brendu_dni[b][dni[-1]].values())
+    brend_okna.append({'brend': b, 'den': f'{dni[0]} → {dni[-1]}', 'pervyy': len(p1),
+                       'posledniy': len(p2), 'sovpalo': len(p1 & p2),
+                       'smenilos': len(p1 - p2), 'raznyh': len(p1 | p2)})
+
 # ядро и однодневки по бренду
 po_brendu = {}
 for b in sorted({x['brend'] for x in sostav}):
@@ -130,6 +162,10 @@ kanaly = sorted({g['url'] for h, g in vse_hosty.items() if h in ('t.me', 'telegr
 otchet = {
     'snimkov': len(tochki), 'tochki': tochki, 'zaprosov': len(zaprosy), 'zaprosy': zaprosy,
     'hostov': len(vse_hosty), 'brendy': po_brendu, 'pary': pary,
+    'okna': okna, 'brend_okna': brend_okna,
+    'sredn_mest': round(sum(x['mest'] for x in okna) / len(okna), 1),
+    'sredn_smenilos': round(sum(x['smenilos'] for x in okna) / len(okna), 1),
+    'sredn_raznyh': round(sum(x['raznyh'] for x in okna) / len(okna), 1),
     'vozrasta': vozrasta, 'tipy': [{'imya': k, 'n': v} for k, v in tipy.most_common()],
     'kanaly': kanaly,
 }
@@ -148,6 +184,19 @@ print(f'{"запрос":<18} {"от":<17} {"часов":>5} {"было":>5} {"о
 for x in pary:
     print(f'{x["query"]:<18} {x["ot"][5:16]:<17} {x["chasov"]:>5} {x["bylo"]:>5} {x["ostalos"]:>9} '
           f'{x["ushlo"]:>5} {x["prishlo"]:>7} {x["uderzhanie"]:>9}%')
+print()
+print('ОКНО 8 ЧАСОВ: сколько сайтов сменилось')
+for x in okna:
+    print(f'  {x["query"]:<18} {x["den"]} мест {x["mest"]:>3} совпало {x["sovpalo"]:>3} '
+          f'сменилось {x["smenilos"]:>3} разных за день {x["raznyh"]:>3}')
+print(f'  в среднем: мест {otchet_sredn_mest if False else round(sum(x["mest"] for x in okna)/len(okna),1)}, '
+      f'сменилось {round(sum(x["smenilos"] for x in okna)/len(okna),1)}, '
+      f'разных {round(sum(x["raznyh"] for x in okna)/len(okna),1)}')
+print()
+print('ПО БРЕНДУ ЦЕЛИКОМ')
+for x in brend_okna:
+    print(f'  {x["brend"]:<10} {x["den"]:<24} было {x["pervyy"]:>3} стало {x["posledniy"]:>3} '
+          f'совпало {x["sovpalo"]:>3} сменилось {x["smenilos"]:>3} разных {x["raznyh"]:>3}')
 print()
 print('ВОЗРАСТ ДОМЕНА И УСТОЙЧИВОСТЬ (дней с регистрации на момент съёма)')
 for x in vozrasta:
