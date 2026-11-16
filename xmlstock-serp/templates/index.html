@@ -457,7 +457,7 @@
       <label>Детали по сайтам</label>
       <div class="tbl-wrap">
         <table class="pos">
-          <thead><tr><th>Исходный хост</th><th>Редирект</th><th>Целевой домен</th><th>Финальный URL / ошибка</th><th>Код</th></tr></thead>
+          <thead><tr><th>Исходный хост</th><th>Редирект</th><th>Целевой домен</th><th>Цепочка редиректов (все хопы) / ошибка</th><th>Код</th></tr></thead>
           <tbody id="r_tbody"></tbody>
         </table>
       </div>
@@ -1342,9 +1342,17 @@ async function rRefresh(){
   if(s.errors) sh+=`<tr><td class="p-no">ошибки</td><td>${s.errors}</td><td class="p-no">${s.errors_percent}%</td><td></td></tr>`;
   $("r_sumbody").innerHTML=sh;
   $("r_tbody").innerHTML=(d.rows||[]).map(r=>{
-    const red=r.error? '<span class="p-no">ошибка</span>' : (r.redirected? '<span class="p-top">да</span>' : '<span class="miss">нет</span>');
+    const hc=r.hops_count||0;
+    const red=r.error? '<span class="p-no">ошибка</span>' : (r.redirected? `<span class="p-top">да</span>${hc>1?` <span class="muted">·${hc} хопа</span>`:""}` : '<span class="miss">нет</span>');
+    const hops=r.hops||[];
+    let chain;
+    if(r.error && hops.length<=1){ chain='<span class="p-no">'+esc(r.error)+'</span>'; }
+    else{
+      chain = hops.map((h,i)=> i===hops.length-1 ? '<b class="p-top">'+esc(h)+'</b>' : (i===0?'<span class="muted">'+esc(h)+'</span>':esc(h))).join(' <span class="muted">→</span> ');
+      if(r.error) chain += ' <span class="p-no">('+esc(r.error)+')</span>';
+    }
     return `<tr><td>${esc(r.source_host)}</td><td>${red}</td><td>${esc(r.final_domain||"")}</td>
-      <td class="seq" style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.error||r.final_url)}</td>
+      <td class="seq" style="max-width:560px;white-space:normal;word-break:break-word;line-height:1.5">${chain}</td>
       <td class="pill">${r.status||"—"}</td></tr>`;
   }).join("");
   if(d.status!=="running"){

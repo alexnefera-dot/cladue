@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "дифф-прогонов"
+APP_BUILD = "цепочка-редиректов"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -748,35 +748,57 @@ def resolve_redirect(url, cfg, cancel):
         headers["Referer"] = cfg["referer"]
     current = url if "://" in url else "http://" + url
     status, err = None, None
+    chain = []
+
+    def add(u, st):
+        if u and (not chain or chain[-1]["url"] != u):
+            chain.append({"url": u, "status": st})
+
     try:
-        for _ in range(4):  # до 4 клиентских хопов (meta/JS)
+        for _ in range(4):  # до 4 клиентских хопов (meta/JS); HTTP 3xx считает requests сам
             if cancel.is_set():
                 break
             r = requests.get(current, headers=headers, timeout=cfg["timeout"],
                              allow_redirects=True, verify=cfg["verify"])
+            for h in r.history:                 # промежуточные HTTP-хопы (3xx)
+                add(h.url, h.status_code)
             status = r.status_code
             final = r.url
             ctype = (r.headers.get("Content-Type") or "").lower()
             nxt = find_client_redirect(r.text, final) if "html" in ctype else None
             if nxt and url_host(nxt) and url_host(nxt) != url_host(final):
+                add(final, "meta/js")           # эта страница кинула клиентский редирект
                 current = nxt
                 continue
+            add(final, r.status_code)           # финал
             current = final
             break
     except requests.RequestException as e:
         err = str(e)[:200]
-    return {"final_url": current, "status": status, "error": err}
+        add(current, "ошибка")
+    return {"final_url": current, "status": status, "error": err, "chain": chain}
 
 
 def _redir_row(it, res):
     final_host = url_host(res["final_url"])
     final_dom = registrable_domain(final_host)
     src_dom = registrable_domain(it["host"])
+    chain = res.get("chain") or []
+    hops = []                                   # цепочка ХОСТОВ по порядку (промежуточные + финал)
+    for c in chain:
+        h = url_host(c.get("url", ""))
+        if h and (not hops or hops[-1] != h):
+            hops.append(h)
+    if it["host"] and (not hops or hops[0] != it["host"]):
+        hops = [it["host"]] + hops              # гарантируем исходный хост первым
+    if final_host and (not hops or hops[-1] != final_host):
+        hops.append(final_host)                 # и финальный последним
     return {
         "source_url": it["url"], "source_host": it["host"],
         "final_url": res["final_url"], "final_host": final_host,
         "final_domain": final_dom, "redirected": bool(final_dom and final_dom != src_dom),
         "status": res["status"], "error": res["error"],
+        "chain": chain, "hops": hops, "hops_count": max(0, len(hops) - 1),
     }
 
 
@@ -802,6 +824,18 @@ def _browser_resolve(ctx, url, cfg):
     """Открывает страницу в реальном браузере и ждёт смены домена (JS/таймер/клик)."""
     page = ctx.new_page()
     src = registrable_domain(url_host(url))
+    chain = []
+
+    def _on_nav(frame):
+        try:
+            if frame == page.main_frame:
+                u = frame.url
+                if u and u != "about:blank" and (not chain or chain[-1]["url"] != u):
+                    chain.append({"url": u, "status": "browser"})
+        except Exception:
+            pass
+
+    page.on("framenavigated", _on_nav)
     try:
         try:
             page.goto(url if "://" in url else "http://" + url,
@@ -820,9 +854,11 @@ def _browser_resolve(ctx, url, cfg):
             if _try_click(page):
                 page.wait_for_timeout(min(cfg["wait_ms"], 4000))
                 final = page.url
-        return {"final_url": final, "status": None, "error": None}
+        if final and (not chain or chain[-1]["url"] != final):
+            chain.append({"url": final, "status": "browser"})
+        return {"final_url": final, "status": None, "error": None, "chain": chain}
     except Exception as e:  # noqa: BLE001
-        return {"final_url": url, "status": None, "error": str(e)[:200]}
+        return {"final_url": url, "status": None, "error": str(e)[:200], "chain": chain}
     finally:
         try:
             page.close()
@@ -3650,10 +3686,13 @@ def api_redirects_download(job_id):
     with job["lock"]:
         rows = list(job["rows"])
         summary = redir_summary(rows)
-    dcols = ["source_host", "source_url", "redirected", "final_domain", "final_url", "status", "error"]
+    dcols = ["source_host", "source_url", "redirected", "hops", "chain", "final_domain",
+             "final_url", "status", "error"]
 
     def drow(r):
+        hops = r.get("hops") or []
         return [r["source_host"], r["source_url"], "да" if r["redirected"] else "нет",
+                r.get("hops_count", max(0, len(hops) - 1)), " -> ".join(hops),
                 r["final_domain"], r["final_url"], r["status"], r["error"] or ""]
 
     if fmt == "xlsx":
