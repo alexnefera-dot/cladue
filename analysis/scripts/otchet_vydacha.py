@@ -13,6 +13,7 @@ srav = json.load(open(sys.argv[4], encoding='utf-8')) if len(sys.argv) > 4 else 
 pod = json.load(open(sys.argv[5], encoding='utf-8')) if len(sys.argv) > 5 else None
 apk = json.load(open(sys.argv[6], encoding='utf-8')) if len(sys.argv) > 6 else None
 tlg = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else None
+prt = json.load(open(sys.argv[8], encoding='utf-8')) if len(sys.argv) > 8 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -126,6 +127,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t4" aria-controls="list4" aria-selected="false">Форматы проектов</button>
       <button role="tab" id="t5" aria-controls="list5" aria-selected="false">Каталоги APK</button>
       <button role="tab" id="t6" aria-controls="list6" aria-selected="false">Телеграм</button>
+      <button role="tab" id="t7" aria-controls="list7" aria-selected="false">Порталы и рейтинги</button>
     </div>
   </div>
 </header>
@@ -137,6 +139,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list4" role="tabpanel" aria-labelledby="t4" hidden></div>
   <div id="list5" role="tabpanel" aria-labelledby="t5" hidden></div>
   <div id="list6" role="tabpanel" aria-labelledby="t6" hidden></div>
+  <div id="list7" role="tabpanel" aria-labelledby="t7" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
@@ -780,6 +783,111 @@ if (g) document.getElementById('list6').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 7 — порталы и рейтинги */
+const q = D.prt;
+if (q) document.getElementById('list7').innerHTML = `
+<section>
+  <h2>Порталы и рейтинги казино</h2>
+  <div class="vyvod" style="border-left-color:var(--nash);margin-bottom:18px">
+    <h3>Чего в этих данных нет</h3>
+    <ul><li>У ${ch(q.obrezano_sajtov)} из ${ch(q.sajtov)} порталов список брендов в выгрузке обрезан:
+      видно 12 имён и счётчик «ещё N». Само число брендов точное, имена — нет,
+      поэтому таблицы «бренд → сколько порталов» здесь не будет. Вместо неё точный срез:
+      кто лидер выдачи каждого бренда.</li></ul>
+  </div>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${ch(q.sajtov)}</span><div class="pd">сайтов формата</div></div>
+    <div class="plitka"><span class="ch">${ch(q.strok)}</span><div class="pd">строк, ${pr(q.dolya_strok)} всей выдачи</div></div>
+    <div class="plitka"><span class="ch">${ch(q.top3)}</span><div class="pd">мест в топ-3, ${pr(q.dolya_top3)} всех</div></div>
+    <div class="plitka vydel"><span class="ch">${ch(q.max_ohvat)}</span><div class="pd">брендов у casino.ru — ${pr(100 * q.max_ohvat / q.brendov_vsego)} съёма</div></div>
+    <div class="plitka"><span class="ch">${q.na_brend}</span><div class="pd">портала на бренд в среднем</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Какой портал сколько забирает</h2>
+  <p class="vvod">Проценты строк и топ-3 — доля внутри формата. «Охват» — доля из ${ch(q.brendov_vsego)} брендов.
+     «Лучшая доля» — максимальная доля показов, которую портал держит в одном бренде, и где именно.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Сайт</th><th class="num">Брендов</th><th class="num">Охват</th>
+        <th class="num">Строк</th><th class="num">% строк</th><th class="num">Топ-3</th>
+        <th class="num">% топ-3</th><th class="num">Лучшая позиция</th>
+        <th class="num">Лучшая доля в бренде</th><th>Где</th></tr></thead>
+      <tbody>${q.sajty.map(x => `<tr>
+        <td class="num" style="font-size:12.5px">${x.imya}</td>
+        <td class="num">${ch(x.brendov)}</td><td class="num">${pr(x.ohvat)}</td>
+        <td class="num">${ch(x.strok)}</td><td class="num">${pr(x.dolya_strok)}</td>
+        <td class="num"><b>${ch(x.top3)}</b></td><td class="num">${pr(x.dolya_top3)}</td>
+        <td class="num">${x.poziciya || '—'}</td>
+        <td class="num">${pr(x.luchshaya_dolya)}</td>
+        <td style="font-size:12px;color:var(--ink-2)">${x.gde || '—'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Места в топ-3 внутри формата</h2>
+  ${polosy(q.sajty.filter(x => x.top3 > 0).map(x => ({imya: x.imya, n: x.top3, dolya: x.dolya_top3})),
+      {edinica: 'мест'})}
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Охват брендов</h2>
+  <p class="vvod">Доля брендов съёма, в чьей выдаче портал вообще встречается. Шкала 0–100%.</p>
+  ${polosy(q.sajty.filter(x => x.brendov >= 3).map(x => ({imya: x.imya, n: x.brendov, dolya: x.ohvat})),
+      {edinica: 'брендов', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Кто лидер выдачи у брендов</h2>
+  <p class="vvod">Точный срез по всем ${ch(q.brendov_vsego)} брендам: формат сайта, который держит
+     наибольшую долю показов бренда. Здесь имя лидера выгрузка отдаёт целиком, обрезки нет.</p>
+  ${polosy(q.lider_format.map(x => ({imya: x.imya, n: x.n, dolya: x.dolya,
+      nash: x.imya.startsWith('Порталы')})), {edinica: 'брендов'})}
+</section>
+
+<section>
+  <h2><span class="nomer">05</span>Семь брендов, где лидирует портал</h2>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th>Портал-лидер</th><th class="num">Его доля показов</th>
+        <th class="num">Позиция</th><th class="num">Всего сайтов у бренда</th></tr></thead>
+      <tbody>${q.portaly_lidiruyut.map(x => `<tr>
+        <td>${x.brend}</td><td class="num" style="font-size:12.5px">${x.sajt}</td>
+        <td class="num"><b>${pr(x.dolya)}</b></td><td class="num">${x.poziciya}</td>
+        <td class="num">${ch(x.vsego_sajtov)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Формат держится на одном сайте.</b> <span style="font-family:var(--mono)">casino.ru</span> — это
+        ${pr(q.sajty[0].dolya_strok)} показов и ${pr(q.sajty[0].dolya_top3)} мест в топ-3 всего формата,
+        при охвате ${ch(q.sajty[0].brendov)} брендов из ${ch(q.brendov_vsego)}. Убрать его — и формат ужимается вдвое.</li>
+    <li><b>Охват и места — разные вещи.</b> <span style="font-family:var(--mono)">igamingrus.com</span>
+        покрывает ${ch(q.sajty.find(x=>x.imya==='igamingrus.com').brendov)} брендов, а берёт
+        ${ch(q.sajty.find(x=>x.imya==='igamingrus.com').top3)} мест; <span style="font-family:var(--mono)">v24-zerkalo.info</span>
+        покрывает ${ch(q.sajty.find(x=>x.imya==='v24-zerkalo.info').brendov)}, а берёт
+        ${ch(q.sajty.find(x=>x.imya==='v24-zerkalo.info').top3)}. Узкий портал под одну группу брендов работает лучше широкого.</li>
+    <li><b>Треть формата не берёт ничего.</b> ${ch(q.sajtov - q.s_top3)} портала из ${ch(q.sajtov)} не имеют ни одного места
+        в тройке — показываются на четвёртых-десятых позициях.</li>
+    <li><b>Лидером выдачи портал бывает редко.</b> Всего в ${ch(q.portaly_lidiruyut.length)} брендах из ${ch(q.brendov_vsego)}
+        (${pr(100 * q.portaly_lidiruyut.length / q.brendov_vsego)}). Для сравнения: брендовые домены лидируют в
+        ${ch(q.lider_format.find(x=>x.imya.startsWith('Брендовые')).n)} брендах, доры — в
+        ${ch(q.lider_format.find(x=>x.imya.startsWith('Доры')).n)}, телеграм — в
+        ${ch(q.lider_format.find(x=>x.imya.startsWith('Телеграм')).n)}.</li>
+    <li><b>Потолок доли.</b> Максимум, что портал держит в одном бренде, —
+        ${pr(Math.max(...q.sajty.map(x => x.luchshaya_dolya)))} показов
+        (<span style="font-family:var(--mono)">v24-zerkalo.info</span> у Vulkan 24). У остальных
+        лучшая доля в районе 10–18%: портал добирает выдачу, но не захватывает её.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -792,11 +900,11 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (['t2','t3','t4','t5','t6'].includes(s)) document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4','t5','t6','t7'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
 dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk,
-                     'tlg': tlg}, ensure_ascii=False)
+                     'tlg': tlg, 'prt': prt}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')

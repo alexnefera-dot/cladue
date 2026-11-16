@@ -1,0 +1,62 @@
+Порталов и рейтингов: 33; строк 1599 (10.3% выдачи), мест в топ-3 410 (8.8%)
+Сайтов с местом в топ-3: 22 из 33
+Крупнейший охват: casino.ru — 148 брендов из 166
+Сумма упоминаний брендов: 741, то есть 4.5 портала на бренд в среднем
+У 15 сайтов списки брендов в выгрузке обрезаны — поимённой таблицы по брендам не будет
+
+сайт                         брендов  охват  строк  % строк  топ-3  % топ-3  поз  лучшая доля где
+casino.ru                        148  89.2%    511    32.0%    181    44.1%    1        18.2% avrorapri
+roscasinos.com                    90  54.2%    283    17.7%     51    12.4%    1        11.9% Bonsai
+topkazinobonus.com                66  39.8%    123     7.7%     29     7.1%    1        15.2% Vulkan Prestige
+vsetopcasino.biz                  55  33.1%     89     5.6%     24     5.9%    1        12.3% Vulkan Prestige
+respin.info                       34  20.5%     82     5.1%     22     5.4%    1        15.8% BitStarz
+v24-zerkalo.info                  13   7.8%     60     3.8%     22     5.4%    1        33.6% Vulkan 24
+top-kazino-rejting.com            25  15.1%     52     3.3%     15     3.7%    1        13.6% Vegasy
+igamingrus.com                    69  41.6%     89     5.6%     13     3.2%    1        11.8% avrorapri
+latestcasinobonuses.bet           55  33.1%     70     4.4%     11     2.7%    1         4.0% Leebet
+betonmobile.ru                    33  19.9%     50     3.1%     11     2.7%    1         5.8% Laki
+10topkazino.com                   36  21.7%     44     2.8%      8     2.0%    1         4.5% Spacewin
+bookmaker-ratings.ru              19  11.4%     32     2.0%      6     1.5%    1        18.2% MostBet Bookmaker
+topkasinoisloty.com                6   3.6%      6     0.4%      4     1.0%    1         4.2% Crystalslot
+ludogid.ru                         4   2.4%      4     0.3%      3     0.7%    1         3.7% Million
+vsestavkinasport.com               4   2.4%      6     0.4%      2     0.5%    2         3.6% Betera
+vseprosport.ru                     2   1.2%      7     0.4%      2     0.5%    2         3.5% Parimatch
+rugambling.net                    13   7.8%     13     0.8%      1     0.2%    3         1.2% Eva
+vsetopcasino.com                  10   6.0%     12     0.8%      1     0.2%    2         1.8% Vibe
+bestcasinos.ru                     5   3.0%      5     0.3%      1     0.2%    3         1.2% Shot
+bonustop.xyz                       3   1.8%      3     0.2%      1     0.2%    1         3.7% Jozz
+bonusbuyslotstop.com               1   0.6%      2     0.1%      1     0.2%    1         4.6% Sweet
+top-bet.com                        1   0.6%      1     0.1%      1     0.2%    3         1.2% Dbbet
+casinosvyvodom.com                18  10.8%     19     1.2%      0     0.0%    4         1.4% Casino X
+casinolic.com                     15   9.0%     16     1.0%      0     0.0%    7         0.7% Vulkan Prestige
+ludobzor.com                       5   3.0%      9     0.6%      0     0.0%    4         1.9% Avocado
+all-promokod-bonus.ru              3   1.8%      3     0.2%      0     0.0%    6         0.5% Flagman
+sportball24.com                    2   1.2%      2     0.1%      0     0.0%    9         0.3% Dbbet
+best-1win-site22.top               1   0.6%      1     0.1%      0     0.0%    6         0.4% 1win
+best-casino-onion.monster          1   0.6%      1     0.1%      0     0.0%    9         0.3% Onion
+bookmaker-ratings.md               1   0.6%      1     0.1%      0     0.0%    8         0.3% Everum
+bukmekerexpert.com                 1   0.6%      1     0.1%      0     0.0%    8         0.3% Fairspin
+top-gambling.com                   1   0.6%      1     0.1%      0     0.0%    9         0.3% Sweet
+vseprocasino.ru                    1   0.6%      1     0.1%      0     0.0%   10         0.2% AdmiralX
+
+Кто лидирует в выдаче брендов (формат лидера, по всем брендам):
+  Брендовые домены (зеркала и клоны)     95 брендов   57.2%
+  Доры (поддомены)                       18 брендов   10.8%
+  Телеграм                               15 брендов    9.0%
+  Тематические общие                     11 брендов    6.6%
+  Дорвейные голые домены                  9 брендов    5.4%
+  Порталы и рейтинги казино               7 брендов    4.2%
+  нет в посайтовой выгрузке               6 брендов    3.6%
+  Зеркала и «вход»                        3 брендов    1.8%
+  Нетематические домены                   2 брендов    1.2%
+
+Бренды, где лидер — портал (7):
+  Vulkan 24          v24-zerkalo.info         доля  33.5%  позиция 1  сайтов у бренда 42
+  Club Vulkan        v24-zerkalo.info         доля  17.8%  позиция 1  сайтов у бренда 39
+  Casino X           casino.ru                доля  16.2%  позиция 1  сайтов у бренда 29
+  Drip               casino.ru                доля  13.9%  позиция 1  сайтов у бренда 35
+  Lucky Bird         casino.ru                доля  13.6%  позиция 1  сайтов у бренда 45
+  Vulkan Prestige    topkazinobonus.com       доля  11.9%  позиция 1  сайтов у бренда 39
+  Sykaaa             casino.ru                доля   8.9%  позиция 1  сайтов у бренда 59
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/portaly.json

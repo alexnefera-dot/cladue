@@ -1,0 +1,885 @@
+{
+ "sajtov": 33,
+ "strok": 1599,
+ "top3": 410,
+ "brendov_vsego": 166,
+ "vsego_strok_vydachi": 15511,
+ "vsego_top3_vydachi": 4654,
+ "dolya_strok": 10.3,
+ "dolya_top3": 8.8,
+ "max_ohvat": 148,
+ "max_ohvat_sajt": "casino.ru",
+ "summa_upominaniy": 741,
+ "na_brend": 4.5,
+ "obrezano_sajtov": 15,
+ "sajty": [
+  {
+   "imya": "casino.ru",
+   "brendov": 148,
+   "ohvat": 89.2,
+   "strok": 511,
+   "top3": 181,
+   "poziciya": 1,
+   "dolya_strok": 32.0,
+   "dolya_top3": 44.1,
+   "luchshaya_dolya": 18.2,
+   "gde": "avrorapri",
+   "vidno": [
+    "Luckybear",
+    "1win",
+    "1xbet",
+    "AUF",
+    "AdmiralX",
+    "Arkada",
+    "Atom",
+    "Avocado",
+    "Baboss",
+    "Banda",
+    "Beef",
+    "Betera"
+   ],
+   "obrezano": 136
+  },
+  {
+   "imya": "roscasinos.com",
+   "brendov": 90,
+   "ohvat": 54.2,
+   "strok": 283,
+   "top3": 51,
+   "poziciya": 1,
+   "dolya_strok": 17.7,
+   "dolya_top3": 12.4,
+   "luchshaya_dolya": 11.9,
+   "gde": "Bonsai",
+   "vidno": [
+    "Luckybear",
+    "AUF",
+    "Avocado",
+    "Baboss",
+    "Betera",
+    "Bigsbet",
+    "BitStarz",
+    "Bitz",
+    "Bitzamo",
+    "Blitzred",
+    "Bonsai",
+    "Bounty"
+   ],
+   "obrezano": 78
+  },
+  {
+   "imya": "topkazinobonus.com",
+   "brendov": 66,
+   "ohvat": 39.8,
+   "strok": 123,
+   "top3": 29,
+   "poziciya": 1,
+   "dolya_strok": 7.7,
+   "dolya_top3": 7.1,
+   "luchshaya_dolya": 15.2,
+   "gde": "Vulkan Prestige",
+   "vidno": [
+    "Avocado",
+    "Baboss",
+    "Betera",
+    "BitStarz",
+    "Bitz",
+    "Blitzred",
+    "Bollywood",
+    "Bonsai",
+    "Bounty",
+    "Cactus",
+    "Casinora",
+    "Cat"
+   ],
+   "obrezano": 54
+  },
+  {
+   "imya": "vsetopcasino.biz",
+   "brendov": 55,
+   "ohvat": 33.1,
+   "strok": 89,
+   "top3": 24,
+   "poziciya": 1,
+   "dolya_strok": 5.6,
+   "dolya_top3": 5.9,
+   "luchshaya_dolya": 12.3,
+   "gde": "Vulkan Prestige",
+   "vidno": [
+    "1win",
+    "Avocado",
+    "Baboss",
+    "Betera",
+    "Bigsbet",
+    "BitStarz",
+    "Bitz",
+    "Blitzred",
+    "Bonsai",
+    "Casinora",
+    "CryptoBoss",
+    "Dbbet"
+   ],
+   "obrezano": 43
+  },
+  {
+   "imya": "respin.info",
+   "brendov": 34,
+   "ohvat": 20.5,
+   "strok": 82,
+   "top3": 22,
+   "poziciya": 1,
+   "dolya_strok": 5.1,
+   "dolya_top3": 5.4,
+   "luchshaya_dolya": 15.8,
+   "gde": "BitStarz",
+   "vidno": [
+    "AdmiralX",
+    "BitStarz",
+    "Booi",
+    "Cactus",
+    "ClubNika",
+    "Daddy",
+    "Drip",
+    "Eldorado",
+    "Fontan",
+    "Frank",
+    "Fresh",
+    "Gizbo"
+   ],
+   "obrezano": 22
+  },
+  {
+   "imya": "v24-zerkalo.info",
+   "brendov": 13,
+   "ohvat": 7.8,
+   "strok": 60,
+   "top3": 22,
+   "poziciya": 1,
+   "dolya_strok": 3.8,
+   "dolya_top3": 5.4,
+   "luchshaya_dolya": 33.6,
+   "gde": "Vulkan 24",
+   "vidno": [
+    "Million",
+    "Slotozal",
+    "Vulkan 24",
+    "Vulkan Platinum",
+    "Vulkan Stars",
+    "Vulkan Vegas",
+    "Club Vulkan",
+    "Vulkan Mega",
+    "Vulkan Russia",
+    "Vulkan Prestige",
+    "vulkanprestizh",
+    "vulkanroial"
+   ],
+   "obrezano": 1
+  },
+  {
+   "imya": "top-kazino-rejting.com",
+   "brendov": 25,
+   "ohvat": 15.1,
+   "strok": 52,
+   "top3": 15,
+   "poziciya": 1,
+   "dolya_strok": 3.3,
+   "dolya_top3": 3.7,
+   "luchshaya_dolya": 13.6,
+   "gde": "Vegasy",
+   "vidno": [
+    "Avocado",
+    "Bonsai",
+    "ClubNika",
+    "Dbbet",
+    "Goodwin",
+    "Joycasino",
+    "Maxbetslots",
+    "Million",
+    "Money X",
+    "Play Fortuna",
+    "Riobet",
+    "Selector"
+   ],
+   "obrezano": 13
+  },
+  {
+   "imya": "igamingrus.com",
+   "brendov": 69,
+   "ohvat": 41.6,
+   "strok": 89,
+   "top3": 13,
+   "poziciya": 1,
+   "dolya_strok": 5.6,
+   "dolya_top3": 3.2,
+   "luchshaya_dolya": 11.8,
+   "gde": "avrorapri",
+   "vidno": [
+    "1win",
+    "AUF",
+    "Avocado",
+    "Baboss",
+    "BitStarz",
+    "Bitz",
+    "Blitzred",
+    "Bollywood",
+    "Bonsai",
+    "Bounty",
+    "Brillx",
+    "Casinora"
+   ],
+   "obrezano": 57
+  },
+  {
+   "imya": "latestcasinobonuses.bet",
+   "brendov": 55,
+   "ohvat": 33.1,
+   "strok": 70,
+   "top3": 11,
+   "poziciya": 1,
+   "dolya_strok": 4.4,
+   "dolya_top3": 2.7,
+   "luchshaya_dolya": 4.0,
+   "gde": "Leebet",
+   "vidno": [
+    "Bigsbet",
+    "BitStarz",
+    "Bitz",
+    "Booi",
+    "Boost",
+    "Bounty",
+    "Cat",
+    "CryptoBoss",
+    "Daddy",
+    "Enomo",
+    "Ezcash",
+    "Fairspin"
+   ],
+   "obrezano": 43
+  },
+  {
+   "imya": "betonmobile.ru",
+   "brendov": 33,
+   "ohvat": 19.9,
+   "strok": 50,
+   "top3": 11,
+   "poziciya": 1,
+   "dolya_strok": 3.1,
+   "dolya_top3": 2.7,
+   "luchshaya_dolya": 5.8,
+   "gde": "Laki",
+   "vidno": [
+    "1win",
+    "1xbet",
+    "Arkada",
+    "Banda",
+    "Bollywood",
+    "Casinora",
+    "Cat",
+    "ClubNika",
+    "Drip",
+    "Flagman",
+    "Fresh",
+    "Gold"
+   ],
+   "obrezano": 21
+  },
+  {
+   "imya": "10topkazino.com",
+   "brendov": 36,
+   "ohvat": 21.7,
+   "strok": 44,
+   "top3": 8,
+   "poziciya": 1,
+   "dolya_strok": 2.8,
+   "dolya_top3": 2.0,
+   "luchshaya_dolya": 4.5,
+   "gde": "Spacewin",
+   "vidno": [
+    "Luckybear",
+    "AUF",
+    "Avocado",
+    "Baboss",
+    "Bigsbet",
+    "Blitzred",
+    "Bonsai",
+    "Daddy",
+    "Dbbet",
+    "Everum",
+    "Goodwin",
+    "Izzi"
+   ],
+   "obrezano": 24
+  },
+  {
+   "imya": "bookmaker-ratings.ru",
+   "brendov": 19,
+   "ohvat": 11.4,
+   "strok": 32,
+   "top3": 6,
+   "poziciya": 1,
+   "dolya_strok": 2.0,
+   "dolya_top3": 1.5,
+   "luchshaya_dolya": 18.2,
+   "gde": "MostBet Bookmaker",
+   "vidno": [
+    "1win",
+    "1xbet",
+    "Betera",
+    "Dbbet",
+    "Joycasino",
+    "Leon",
+    "Marathon",
+    "Maxline",
+    "Parimatch",
+    "Pin Up",
+    "Riobet",
+    "UP-X"
+   ],
+   "obrezano": 7
+  },
+  {
+   "imya": "topkasinoisloty.com",
+   "brendov": 6,
+   "ohvat": 3.6,
+   "strok": 6,
+   "top3": 4,
+   "poziciya": 1,
+   "dolya_strok": 0.4,
+   "dolya_top3": 1.0,
+   "luchshaya_dolya": 4.2,
+   "gde": "Crystalslot",
+   "vidno": [
+    "Baboss",
+    "Enomo",
+    "Lukkly",
+    "Million",
+    "Vegasy",
+    "Crystalslot"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "ludogid.ru",
+   "brendov": 4,
+   "ohvat": 2.4,
+   "strok": 4,
+   "top3": 3,
+   "poziciya": 1,
+   "dolya_strok": 0.3,
+   "dolya_top3": 0.7,
+   "luchshaya_dolya": 3.7,
+   "gde": "Million",
+   "vidno": [
+    "Million",
+    "Slotozal",
+    "Vulkan Russia",
+    "без бренда"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "vsestavkinasport.com",
+   "brendov": 4,
+   "ohvat": 2.4,
+   "strok": 6,
+   "top3": 2,
+   "poziciya": 2,
+   "dolya_strok": 0.4,
+   "dolya_top3": 0.5,
+   "luchshaya_dolya": 3.6,
+   "gde": "Betera",
+   "vidno": [
+    "Betera",
+    "Marathon",
+    "Spinbetter",
+    "Betwinner"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "vseprosport.ru",
+   "brendov": 2,
+   "ohvat": 1.2,
+   "strok": 7,
+   "top3": 2,
+   "poziciya": 2,
+   "dolya_strok": 0.4,
+   "dolya_top3": 0.5,
+   "luchshaya_dolya": 3.5,
+   "gde": "Parimatch",
+   "vidno": [
+    "Parimatch",
+    "Winline"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "rugambling.net",
+   "brendov": 13,
+   "ohvat": 7.8,
+   "strok": 13,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.8,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 1.2,
+   "gde": "Eva",
+   "vidno": [
+    "Luckybear",
+    "1win",
+    "Bigsbet",
+    "Cactus",
+    "Eva",
+    "Jetton",
+    "Joycasino",
+    "Lukkly",
+    "Mellstroy",
+    "Money X",
+    "Pinco",
+    "Tonplay"
+   ],
+   "obrezano": 1
+  },
+  {
+   "imya": "vsetopcasino.com",
+   "brendov": 10,
+   "ohvat": 6.0,
+   "strok": 12,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 0.8,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 1.8,
+   "gde": "Vibe",
+   "vidno": [
+    "BitStarz",
+    "Bonsai",
+    "Brillx",
+    "Everum",
+    "Fresh",
+    "Kent",
+    "Leon",
+    "Vavada",
+    "Vibe",
+    "Weiss"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "bestcasinos.ru",
+   "brendov": 5,
+   "ohvat": 3.0,
+   "strok": 5,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.3,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 1.2,
+   "gde": "Shot",
+   "vidno": [
+    "Fairspin",
+    "Jackpoker",
+    "Mellstroy",
+    "Shot",
+    "Crystalslot"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "bonustop.xyz",
+   "brendov": 3,
+   "ohvat": 1.8,
+   "strok": 3,
+   "top3": 1,
+   "poziciya": 1,
+   "dolya_strok": 0.2,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 3.7,
+   "gde": "Jozz",
+   "vidno": [
+    "Bitzamo",
+    "Jozz",
+    "Casino X"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "bonusbuyslotstop.com",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 2,
+   "top3": 1,
+   "poziciya": 1,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 4.6,
+   "gde": "Sweet",
+   "vidno": [
+    "Sweet"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "top-bet.com",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.2,
+   "luchshaya_dolya": 1.2,
+   "gde": "Dbbet",
+   "vidno": [
+    "Dbbet"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "casinosvyvodom.com",
+   "brendov": 18,
+   "ohvat": 10.8,
+   "strok": 19,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 1.2,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 1.4,
+   "gde": "Casino X",
+   "vidno": [
+    "Bigsbet",
+    "Blitzred",
+    "Bonsai",
+    "Frank",
+    "Goodwin",
+    "Grizzly",
+    "Lootrun",
+    "Lukkly",
+    "Mad",
+    "Money X",
+    "Pinco",
+    "Play Fortuna"
+   ],
+   "obrezano": 6
+  },
+  {
+   "imya": "casinolic.com",
+   "brendov": 15,
+   "ohvat": 9.0,
+   "strok": 16,
+   "top3": 0,
+   "poziciya": 7,
+   "dolya_strok": 1.0,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.7,
+   "gde": "Vulkan Prestige",
+   "vidno": [
+    "Luckybear",
+    "Avocado",
+    "BitStarz",
+    "Bonsai",
+    "ClubNika",
+    "Frank",
+    "Goodwin",
+    "Hype",
+    "Shot",
+    "Spin City",
+    "Crystalslot",
+    "Kraken"
+   ],
+   "obrezano": 3
+  },
+  {
+   "imya": "ludobzor.com",
+   "brendov": 5,
+   "ohvat": 3.0,
+   "strok": 9,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 0.6,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 1.9,
+   "gde": "Avocado",
+   "vidno": [
+    "Avocado",
+    "Brillx",
+    "Friends",
+    "Hype",
+    "Trix"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "all-promokod-bonus.ru",
+   "brendov": 3,
+   "ohvat": 1.8,
+   "strok": 3,
+   "top3": 0,
+   "poziciya": 6,
+   "dolya_strok": 0.2,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.5,
+   "gde": "Flagman",
+   "vidno": [
+    "AUF",
+    "Cactus",
+    "Flagman"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "sportball24.com",
+   "brendov": 2,
+   "ohvat": 1.2,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 9,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.3,
+   "gde": "Dbbet",
+   "vidno": [
+    "Dbbet",
+    "Jet"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "best-1win-site22.top",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 6,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.4,
+   "gde": "1win",
+   "vidno": [
+    "1win"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "best-casino-onion.monster",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 9,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.3,
+   "gde": "Onion",
+   "vidno": [
+    "Onion"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "bookmaker-ratings.md",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 8,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.3,
+   "gde": "Everum",
+   "vidno": [
+    "Everum"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "bukmekerexpert.com",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 8,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.3,
+   "gde": "Fairspin",
+   "vidno": [
+    "Fairspin"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "top-gambling.com",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 9,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.3,
+   "gde": "Sweet",
+   "vidno": [
+    "Sweet"
+   ],
+   "obrezano": 0
+  },
+  {
+   "imya": "vseprocasino.ru",
+   "brendov": 1,
+   "ohvat": 0.6,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 10,
+   "dolya_strok": 0.1,
+   "dolya_top3": 0.0,
+   "luchshaya_dolya": 0.2,
+   "gde": "AdmiralX",
+   "vidno": [
+    "AdmiralX"
+   ],
+   "obrezano": 0
+  }
+ ],
+ "lider_format": [
+  {
+   "imya": "Брендовые домены (зеркала и клоны)",
+   "n": 95,
+   "dolya": 57.2
+  },
+  {
+   "imya": "Доры (поддомены)",
+   "n": 18,
+   "dolya": 10.8
+  },
+  {
+   "imya": "Телеграм",
+   "n": 15,
+   "dolya": 9.0
+  },
+  {
+   "imya": "Тематические общие",
+   "n": 11,
+   "dolya": 6.6
+  },
+  {
+   "imya": "Дорвейные голые домены",
+   "n": 9,
+   "dolya": 5.4
+  },
+  {
+   "imya": "Порталы и рейтинги казино",
+   "n": 7,
+   "dolya": 4.2
+  },
+  {
+   "imya": "нет в посайтовой выгрузке",
+   "n": 6,
+   "dolya": 3.6
+  },
+  {
+   "imya": "Зеркала и «вход»",
+   "n": 3,
+   "dolya": 1.8
+  },
+  {
+   "imya": "Нетематические домены",
+   "n": 2,
+   "dolya": 1.2
+  }
+ ],
+ "portaly_lidiruyut": [
+  {
+   "brend": "Vulkan 24",
+   "sajt": "v24-zerkalo.info",
+   "dolya": 33.5,
+   "poziciya": "1",
+   "vsego_sajtov": 42
+  },
+  {
+   "brend": "Club Vulkan",
+   "sajt": "v24-zerkalo.info",
+   "dolya": 17.8,
+   "poziciya": "1",
+   "vsego_sajtov": 39
+  },
+  {
+   "brend": "Casino X",
+   "sajt": "casino.ru",
+   "dolya": 16.2,
+   "poziciya": "1",
+   "vsego_sajtov": 29
+  },
+  {
+   "brend": "Drip",
+   "sajt": "casino.ru",
+   "dolya": 13.9,
+   "poziciya": "1",
+   "vsego_sajtov": 35
+  },
+  {
+   "brend": "Lucky Bird",
+   "sajt": "casino.ru",
+   "dolya": 13.6,
+   "poziciya": "1",
+   "vsego_sajtov": 45
+  },
+  {
+   "brend": "Vulkan Prestige",
+   "sajt": "topkazinobonus.com",
+   "dolya": 11.9,
+   "poziciya": "1",
+   "vsego_sajtov": 39
+  },
+  {
+   "brend": "Sykaaa",
+   "sajt": "casino.ru",
+   "dolya": 8.9,
+   "poziciya": "1",
+   "vsego_sajtov": 59
+  }
+ ],
+ "lider_sajt_top": [
+  {
+   "imya": "t.me",
+   "n": 15
+  },
+  {
+   "imya": "casino.ru",
+   "n": 4
+  },
+  {
+   "imya": "pari.ru",
+   "n": 2
+  },
+  {
+   "imya": "v24-zerkalo.info",
+   "n": 2
+  },
+  {
+   "imya": "vstars-zerkalo.com",
+   "n": 2
+  },
+  {
+   "imya": "888starz39.fun",
+   "n": 2
+  },
+  {
+   "imya": "mostbet11.kz",
+   "n": 2
+  },
+  {
+   "imya": "lucky-bear.games",
+   "n": 1
+  },
+  {
+   "imya": "1win-rrr4.top",
+   "n": 1
+  },
+  {
+   "imya": "1xbet-x1ad.top",
+   "n": 1
+  }
+ ],
+ "s_top3": 22
+}
