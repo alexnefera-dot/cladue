@@ -16,6 +16,7 @@ tlg = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else N
 prt = json.load(open(sys.argv[8], encoding='utf-8')) if len(sys.argv) > 8 else None
 bdm = json.load(open(sys.argv[9], encoding='utf-8')) if len(sys.argv) > 9 else None
 rot = json.load(open(sys.argv[10], encoding='utf-8')) if len(sys.argv) > 10 else None
+wch = json.load(open(sys.argv[11], encoding='utf-8')) if len(sys.argv) > 11 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -131,6 +132,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t6" aria-controls="list6" aria-selected="false">Телеграм</button>
       <button role="tab" id="t7" aria-controls="list7" aria-selected="false">Порталы и рейтинги</button>
       <button role="tab" id="t8" aria-controls="list8" aria-selected="false">Брендовые домены</button>
+      <button role="tab" id="t9" aria-controls="list9" aria-selected="false">Ротация внутри бренда</button>
     </div>
   </div>
 </header>
@@ -144,12 +146,16 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list6" role="tabpanel" aria-labelledby="t6" hidden></div>
   <div id="list7" role="tabpanel" aria-labelledby="t7" hidden></div>
   <div id="list8" role="tabpanel" aria-labelledby="t8" hidden></div>
+  <div id="list9" role="tabpanel" aria-labelledby="t9" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
     <code>analysis/scripts/serp_tipy.py</code>: в исходной выгрузке дором считался любой поддомен,
     туда попадали <code>m.sports.ru</code> и <code>play.google.com</code>.
     Доля строк и топ-3 — от всех строк выдачи и всех мест в топ-3 в съёме.
+    Лист «Ротация внутри бренда» построен на других данных — построчных снимках парсера
+    за 02.11 и 09.11 (по три среза в день с шагом 4 часа, 5 запросов, два бренда),
+    там есть полные адреса страниц и даты регистрации доменов.
   </footer>
 </div>
 
@@ -1058,6 +1064,120 @@ ${!D.rot ? '' : `
   </ul>
 </div>`;
 
+/* ЛИСТ 9 — ротация внутри бренда по почасовым снимкам */
+const y = D.wch;
+if (y) {
+  const srednee = (sh) => {
+    const v = y.pary.filter(x => sh === 4 ? x.chasov === 4 : x.chasov > 100).map(x => x.uderzhanie);
+    return {sr: Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10, min: Math.min(...v),
+            max: Math.max(...v), n: v.length};
+  };
+  const ch4 = srednee(4), ned = srednee(160);
+  document.getElementById('list9').innerHTML = `
+<section>
+  <h2>Ротация внутри бренда, по часам</h2>
+  <p class="vvod">Построчные снимки выдачи: ${ch(y.snimkov)} срезов с шагом 4 часа — три 02.11 и три 09.11.
+     ${ch(y.zaprosov)} запроса, два бренда. В этих данных есть то, чего нет в сводных выгрузках:
+     полные адреса страниц и даты регистрации доменов.</p>
+  <div class="vyvod" style="border-left-color:var(--nash);margin-bottom:18px">
+    <h3>Насколько широко это читать</h3>
+    <ul><li>Срез глубокий, но узкий: два бренда и ${ch(y.zaprosov)} запросов из 166 брендов съёма.
+      Цифры ниже — про эти бренды, а не про всю сеть. Зато здесь видно поимённо, что происходит
+      внутри одной выдачи за четыре часа.</li></ul>
+  </div>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${pr(ch4.sr)}</span><div class="pd">удержание за 4 часа (от ${pr(ch4.min)} до ${pr(ch4.max)})</div></div>
+    <div class="plitka vydel"><span class="ch">${pr(ned.sr)}</span><div class="pd">удержание за неделю</div></div>
+    <div class="plitka"><span class="ch">${ch(y.hostov)}</span><div class="pd">разных хостов за ${ch(y.snimkov)} срезов</div></div>
+    <div class="plitka"><span class="ch">${Object.values(y.brendy).reduce((a,g) => a + g.yadro.length, 0)}</span><div class="pd">хостов держатся во всех срезах</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Что меняется за четыре часа</h2>
+  <p class="vvod">Каждая строка — пара соседних срезов одного запроса. «Было» — размер выдачи
+     в первом срезе, «осталось» — сколько тех же хостов нашлось во втором.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Запрос</th><th class="num">От</th><th class="num">Часов</th><th class="num">Было</th>
+        <th class="num">Осталось</th><th class="num">Ушло</th><th class="num">Пришло</th>
+        <th class="num">Удержание</th></tr></thead>
+      <tbody>${y.pary.map(x => `<tr>
+        <td>${x.query}</td><td class="num" style="font-size:12px">${x.ot.slice(5,16).replace('T',' ')}</td>
+        <td class="num">${x.chasov}</td><td class="num">${ch(x.bylo)}</td>
+        <td class="num">${ch(x.ostalos)}</td><td class="num">${ch(x.ushlo)}</td>
+        <td class="num">${ch(x.prishlo)}</td>
+        <td class="num"><b${x.chasov > 100 ? ' style="color:var(--nash)"' : ''}>${pr(x.uderzhanie)}</b></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Ядро выдачи почти пустое</h2>
+  <div class="dve">
+    ${Object.entries(y.brendy).map(([b, g]) => `
+    <div>
+      <p class="vvod"><b style="color:var(--ink)">${b}</b> — ${ch(g.hostov_vsego)} разных хостов за всё время,
+         во всех срезах держатся ${ch(g.yadro.length)} (${pr(g.dolya_yadra)}),
+         мелькнули ровно один раз ${ch(g.odnodnevki.length)} (${pr(g.dolya_odnodnevok)}).</p>
+      ${polosy(g.vstrechaemost.slice(0, 12).map(([h, n]) => ({imya: h, n: n,
+          dolya: Math.round(1000 * n / (g.snimkov * g.zaprosov)) / 10})),
+          {edinica: 'раз из ' + (g.snimkov * g.zaprosov), shkala: 100})}
+    </div>`).join('')}
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Возраст домена решает, останется он или нет</h2>
+  <p class="vvod">Дней с регистрации домена (whois) на момент съёма — по трём группам устойчивости.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Группа</th><th class="num">Хостов</th><th class="num">Медиана, дней</th>
+        <th class="num">Средний, дней</th><th class="num">Моложе 30 дней</th><th class="num">Доля свежих</th></tr></thead>
+      <tbody>${y.vozrasta.map(x => `<tr>
+        <td>${x.imya}</td><td class="num">${ch(x.n)}</td>
+        <td class="num"><b>${ch(x.median)}</b></td><td class="num">${ch(x.sredn)}</td>
+        <td class="num">${ch(x.svezhih_30)}</td><td class="num">${pr(x.dolya_svezhih)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  ${polosy(y.vozrasta.map(x => ({imya: x.imya, n: x.svezhih_30, dolya: x.dolya_svezhih})),
+      {edinica: 'хостов моложе 30 дней', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Из чего состоит эта выдача</h2>
+  ${polosy(y.tipy.map(x => ({imya: x.imya, n: x.n,
+      dolya: Math.round(1000 * x.n / y.hostov) / 10})), {edinica: 'хостов'})}
+  <p class="vvod" style="margin-top:10px">Телеграм здесь виден поимённо — в сводных выгрузках только хост:
+     <span style="font-family:var(--mono);font-size:12px">${y.kanaly.join(' · ')}</span>.
+     Два разных канала на один бренд, оба в выдаче.</p>
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Выдача бренда переписывается за часы, а не за дни.</b> За четыре часа держится
+        ${pr(ch4.sr)} хостов, в худшем случае ${pr(ch4.min)} — то есть из девяти сайтов остаются два.
+        За неделю ${pr(ned.sr)}.</li>
+    <li><b>Постоянных мест почти нет.</b> У Lilbet во всех срезах держится один хост из
+        ${ch(y.brendy.Lilbet.hostov_vsego)} — сайт самого бренда
+        <span style="font-family:var(--mono)">lil.bet</span>. У SpaceWin —
+        ${ch(y.brendy.SpaceWin.yadro.length)} из ${ch(y.brendy.SpaceWin.hostov_vsego)}:
+        <span style="font-family:var(--mono)">${y.brendy.SpaceWin.yadro.join(', ')}</span>.
+        Всё остальное приходит и уходит.</li>
+    <li><b>Возраст домена и есть пропуск в ядро.</b> У хостов ядра медиана
+        ${ch(y.vozrasta[0].median)} дней и ни одного моложе 30 дней; у мелькнувших медиана
+        ${ch(y.vozrasta[2].median)} дней и ${pr(y.vozrasta[2].dolya_svezhih)} моложе месяца.
+        Свежий домен попадает в выдачу легко и так же легко из неё вылетает.</li>
+    <li><b>Это ответ на вопрос о наших запусках.</b> Свежие доры заходят в выдачу —
+        ${ch(y.tipy[0].n)} из ${ch(y.hostov)} хостов здесь именно доры. Но держатся они по одному-двум срезам,
+        а в ядре сидят домены возрастом в годы.</li>
+  </ul>
+</div>`;
+}
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -1070,11 +1190,12 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (['t2','t3','t4','t5','t6','t7','t8'].includes(s)) document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4','t5','t6','t7','t8','t9'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
 dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk,
-                     'tlg': tlg, 'prt': prt, 'bdm': bdm, 'rot': rot}, ensure_ascii=False)
+                     'tlg': tlg, 'prt': prt, 'bdm': bdm, 'rot': rot, 'wch': wch},
+                    ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')

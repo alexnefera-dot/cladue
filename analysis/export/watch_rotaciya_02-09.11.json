@@ -1,0 +1,996 @@
+{
+ "snimkov": 6,
+ "tochki": [
+  "2026-11-02T15:32:25",
+  "2026-11-02T19:32:26",
+  "2026-11-02T23:32:27",
+  "2026-11-09T15:27:29",
+  "2026-11-09T19:27:30",
+  "2026-11-09T23:27:30"
+ ],
+ "zaprosov": 5,
+ "zaprosy": [
+  "casino lilbet",
+  "lilbet casino",
+  "spacewin казино",
+  "казино лилбет",
+  "спейсвин казино"
+ ],
+ "hostov": 70,
+ "brendy": {
+  "Lilbet": {
+   "hostov_vsego": 37,
+   "snimkov": 6,
+   "zaprosov": 3,
+   "yadro": [
+    "lil.bet"
+   ],
+   "odnodnevki": [
+    "leebet-casino-slots.cc",
+    "lilbet.0411t.casino",
+    "lilbet.casino0311t.top",
+    "lilbet.casino051126.fun",
+    "lilbet.casino3010.team",
+    "lilbet.casino3010q.top",
+    "lilbet.casinosa620.buzz",
+    "telegram.me"
+   ],
+   "dolya_yadra": 2.7,
+   "dolya_odnodnevok": 21.6,
+   "vstrechaemost": [
+    [
+     "lil.bet",
+     18
+    ],
+    [
+     "t.me",
+     14
+    ],
+    [
+     "lilbet.casino36230b.buzz",
+     11
+    ],
+    [
+     "lilbet-6.ie8.casino",
+     9
+    ],
+    [
+     "lilbet.casino0710r.team",
+     8
+    ],
+    [
+     "lilbet-3.pi5.casino",
+     8
+    ],
+    [
+     "lilbet.3010casino.buzz",
+     7
+    ],
+    [
+     "lilbet.kdc.casino",
+     7
+    ],
+    [
+     "lilbet.264.buzz",
+     7
+    ],
+    [
+     "lilbet.prft.casino",
+     7
+    ],
+    [
+     "leebetcasino9.net",
+     6
+    ],
+    [
+     "lilbet.casino2410q.top",
+     5
+    ],
+    [
+     "lilbet.casino0111re.buzz",
+     5
+    ],
+    [
+     "lilbetgames.com",
+     5
+    ],
+    [
+     "lilbet.casino1011d.top",
+     5
+    ],
+    [
+     "lilbet.casin01o11a.sbs",
+     4
+    ],
+    [
+     "1leebet.casino",
+     4
+    ],
+    [
+     "lilbet-2.en8.casino",
+     4
+    ],
+    [
+     "lilbet-casino-goq8i.top",
+     3
+    ],
+    [
+     "casino.ru",
+     3
+    ],
+    [
+     "lilbet.casino051126qk.buzz",
+     3
+    ],
+    [
+     "lilbet.casinosa648.buzz",
+     3
+    ],
+    [
+     "lilbet.casino3110r.top",
+     2
+    ],
+    [
+     "lilbet.vip-casino03a11.best",
+     2
+    ],
+    [
+     "lilbet.casino3010r.top",
+     2
+    ],
+    [
+     "lilbet.casino19826gim.sbs",
+     2
+    ],
+    [
+     "lilbet-casino-govlz.top",
+     2
+    ],
+    [
+     "lilbet.casino1011d.buzz",
+     2
+    ],
+    [
+     "lilbet.casino3010hell.top",
+     2
+    ],
+    [
+     "lilbet.casino3010.team",
+     1
+    ],
+    [
+     "lilbet.casino0311t.top",
+     1
+    ],
+    [
+     "leebet-casino-slots.cc",
+     1
+    ],
+    [
+     "lilbet.casino3010q.top",
+     1
+    ],
+    [
+     "lilbet.casinosa620.buzz",
+     1
+    ],
+    [
+     "lilbet.casino051126.fun",
+     1
+    ],
+    [
+     "lilbet.0411t.casino",
+     1
+    ],
+    [
+     "telegram.me",
+     1
+    ]
+   ]
+  },
+  "SpaceWin": {
+   "hostov_vsego": 34,
+   "snimkov": 6,
+   "zaprosov": 2,
+   "yadro": [
+    "spacewin.casino-2008gg.sbs",
+    "spacewincasino.com",
+    "topkazinobonus.com"
+   ],
+   "odnodnevki": [
+    "betonmobile.ru",
+    "spacewin.6000.team",
+    "spacewin.6040.casino",
+    "spacewin.casino-47.online",
+    "spacewin.hck.casino",
+    "spacewin.ickl.team",
+    "spacewin.o01.casino"
+   ],
+   "dolya_yadra": 8.8,
+   "dolya_odnodnevok": 20.6,
+   "vstrechaemost": [
+    [
+     "spacewincasino.com",
+     12
+    ],
+    [
+     "topkazinobonus.com",
+     12
+    ],
+    [
+     "spacewin.casino-2008gg.sbs",
+     12
+    ],
+    [
+     "casino.ru",
+     9
+    ],
+    [
+     "spacewin.qmtn.casino",
+     6
+    ],
+    [
+     "roscasinos.com",
+     5
+    ],
+    [
+     "oficialnoecasino.com",
+     4
+    ],
+    [
+     "spacewin.exq.casino",
+     4
+    ],
+    [
+     "vsetopcasino.biz",
+     4
+    ],
+    [
+     "spacewin.casino-govno.buzz",
+     3
+    ],
+    [
+     "spacewin.0309h.buzz",
+     3
+    ],
+    [
+     "spacewin.3012.casino",
+     3
+    ],
+    [
+     "spacewin.474.casino",
+     3
+    ],
+    [
+     "spacewin.73936.casino",
+     3
+    ],
+    [
+     "forum.bits.media",
+     3
+    ],
+    [
+     "spacewin.caskom.casino",
+     3
+    ],
+    [
+     "spacewin-7.owt.casino",
+     3
+    ],
+    [
+     "spacewin.rai.casino",
+     3
+    ],
+    [
+     "spacewin.zerkalo17.casino",
+     2
+    ],
+    [
+     "spacewin.yqx.buzz",
+     2
+    ],
+    [
+     "spacewin.888e.buzz",
+     2
+    ],
+    [
+     "spacewin.2605.casino",
+     2
+    ],
+    [
+     "spacewin.7jx.casino",
+     2
+    ],
+    [
+     "spacewin.casnew.casino",
+     2
+    ],
+    [
+     "spacewin.9851.casino",
+     2
+    ],
+    [
+     "spacewin.5o73.casino",
+     2
+    ],
+    [
+     "spacewin.10w.casino",
+     2
+    ],
+    [
+     "spacewin.casino-47.online",
+     1
+    ],
+    [
+     "spacewin.hck.casino",
+     1
+    ],
+    [
+     "spacewin.o01.casino",
+     1
+    ],
+    [
+     "spacewin.ickl.team",
+     1
+    ],
+    [
+     "spacewin.6000.team",
+     1
+    ],
+    [
+     "spacewin.6040.casino",
+     1
+    ],
+    [
+     "betonmobile.ru",
+     1
+    ]
+   ]
+  }
+ },
+ "pary": [
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T15:32:25",
+   "do": "2026-11-02T19:32:26",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 8,
+   "ushlo": 1,
+   "prishlo": 1,
+   "uderzhanie": 88.9,
+   "ushli": [
+    "lilbet.casino36230b.buzz"
+   ],
+   "prishli": [
+    "lilbet-3.pi5.casino"
+   ]
+  },
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T19:32:26",
+   "do": "2026-11-02T23:32:27",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 6,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 66.7,
+   "ushli": [
+    "lilbet.264.buzz",
+    "lilbet.casin01o11a.sbs",
+    "lilbet.casino0111re.buzz"
+   ],
+   "prishli": [
+    "lilbet-6.ie8.casino",
+    "lilbet.casino36230b.buzz",
+    "lilbet.prft.casino"
+   ]
+  },
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T23:32:27",
+   "do": "2026-11-09T15:27:29",
+   "chasov": 160,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 6,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 66.7,
+   "ushli": [
+    "lilbet.3010casino.buzz",
+    "lilbet.kdc.casino",
+    "lilbetgames.com"
+   ],
+   "prishli": [
+    "casino.ru",
+    "lilbet-2.en8.casino",
+    "lilbet.casino0710r.team"
+   ]
+  },
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T15:27:29",
+   "do": "2026-11-09T19:27:30",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 5,
+   "ushlo": 4,
+   "prishlo": 4,
+   "uderzhanie": 55.6,
+   "ushli": [
+    "casino.ru",
+    "lilbet.casino0710r.team",
+    "lilbet.casino36230b.buzz",
+    "lilbet.prft.casino"
+   ],
+   "prishli": [
+    "lilbet-casino-goq8i.top",
+    "lilbet.264.buzz",
+    "lilbet.3010casino.buzz",
+    "lilbet.casino1011d.top"
+   ]
+  },
+  {
+   "query": "casino lilbet",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T19:27:30",
+   "do": "2026-11-09T23:27:30",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 4,
+   "ushlo": 5,
+   "prishlo": 5,
+   "uderzhanie": 44.4,
+   "ushli": [
+    "lilbet-2.en8.casino",
+    "lilbet-3.pi5.casino",
+    "lilbet-6.ie8.casino",
+    "lilbet-casino-goq8i.top",
+    "lilbet.3010casino.buzz"
+   ],
+   "prishli": [
+    "casino.ru",
+    "lilbet.casino1011d.buzz",
+    "lilbet.casino3010hell.top",
+    "lilbet.casinosa648.buzz",
+    "lilbet.prft.casino"
+   ]
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T15:32:25",
+   "do": "2026-11-02T19:32:26",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 6,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 66.7,
+   "ushli": [
+    "lilbet.casin01o11a.sbs",
+    "lilbet.casino2410q.top",
+    "lilbet.casino3110r.top"
+   ],
+   "prishli": [
+    "lilbet-3.pi5.casino",
+    "lilbet.casino19826gim.sbs",
+    "lilbetgames.com"
+   ]
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T19:32:26",
+   "do": "2026-11-02T23:32:27",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 8,
+   "ushlo": 1,
+   "prishlo": 1,
+   "uderzhanie": 88.9,
+   "ushli": [
+    "lilbet.casino0111re.buzz"
+   ],
+   "prishli": [
+    "lilbet.casino3110r.top"
+   ]
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T23:32:27",
+   "do": "2026-11-09T15:27:29",
+   "chasov": 160,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 4,
+   "ushlo": 5,
+   "prishlo": 5,
+   "uderzhanie": 44.4,
+   "ushli": [
+    "lilbet.3010casino.buzz",
+    "lilbet.casino19826gim.sbs",
+    "lilbet.casino3110r.top",
+    "lilbet.kdc.casino",
+    "lilbetgames.com"
+   ],
+   "prishli": [
+    "lilbet-2.en8.casino",
+    "lilbet-6.ie8.casino",
+    "lilbet-casino-goq8i.top",
+    "lilbet.casino0710r.team",
+    "lilbet.prft.casino"
+   ]
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T15:27:29",
+   "do": "2026-11-09T19:27:30",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 6,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 66.7,
+   "ushli": [
+    "lilbet-3.pi5.casino",
+    "lilbet-6.ie8.casino",
+    "lilbet.casino36230b.buzz"
+   ],
+   "prishli": [
+    "lilbet-casino-govlz.top",
+    "lilbet.casino1011d.top",
+    "lilbet.casinosa620.buzz"
+   ]
+  },
+  {
+   "query": "lilbet casino",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T19:27:30",
+   "do": "2026-11-09T23:27:30",
+   "chasov": 4,
+   "bylo": 9,
+   "stalo": 9,
+   "ostalos": 2,
+   "ushlo": 7,
+   "prishlo": 7,
+   "uderzhanie": 22.2,
+   "ushli": [
+    "lilbet-2.en8.casino",
+    "lilbet-casino-goq8i.top",
+    "lilbet-casino-govlz.top",
+    "lilbet.casino0710r.team",
+    "lilbet.casino1011d.top",
+    "lilbet.casinosa620.buzz",
+    "lilbet.prft.casino"
+   ],
+   "prishli": [
+    "casino.ru",
+    "lilbet.264.buzz",
+    "lilbet.casino1011d.buzz",
+    "lilbet.casino2410q.top",
+    "lilbet.casino3010hell.top",
+    "lilbet.casino36230b.buzz",
+    "lilbet.casinosa648.buzz"
+   ]
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T15:32:25",
+   "do": "2026-11-02T19:32:26",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 8,
+   "ushlo": 2,
+   "prishlo": 2,
+   "uderzhanie": 80.0,
+   "ushli": [
+    "spacewin.exq.casino",
+    "spacewin.hck.casino"
+   ],
+   "prishli": [
+    "spacewin.7jx.casino",
+    "vsetopcasino.biz"
+   ]
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T19:32:26",
+   "do": "2026-11-02T23:32:27",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 9,
+   "ushlo": 1,
+   "prishlo": 1,
+   "uderzhanie": 90.0,
+   "ushli": [
+    "forum.bits.media"
+   ],
+   "prishli": [
+    "spacewin.o01.casino"
+   ]
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T23:32:27",
+   "do": "2026-11-09T15:27:29",
+   "chasov": 160,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 5,
+   "ushlo": 5,
+   "prishlo": 5,
+   "uderzhanie": 50.0,
+   "ushli": [
+    "oficialnoecasino.com",
+    "roscasinos.com",
+    "spacewin.73936.casino",
+    "spacewin.7jx.casino",
+    "spacewin.o01.casino"
+   ],
+   "prishli": [
+    "spacewin-7.owt.casino",
+    "spacewin.5o73.casino",
+    "spacewin.exq.casino",
+    "spacewin.qmtn.casino",
+    "spacewin.rai.casino"
+   ]
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-09T15:27:29",
+   "do": "2026-11-09T19:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 10,
+   "ushlo": 0,
+   "prishlo": 0,
+   "uderzhanie": 100.0,
+   "ushli": [],
+   "prishli": []
+  },
+  {
+   "query": "spacewin казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-09T19:27:30",
+   "do": "2026-11-09T23:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 8,
+   "ushlo": 2,
+   "prishlo": 2,
+   "uderzhanie": 80.0,
+   "ushli": [
+    "spacewin.5o73.casino",
+    "vsetopcasino.biz"
+   ],
+   "prishli": [
+    "forum.bits.media",
+    "oficialnoecasino.com"
+   ]
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T15:32:25",
+   "do": "2026-11-02T19:32:26",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 7,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 70.0,
+   "ushli": [
+    "lilbet.casino0111re.buzz",
+    "lilbet.casino3010.team",
+    "lilbet.casino3010r.top"
+   ],
+   "prishli": [
+    "leebet-casino-slots.cc",
+    "lilbet.casin01o11a.sbs",
+    "lilbet.casino0311t.top"
+   ]
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T19:32:26",
+   "do": "2026-11-02T23:32:27",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 6,
+   "ushlo": 4,
+   "prishlo": 4,
+   "uderzhanie": 60.0,
+   "ushli": [
+    "leebet-casino-slots.cc",
+    "lilbet.casin01o11a.sbs",
+    "lilbet.casino0311t.top",
+    "lilbet.vip-casino03a11.best"
+   ],
+   "prishli": [
+    "lilbet.264.buzz",
+    "lilbet.casino2410q.top",
+    "lilbet.casino3010q.top",
+    "lilbet.casino3010r.top"
+   ]
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "ot": "2026-11-02T23:32:27",
+   "do": "2026-11-09T15:27:29",
+   "chasov": 160,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 5,
+   "ushlo": 5,
+   "prishlo": 5,
+   "uderzhanie": 50.0,
+   "ushli": [
+    "lilbet.264.buzz",
+    "lilbet.casino2410q.top",
+    "lilbet.casino3010q.top",
+    "lilbet.casino3010r.top",
+    "lilbet.casino36230b.buzz"
+   ],
+   "prishli": [
+    "lilbet-3.pi5.casino",
+    "lilbet.casino051126qk.buzz",
+    "lilbet.kdc.casino",
+    "lilbet.prft.casino",
+    "t.me"
+   ]
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T15:27:29",
+   "do": "2026-11-09T19:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 7,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 70.0,
+   "ushli": [
+    "1leebet.casino",
+    "lilbet-3.pi5.casino",
+    "lilbet.kdc.casino"
+   ],
+   "prishli": [
+    "lilbet-casino-govlz.top",
+    "lilbet.casino1011d.top",
+    "lilbet.casino2410q.top"
+   ]
+  },
+  {
+   "query": "казино лилбет",
+   "brend": "Lilbet",
+   "ot": "2026-11-09T19:27:30",
+   "do": "2026-11-09T23:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 5,
+   "ushlo": 5,
+   "prishlo": 5,
+   "uderzhanie": 50.0,
+   "ushli": [
+    "lilbet-6.ie8.casino",
+    "lilbet-casino-govlz.top",
+    "lilbet.casino0710r.team",
+    "lilbet.prft.casino",
+    "t.me"
+   ],
+   "prishli": [
+    "lilbet.0411t.casino",
+    "lilbet.264.buzz",
+    "lilbet.casino051126.fun",
+    "lilbet.casinosa648.buzz",
+    "telegram.me"
+   ]
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T15:32:25",
+   "do": "2026-11-02T19:32:26",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 7,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 70.0,
+   "ushli": [
+    "casino.ru",
+    "spacewin.474.casino",
+    "spacewin.casino-47.online"
+   ],
+   "prishli": [
+    "spacewin.2605.casino",
+    "spacewin.888e.buzz",
+    "spacewin.yqx.buzz"
+   ]
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T19:32:26",
+   "do": "2026-11-02T23:32:27",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 9,
+   "ushlo": 1,
+   "prishlo": 1,
+   "uderzhanie": 90.0,
+   "ushli": [
+    "spacewin.zerkalo17.casino"
+   ],
+   "prishli": [
+    "spacewin.474.casino"
+   ]
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-02T23:32:27",
+   "do": "2026-11-09T15:27:29",
+   "chasov": 160,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 4,
+   "ushlo": 6,
+   "prishlo": 6,
+   "uderzhanie": 40.0,
+   "ushli": [
+    "spacewin.0309h.buzz",
+    "spacewin.2605.casino",
+    "spacewin.3012.casino",
+    "spacewin.888e.buzz",
+    "spacewin.casino-govno.buzz",
+    "spacewin.yqx.buzz"
+   ],
+   "prishli": [
+    "roscasinos.com",
+    "spacewin.9851.casino",
+    "spacewin.caskom.casino",
+    "spacewin.casnew.casino",
+    "spacewin.ickl.team",
+    "spacewin.qmtn.casino"
+   ]
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-09T15:27:29",
+   "do": "2026-11-09T19:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 7,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 70.0,
+   "ushli": [
+    "spacewin.474.casino",
+    "spacewin.casnew.casino",
+    "spacewin.ickl.team"
+   ],
+   "prishli": [
+    "casino.ru",
+    "spacewin.10w.casino",
+    "spacewin.6000.team"
+   ]
+  },
+  {
+   "query": "спейсвин казино",
+   "brend": "SpaceWin",
+   "ot": "2026-11-09T19:27:30",
+   "do": "2026-11-09T23:27:30",
+   "chasov": 4,
+   "bylo": 10,
+   "stalo": 10,
+   "ostalos": 7,
+   "ushlo": 3,
+   "prishlo": 3,
+   "uderzhanie": 70.0,
+   "ushli": [
+    "roscasinos.com",
+    "spacewin.6000.team",
+    "spacewin.9851.casino"
+   ],
+   "prishli": [
+    "betonmobile.ru",
+    "spacewin.6040.casino",
+    "spacewin.casnew.casino"
+   ]
+  }
+ ],
+ "vozrasta": [
+  {
+   "imya": "ядро (в 90%+ снимков)",
+   "n": 4,
+   "median": 982,
+   "sredn": 804,
+   "min": 76,
+   "max": 1502,
+   "svezhih_30": 0,
+   "dolya_svezhih": 0.0
+  },
+  {
+   "imya": "середина",
+   "n": 15,
+   "median": 151,
+   "sredn": 1509,
+   "min": 3,
+   "max": 11897,
+   "svezhih_30": 2,
+   "dolya_svezhih": 13.3
+  },
+  {
+   "imya": "мелькнули",
+   "n": 51,
+   "median": 93,
+   "sredn": 796,
+   "min": 0,
+   "max": 11904,
+   "svezhih_30": 18,
+   "dolya_svezhih": 35.3
+  }
+ ],
+ "tipy": [
+  {
+   "imya": "доры (поддомены)",
+   "n": 54
+  },
+  {
+   "imya": "брендовые домены (зеркала и клоны)",
+   "n": 7
+  },
+  {
+   "imya": "тематические сайты",
+   "n": 5
+  },
+  {
+   "imya": "соцсети и видео",
+   "n": 2
+  },
+  {
+   "imya": "порталы и рейтинги казино",
+   "n": 2
+  }
+ ],
+ "kanaly": [
+  "https://t.me/s/LilbET_casH",
+  "https://telegram.me/s/lILbET_ACcESs"
+ ]
+}
