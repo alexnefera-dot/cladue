@@ -1,0 +1,281 @@
+Доменов в реестре: 3788; без единого переобхода: 223
+Из них видно по кликам за 2026-10-11..2026-11-16: 49
+Суммарно: кликов 1189057, живых поисковых 969
+
+домен        создан       сайтов  с кликами   кликов    боты  живых  стадии
+2845.lol     2026-10-14      206        140    54451    1073      0  idle 206
+t8u0.lol     2026-10-14      206        137    48000    1468      0  idle 206
+2672.lol     2026-10-14      206        127    44178    1441      0  idle 206
+3374.lol     2026-10-14      206        122    41869    1416      0  idle 206
+z8n7.lol     2026-10-14      206        126    41494    1417      0  idle 206
+2830.lol     2026-10-14      206        124    40455    1303      0  idle 206
+7510.lol     2026-10-14      206        128    39923    1603      0  idle 206
+w5e4.lol     2026-10-14      206        129    39364    1378      0  idle 206
+9370.lol     2026-10-14      206        134    39030    1216      0  idle 206
+nnlj.lol     2026-10-14      206        141    38341    1196      0  idle 206
+zmqv.lol     2026-10-14      206        134    37846    1093      0  idle 206
+vnxy.lol     2026-10-14      206        129    37688    1461      0  idle 206
+h4r7.lol     2026-10-14      206        125    37103    1305      0  idle 206
+4176.lol     2026-10-14      206        123    36580    1542      0  idle 206
+6837.lol     2026-10-14      206        131    36281    1135      0  idle 206
+5009.lol     2026-10-14      206        134    34496    1437      0  idle 206
+5563.lol     2026-10-14      206        125    34157    1121      0  idle 206
+3278.lol     2026-10-14      206        138    33740    1159      0  idle 206
+8994.lol     2026-10-14      206        130    33240    1396      0  idle 206
+shhm.lol     2026-10-14      206        129    32265    1490      0  idle 206
+2444.lol     2026-10-14      206        119    31828     982      0  idle 206
+1869.lol     2026-10-14      206        123    31429    1386      0  idle 206
+tsqo.lol     2026-10-14      206        125    30428    1043      0  idle 206
+7254.lol     2026-10-14      206        116    30394    1328      0  idle 206
+1369.lol     2026-10-21      206        103    29033    1851      0  idle 206
+ffqi.lol     2026-10-21      206        103    28850    1198      0  idle 206
+5443.lol     2026-10-14      206        115    28125    1209      0  idle 206
+4237.lol     2026-10-14      206        111    27537    1252      0  idle 206
+3762.lol     2026-10-14      206        107    27327     780      0  idle 206
+8235.lol     2026-10-21      206        103    27322    1303      0  idle 206
+5846.lol     2026-10-21      206        103    27144    1409      0  idle 206
+4730.lol     2026-10-21      206        103    26494    1345      0  idle 206
+iblg.lol     2026-10-11      206        160     6138     266      0  idle 206
+qzgq.lol     2026-10-11      206        163     5942     339      0  idle 206
+j9x7.lol     2026-10-11      206        154     5313     333      0  idle 206
+xbyr.lol     2026-10-11      206        151     5236     143      0  idle 206
+3674.lol     2026-10-11      206        155     4960     208      0  idle 206
+c1x3.lol     2026-10-11      206        163     4833     216      0  idle 206
+lfmg.lol     2026-10-11      206        157     4548     209      0  idle 206
+k2z1.lol     2026-10-11      206        160     4068     260      0  idle 206
+nnnx.lol     2026-10-11      206        150     3737     365      0  idle 206
+c2n7.lol     2026-10-11      206        153     3399     227      0  idle 206
+x0w5.lol     2026-10-11      206        153     3240     213      0  idle 206
+7762.lol     2026-10-11      206        153     3208     207      0  idle 206
+o9m1.lol     2026-10-11      206        146     2852     158      0  idle 206
+xktp.lol     2026-10-11      206         65     2631      79      0  idle 206
+davv.team    2026-09-29      206        143     2477     839    969  done 206
+1102.lol     2026-10-25      206          5       58      38      0  meta 105, verify 51, error 50
+xzcn.lol     2026-10-11      206          1        5       0      0  idle 206
+
+# Список в столбик
+2845.lol
+t8u0.lol
+2672.lol
+3374.lol
+z8n7.lol
+2830.lol
+7510.lol
+w5e4.lol
+9370.lol
+nnlj.lol
+zmqv.lol
+vnxy.lol
+h4r7.lol
+4176.lol
+6837.lol
+5009.lol
+5563.lol
+3278.lol
+8994.lol
+shhm.lol
+2444.lol
+1869.lol
+tsqo.lol
+7254.lol
+1369.lol
+ffqi.lol
+5443.lol
+4237.lol
+3762.lol
+8235.lol
+5846.lol
+4730.lol
+iblg.lol
+qzgq.lol
+j9x7.lol
+xbyr.lol
+3674.lol
+c1x3.lol
+lfmg.lol
+k2z1.lol
+nnnx.lol
+c2n7.lol
+x0w5.lol
+7762.lol
+o9m1.lol
+xktp.lol
+davv.team
+1102.lol
+xzcn.lol
+
+# Без переобхода и ни одного клика: 174
+0084.lol
+0325.lol
+0573.lol
+0588.lol
+0803.lol
+0827.lol
+0919.lol
+1051.lol
+1164.lol
+1692.lol
+1834.lol
+1876.lol
+1879.lol
+1897.lol
+1979.lol
+2206.lol
+2259.lol
+2517.lol
+2705.lol
+2772.lol
+2812.lol
+2843.lol
+2857.lol
+2864.lol
+3010.lol
+3099.lol
+3306.lol
+3335.lol
+3657.lol
+3927.lol
+4024.lol
+4039.lol
+4101.lol
+4183.lol
+4337.lol
+4520.lol
+4671.lol
+4683.lol
+4699.lol
+4867.lol
+4940.lol
+5317.lol
+5418.lol
+5424.lol
+5661.lol
+5754.lol
+5778.lol
+5799.lol
+5871.lol
+5963.lol
+5990.lol
+6076.lol
+6123.lol
+6173.lol
+6234.lol
+6236.lol
+6505.lol
+6517.lol
+6622.lol
+6832.lol
+6900.lol
+7093.lol
+7117.lol
+7141.lol
+7225.lol
+7257.lol
+7404.lol
+7553.lol
+7703.lol
+7980.lol
+8122.lol
+8152.lol
+8331.lol
+8338.lol
+8453.lol
+8528.lol
+8572.lol
+8612.lol
+8677.lol
+8713.lol
+8738.lol
+8859.lol
+8873.lol
+8923.lol
+9354.lol
+9355.lol
+9455.lol
+9571.lol
+9675.lol
+9756.lol
+9894.lol
+9910.lol
+a9i7.lol
+adfx.lol
+aoog.lol
+b2j5.lol
+b9v6.lol
+blcv.lol
+brcj.lol
+btib.lol
+c1b6.lol
+c3t8.lol
+c7t4.lol
+cflw.lol
+cnqi.lol
+dmnw.lol
+dujy.lol
+e5s3.lol
+ecph.lol
+eghm.lol
+fqlx.lol
+gayh.lol
+h9e0.lol
+hbxw.lol
+hnrd.lol
+i2u7.lol
+ithd.lol
+j6t8.lol
+j7x8.lol
+j9w6.lol
+jhgv.lol
+k2t5.lol
+k5r3.lol
+l2q2.lol
+lvle.lol
+m4n6.lol
+mqcf.lol
+n7c4.lol
+o0v3.lol
+o3x9.lol
+o4k9.lol
+o7n5.lol
+o7y1.lol
+ohif.lol
+onnq.lol
+oyha.lol
+oyzi.lol
+p1g9.lol
+pqag.lol
+q2q2.lol
+q6u9.lol
+qlyo.lol
+qmib.lol
+qpuz.lol
+qziz.lol
+rhjd.lol
+rimw.lol
+rmbo.lol
+rwox.lol
+s4t7.lol
+s6x3.lol
+sunw.lol
+suts.lol
+t0o0.lol
+tdhd.lol
+tzpb.lol
+viyn.lol
+vmqz.lol
+vpbg.lol
+x9q1.lol
+xfth.lol
+xhpe.lol
+xure.lol
+xvms.lol
+xxkv.lol
+y0s7.lol
+yzyy.lol
+z5t5.lol
+zacn.lol
+zevz.lol
+zfpj.lol
+znuf.lol
+znyb.lol
+ztmv.lol
