@@ -1,0 +1,416 @@
+{
+ "a": {
+  "sajtov": 5133,
+  "strok": 15511,
+  "top3": 4654,
+  "nashi": 107
+ },
+ "b": {
+  "sajtov": 5062,
+  "strok": 15493,
+  "top3": 4648,
+  "nashi": 96
+ },
+ "obshih": 3876,
+ "tolko_a": 1257,
+ "tolko_b": 1186,
+ "dolya_obshih_a": 75.5,
+ "dolya_obshih_b": 76.6,
+ "tipy": [
+  {
+   "imya": "доры (поддомены)",
+   "a": 2996,
+   "b": 2952,
+   "dolya_a": 58.4,
+   "dolya_b": 58.3,
+   "ostalos": 2031,
+   "uderzhanie": 67.8
+  },
+  {
+   "imya": "брендовые домены (зеркала и клоны)",
+   "a": 1294,
+   "b": 1265,
+   "dolya_a": 25.2,
+   "dolya_b": 25.0,
+   "ostalos": 1094,
+   "uderzhanie": 84.5
+  },
+  {
+   "imya": "прочие домены",
+   "a": 302,
+   "b": 309,
+   "dolya_a": 5.9,
+   "dolya_b": 6.1,
+   "ostalos": 272,
+   "uderzhanie": 90.1
+  },
+  {
+   "imya": "партнёрские и дорвейные домены",
+   "a": 224,
+   "b": 219,
+   "dolya_a": 4.4,
+   "dolya_b": 4.3,
+   "ostalos": 191,
+   "uderzhanie": 85.3
+  },
+  {
+   "imya": "тематические сайты",
+   "a": 199,
+   "b": 194,
+   "dolya_a": 3.9,
+   "dolya_b": 3.8,
+   "ostalos": 175,
+   "uderzhanie": 87.9
+  },
+  {
+   "imya": "крупные площадки рунета",
+   "a": 39,
+   "b": 41,
+   "dolya_a": 0.8,
+   "dolya_b": 0.8,
+   "ostalos": 38,
+   "uderzhanie": 97.4
+  },
+  {
+   "imya": "порталы и рейтинги казино",
+   "a": 35,
+   "b": 36,
+   "dolya_a": 0.7,
+   "dolya_b": 0.7,
+   "ostalos": 32,
+   "uderzhanie": 91.4
+  },
+  {
+   "imya": "каталоги приложений и APK",
+   "a": 29,
+   "b": 30,
+   "dolya_a": 0.6,
+   "dolya_b": 0.6,
+   "ostalos": 28,
+   "uderzhanie": 96.6
+  },
+  {
+   "imya": "соцсети и видео",
+   "a": 15,
+   "b": 16,
+   "dolya_a": 0.3,
+   "dolya_b": 0.3,
+   "ostalos": 15,
+   "uderzhanie": 100.0
+  }
+ ],
+ "zony": [
+  {
+   "imya": "buzz",
+   "a": 1080,
+   "b": 1079,
+   "dolya_a": 36.0,
+   "dolya_b": 36.6,
+   "ostalos": 714,
+   "uderzhanie": 66.1
+  },
+  {
+   "imya": "casino",
+   "a": 929,
+   "b": 882,
+   "dolya_a": 31.0,
+   "dolya_b": 29.9,
+   "ostalos": 607,
+   "uderzhanie": 65.3
+  },
+  {
+   "imya": "team",
+   "a": 328,
+   "b": 324,
+   "dolya_a": 10.9,
+   "dolya_b": 11.0,
+   "ostalos": 232,
+   "uderzhanie": 70.7
+  },
+  {
+   "imya": "top",
+   "a": 211,
+   "b": 217,
+   "dolya_a": 7.0,
+   "dolya_b": 7.4,
+   "ostalos": 159,
+   "uderzhanie": 75.4
+  },
+  {
+   "imya": "lol",
+   "a": 92,
+   "b": 97,
+   "dolya_a": 3.1,
+   "dolya_b": 3.3,
+   "ostalos": 58,
+   "uderzhanie": 63.0
+  },
+  {
+   "imya": "sbs",
+   "a": 70,
+   "b": 68,
+   "dolya_a": 2.3,
+   "dolya_b": 2.3,
+   "ostalos": 50,
+   "uderzhanie": 71.4
+  },
+  {
+   "imya": "online",
+   "a": 46,
+   "b": 33,
+   "dolya_a": 1.5,
+   "dolya_b": 1.1,
+   "ostalos": 27,
+   "uderzhanie": 58.7
+  },
+  {
+   "imya": "best",
+   "a": 43,
+   "b": 46,
+   "dolya_a": 1.4,
+   "dolya_b": 1.6,
+   "ostalos": 36,
+   "uderzhanie": 83.7
+  },
+  {
+   "imya": "com",
+   "a": 33,
+   "b": 28,
+   "dolya_a": 1.1,
+   "dolya_b": 0.9,
+   "ostalos": 24,
+   "uderzhanie": 72.7
+  },
+  {
+   "imya": "cfd",
+   "a": 26,
+   "b": 25,
+   "dolya_a": 0.9,
+   "dolya_b": 0.8,
+   "ostalos": 21,
+   "uderzhanie": 80.8
+  },
+  {
+   "imya": "casa",
+   "a": 23,
+   "b": 26,
+   "dolya_a": 0.8,
+   "dolya_b": 0.9,
+   "ostalos": 14,
+   "uderzhanie": 60.9
+  },
+  {
+   "imya": "ru",
+   "a": 17,
+   "b": 19,
+   "dolya_a": 0.6,
+   "dolya_b": 0.6,
+   "ostalos": 15,
+   "uderzhanie": 88.2
+  }
+ ],
+ "top3_a": 1607,
+ "top3_derzhit": 1229,
+ "top3_dolya": 76.5,
+ "top3_po_tipu": [
+  {
+   "imya": "каталоги приложений и APK",
+   "a": 17,
+   "derzhit": 16,
+   "dolya": 94.1
+  },
+  {
+   "imya": "порталы и рейтинги казино",
+   "a": 24,
+   "derzhit": 22,
+   "dolya": 91.7
+  },
+  {
+   "imya": "тематические сайты",
+   "a": 82,
+   "derzhit": 75,
+   "dolya": 91.5
+  },
+  {
+   "imya": "крупные площадки рунета",
+   "a": 21,
+   "derzhit": 19,
+   "dolya": 90.5
+  },
+  {
+   "imya": "партнёрские и дорвейные домены",
+   "a": 103,
+   "derzhit": 91,
+   "dolya": 88.3
+  },
+  {
+   "imya": "брендовые домены (зеркала и клоны)",
+   "a": 564,
+   "derzhit": 491,
+   "dolya": 87.1
+  },
+  {
+   "imya": "прочие домены",
+   "a": 66,
+   "derzhit": 57,
+   "dolya": 86.4
+  },
+  {
+   "imya": "доры (поддомены)",
+   "a": 724,
+   "derzhit": 453,
+   "dolya": 62.6
+  }
+ ],
+ "nashi_a": 107,
+ "nashi_b": 96,
+ "nashi_ostalis": 69,
+ "nashi_ushli": [
+  "888starz.5539.team",
+  "aurora.2296.team",
+  "aurora.5372.team",
+  "bitz.0507.team",
+  "blitzred.ffea.team",
+  "fenix.hils.team",
+  "fraga.2675.lol",
+  "goodwin.8202.team",
+  "joycasino.8627.team",
+  "jozz.efwg.team",
+  "kush.ikne.team",
+  "leebet.cdfb.team",
+  "leebet.jlrl.team",
+  "lootrun.pypp.team",
+  "lukkly.4981.lol",
+  "lukkly.6966.team",
+  "lukkly.8818.team",
+  "lukkly.kzmf.team",
+  "maxline.2032.lol",
+  "motor.fnxt.team",
+  "onlybets.6918casino.lol",
+  "rox.kzbc.team",
+  "slotgames.gakx.team",
+  "slotozal.gakx.team",
+  "spacewin.3356.team",
+  "spacewin.8403.team",
+  "spacewin.c1a6.lol",
+  "spinto.2296.team",
+  "tonplay.1260.team",
+  "tonplay.2296.team",
+  "trix.1998.team",
+  "trix.4220.team",
+  "trix.5327.team",
+  "trix.7205.team",
+  "vivaro.vqfs.team",
+  "vulkanprestige.0126.team",
+  "vulkanprestige.1123.team",
+  "zooma.fnxt.team"
+ ],
+ "nashi_novye": [
+  "blitzred.v1a1.team",
+  "bollywood.vbtw.team",
+  "bonsai.1882.team",
+  "championslots.4529.team",
+  "fenix.52casino.team",
+  "fraga.0009.team",
+  "getx.x2g8.lol",
+  "goldfishka.olle.team",
+  "goodwin.casinotbl.team",
+  "goodwin.s7e.team",
+  "leebet.nvcl.team",
+  "lilbet.hils.team",
+  "lootrun.9298.team",
+  "luckybird.q6f1.team",
+  "lukkly.huqn.team",
+  "lukkly.tbhl.team",
+  "motor.1883.team",
+  "onetap.r6n.team",
+  "spinbetter.mrwy.team",
+  "tonplay.8556.team",
+  "trix.5519.team",
+  "vegasy.5184casino.team",
+  "vulkanprestige.0442.team",
+  "vulkanprestige.1260.team",
+  "vulkanprestige.1882.team",
+  "vulkanprestige.2296.team",
+  "winity.8289.team"
+ ],
+ "brendov": 156,
+ "korrelyaciya": 0.985,
+ "sredn_dolya_a": 47.6,
+ "sredn_dolya_b": 47.5,
+ "sdvigi": [
+  {
+   "imya": "Bollywood",
+   "a": 37.5,
+   "b": 56.8,
+   "raznica": 19.3
+  },
+  {
+   "imya": "Kush",
+   "a": 73.3,
+   "b": 58.2,
+   "raznica": -15.1
+  },
+  {
+   "imya": "Pinco",
+   "a": 20.3,
+   "b": 32.5,
+   "raznica": 12.2
+  },
+  {
+   "imya": "Banda",
+   "a": 71.4,
+   "b": 59.3,
+   "raznica": -12.1
+  },
+  {
+   "imya": "Cat",
+   "a": 37.0,
+   "b": 48.8,
+   "raznica": 11.8
+  },
+  {
+   "imya": "Friends",
+   "a": 55.2,
+   "b": 65.8,
+   "raznica": 10.6
+  },
+  {
+   "imya": "Pari",
+   "a": 53.8,
+   "b": 64.3,
+   "raznica": 10.5
+  },
+  {
+   "imya": "Tonplay",
+   "a": 49.2,
+   "b": 38.8,
+   "raznica": -10.4
+  },
+  {
+   "imya": "Vulkan Russia",
+   "a": 66.7,
+   "b": 56.5,
+   "raznica": -10.2
+  },
+  {
+   "imya": "Zooma",
+   "a": 69.4,
+   "b": 59.3,
+   "raznica": -10.1
+  },
+  {
+   "imya": "Selector",
+   "a": 40.8,
+   "b": 50.0,
+   "raznica": 9.2
+  },
+  {
+   "imya": "888starz",
+   "a": 23.8,
+   "b": 15.0,
+   "raznica": -8.8
+  }
+ ],
+ "sredn_sdvig": 3.7
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Сборка html-отчёта по выдаче: лист типов и лист разбора доров.
+"""Сборка html-отчёта по выдаче: типы, разбор доров, сравнение двух съёмов.
 
-    python3 -I scripts/otchet_vydacha.py <tipy.json> <dory.json> <выход.html>
+    python3 -I scripts/otchet_vydacha.py <tipy.json> <dory.json> <выход.html> [sravnenie.json]
 """
 import json
 import sys
@@ -9,6 +9,7 @@ import sys
 tipy = json.load(open(sys.argv[1], encoding='utf-8'))
 dory = json.load(open(sys.argv[2], encoding='utf-8'))
 VYHOD = sys.argv[3]
+srav = json.load(open(sys.argv[4], encoding='utf-8')) if len(sys.argv) > 4 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -114,10 +115,11 @@ footer code{font-family:var(--mono);font-size:11.5px}
 <header class="shapka">
   <div class="shapka-vnutri">
     <h1>Анатомия выдачи</h1>
-    <div class="podzag">Съём 16.11.2026 · <span id="shapka-chisla"></span></div>
+    <div class="podzag">Два съёма 16.11.2026 · <span id="shapka-chisla"></span></div>
     <div class="listy" role="tablist">
       <button role="tab" id="t1" aria-controls="list1" aria-selected="true">Типы сайтов</button>
       <button role="tab" id="t2" aria-controls="list2" aria-selected="false">Разбор доров</button>
+      <button role="tab" id="t3" aria-controls="list3" aria-selected="false">Сравнение съёмов</button>
     </div>
   </div>
 </header>
@@ -125,8 +127,10 @@ footer code{font-family:var(--mono);font-size:11.5px}
 <div class="obolochka">
   <div id="list1" role="tabpanel" aria-labelledby="t1"></div>
   <div id="list2" role="tabpanel" aria-labelledby="t2" hidden></div>
+  <div id="list3" role="tabpanel" aria-labelledby="t3" hidden></div>
   <footer>
-    Источник — выгрузка всех сайтов выдачи на 16.11.2026. Тип считается заново по правилам
+    Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
+    Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
     <code>analysis/scripts/serp_tipy.py</code>: в исходной выгрузке дором считался любой поддомен,
     туда попадали <code>m.sports.ru</code> и <code>play.google.com</code>.
     Доля строк и топ-3 — от всех строк выдачи и всех мест в топ-3 в съёме.
@@ -340,6 +344,116 @@ document.getElementById('list2').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 3 — сравнение съёмов */
+const v = D.srav;
+if (v) document.getElementById('list3').innerHTML = `
+<section>
+  <h2>Два съёма одного дня</h2>
+  <p class="vvod">Те же 166 брендов, тот же день. Объём выдачи совпал почти точь-в-точь,
+     а состав сайтов — нет. Разница между съёмами и есть мера того, насколько выдача текучая.</p>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${ch(v.a.sajtov)} / ${ch(v.b.sajtov)}</span><div class="pd">сайтов, съём A / B</div></div>
+    <div class="plitka"><span class="ch">${ch(v.a.strok)} / ${ch(v.b.strok)}</span><div class="pd">строк выдачи</div></div>
+    <div class="plitka"><span class="ch">${ch(v.a.top3)} / ${ch(v.b.top3)}</span><div class="pd">мест в топ-3</div></div>
+    <div class="plitka"><span class="ch">${pr(v.dolya_obshih_a)}</span><div class="pd">сайтов A дожили до B (${ch(v.obshih)})</div></div>
+    <div class="plitka vydel"><span class="ch">${ch(v.tolko_a)} / ${ch(v.tolko_b)}</span><div class="pd">только в A / только в B</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Структура не шевельнулась</h2>
+  <p class="vvod">Доли типов в двух съёмах совпадают с точностью до долей процента —
+     при том, что каждый четвёртый сайт сменился.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Тип</th><th class="num">Сайтов A</th><th class="num">Сайтов B</th>
+        <th class="num">% в A</th><th class="num">% в B</th>
+        <th class="num">Осталось</th><th class="num">Удержание</th></tr></thead>
+      <tbody>${v.tipy.map(x => `<tr>
+        <td>${x.imya}</td><td class="num">${ch(x.a)}</td><td class="num">${ch(x.b)}</td>
+        <td class="num">${pr(x.dolya_a)}</td><td class="num">${pr(x.dolya_b)}</td>
+        <td class="num">${ch(x.ostalos)}</td><td class="num"><b>${pr(x.uderzhanie)}</b></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Кто держится, а кого вымывает</h2>
+  <p class="vvod">Доля сайтов съёма A, которые нашлись и в съёме B. Шкала 0–100%.</p>
+  ${polosy(v.tipy.slice().sort((a,b) => b.uderzhanie - a.uderzhanie)
+      .map(x => ({imya: x.imya, n: x.ostalos, dolya: x.uderzhanie})), {edinica: 'сайтов', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Места в топ-3 держатся хуже всего у доров</h2>
+  <p class="vvod">Из ${ch(v.top3_a)} сайтов, стоявших в топ-3 в съёме A, место сохранили
+     ${ch(v.top3_derzhit)} — ${pr(v.top3_dolya)}. По типам, шкала 0–100%.</p>
+  ${polosy(v.top3_po_tipu.map(x => ({imya: x.imya, n: x.derzhit, dolya: x.dolya})),
+      {edinica: 'сайтов', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Зоны доров: доля держится, сайты меняются</h2>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Зона</th><th class="num">Доров A</th><th class="num">Доров B</th>
+        <th class="num">% в A</th><th class="num">% в B</th><th class="num">Удержание</th></tr></thead>
+      <tbody>${v.zony.map(x => `<tr>
+        <td class="num">.${x.imya}</td><td class="num">${ch(x.a)}</td><td class="num">${ch(x.b)}</td>
+        <td class="num">${pr(x.dolya_a)}</td><td class="num">${pr(x.dolya_b)}</td>
+        <td class="num"><b>${pr(x.uderzhanie)}</b></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">05</span>Наши сайты в этих съёмах</h2>
+  <p class="vvod">Наших доров в A ${ch(v.nashi_a)}, в B ${ch(v.nashi_b)}, в обоих ${ch(v.nashi_ostalis)} —
+     удержание ${pr(100 * v.nashi_ostalis / v.nashi_a)}. Это ниже, чем у чужих доров
+     (${pr(v.tipy.find(x => x.imya.startsWith('доры')).uderzhanie)}).</p>
+  <div class="dve">
+    <div class="karta"><div class="legenda"><b style="color:var(--ink)">Выпали из B — ${ch(v.nashi_ushli.length)}</b></div>
+      <div class="primery">${v.nashi_ushli.join(' · ')}</div></div>
+    <div class="karta"><div class="legenda"><b style="color:var(--ink)">Появились в B — ${ch(v.nashi_novye.length)}</b></div>
+      <div class="primery">${v.nashi_novye.join(' · ')}</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">06</span>Доля доров по брендам совпала</h2>
+  <p class="vvod">По ${ch(v.brendov)} брендам доля строк выдачи, занятых дорами:
+     корреляция между съёмами ${v.korrelyaciya}, средняя ${pr(v.sredn_dolya_a)} против ${pr(v.sredn_dolya_b)},
+     средний сдвиг ${v.sredn_sdvig} процентных пункта. Ниже — бренды с самыми большими сдвигами.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th class="num">Доля доров, A</th><th class="num">Доля доров, B</th><th class="num">Сдвиг</th></tr></thead>
+      <tbody>${v.sdvigi.map(x => `<tr><td>${x.imya}</td>
+        <td class="num">${pr(x.a)}</td><td class="num">${pr(x.b)}</td>
+        <td class="num"><b style="color:${x.raznica > 0 ? 'var(--nash)' : 'var(--accent)'}">${x.raznica > 0 ? '+' : ''}${x.raznica.toLocaleString('ru-RU', {minimumFractionDigits:1, maximumFractionDigits:1})}</b></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Выдача не меняется — меняются сайты в ней.</b> Между двумя съёмами одного дня сменился
+        каждый четвёртый сайт (${ch(v.tolko_a)} ушли, ${ch(v.tolko_b)} пришли), а доли типов
+        остались те же с точностью до 0,2 п.п.</li>
+    <li><b>Вымывает именно доры.</b> Удержание у доров ${pr(v.tipy.find(x => x.imya.startsWith('доры')).uderzhanie)},
+        у брендовых доменов ${pr(v.tipy.find(x => x.imya.startsWith('брендовые')).uderzhanie)},
+        у соцсетей и площадок рунета — под 100%.</li>
+    <li><b>Место в топ-3 у дора — расходник.</b> Из доров, стоявших в топ-3, место сохранили
+        ${pr(v.top3_po_tipu[v.top3_po_tipu.length - 1].dolya)}, у брендовых доменов —
+        ${pr(v.top3_po_tipu.find(x => x.imya.startsWith('брендовые')).dolya)}.</li>
+    <li><b>Наши ротируются сильнее чужих.</b> ${ch(v.nashi_ushli.length)} наших сайтов выпали,
+        ${ch(v.nashi_novye.length)} появились; в обоих съёмах только ${ch(v.nashi_ostalis)} из ${ch(v.nashi_a)}.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -351,10 +465,11 @@ knopki.forEach(k => k.addEventListener('click', () => {
   try { localStorage.setItem('list', k.id); } catch (e) {}
   window.scrollTo({top: 0});
 }));
-try { const s = localStorage.getItem('list'); if (s === 't2') document.getElementById('t2').click(); } catch (e) {}
+try { const s = localStorage.getItem('list');
+  if (s === 't2' || s === 't3') document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
-dannye = json.dumps({'tipy': tipy, 'dory': dory}, ensure_ascii=False)
+dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')
