@@ -1,0 +1,46 @@
+# Конверсии 2026-11-13..2026-11-16: 13 поддоменов, 17 рег, 2 фд
+
+поддомен                           база                      рег  фд  даты
+leon.2663.lol                      2663.lol                    5   0  2026-11-13, 2026-11-15, 2026-11-16
+avocado.fgzp.team                  fgzp.team (нет в реестре)    2   0  2026-11-15
+spincity.casinor4.lol              casinor4.lol                1   1  2026-11-13
+bounty.jqtz.team                   jqtz.team                   1   0  2026-11-13
+lex.9298.team                      9298.team                   1   0  2026-11-13
+lootrun.1927.lol                   1927.lol                    1   0  2026-11-13
+mellstroy.2640.lol                 2640.lol                    1   0  2026-11-13
+olimp.k3u5.team                    k3u5.team                   1   0  2026-11-15
+olimp.rvue.team                    rvue.team                   1   0  2026-11-16
+pinco.9095.team                    9095.team                   1   0  2026-11-13
+pinco.ypur.team                    ypur.team                   1   0  2026-11-13
+smoky.2528.team                    2528.team                   0   1  2026-11-13
+vodka.3393.lol                     3393.lol                    1   0  2026-11-16
+
+# Список поддоменов в столбик
+leon.2663.lol
+avocado.fgzp.team
+spincity.casinor4.lol
+bounty.jqtz.team
+lex.9298.team
+lootrun.1927.lol
+mellstroy.2640.lol
+olimp.k3u5.team
+olimp.rvue.team
+pinco.9095.team
+pinco.ypur.team
+smoky.2528.team
+vodka.3393.lol
+
+# Ключ чужой формы (поисковик вместо поддомена или чужая сетка)
+  2026-11-14T08:16:59  reg  yandex.ru  метка unlim_engine
+  2026-11-14T16:15:30  reg  ya.ru  метка drip_engine
+  2026-11-14T17:27:07  fd  ya.ru  метка drip_engine
+  2026-11-15T10:15:30  reg  yandex.ru  метка drip_engine
+  2026-11-15T10:24:30  fd  yandex.ru  метка drip_engine
+  2026-11-15T11:38:27  reg  proverka.test  метка dorgen_engine
+  2026-11-16T12:17:12  reg  ya.ru  метка unlim_engine
+
+# Без поддомена в трекере (не привязать к домену)
+  2026-11-13T23:26:34  reg  clickid source_id
+  2026-11-14T12:38:44  reg  clickid source_id
+
+# Метки кампаний на наших конверсиях: {'dorgen_engine': 19}
