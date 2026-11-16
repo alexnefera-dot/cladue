@@ -1,0 +1,2368 @@
+{
+ "hostov": 3,
+ "brendov_vsego": 166,
+ "tg_strok": 1006,
+ "tg_top3": 410,
+ "soc_strok": 1189,
+ "soc_top3": 420,
+ "dolya_tg_v_soc_strok": 84.6,
+ "dolya_tg_v_soc_top3": 97.6,
+ "vsego_strok_vydachi": 15511,
+ "vsego_top3_vydachi": 4654,
+ "vsego_sajtov": 5133,
+ "dolya_strok": 6.5,
+ "dolya_top3": 8.8,
+ "sajty": [
+  {
+   "imya": "t.me",
+   "telegram": true,
+   "brendov": 149,
+   "strok": 913,
+   "top3": 386,
+   "poziciya": 1,
+   "obrezano": 137,
+   "vidno": [
+    "Luckybear",
+    "1win",
+    "1xbet",
+    "AUF",
+    "AdmiralX",
+    "Arkada",
+    "Atom",
+    "Avocado",
+    "Baboss",
+    "Banda",
+    "Beef",
+    "Betera"
+   ]
+  },
+  {
+   "imya": "telegram.me",
+   "telegram": true,
+   "brendov": 40,
+   "strok": 91,
+   "top3": 24,
+   "poziciya": 1,
+   "obrezano": 28,
+   "vidno": [
+    "Arkada",
+    "Baboss",
+    "Banda",
+    "Beef",
+    "Bigsbet",
+    "Bitz",
+    "Bitzamo",
+    "Cat",
+    "Dragon Money",
+    "Eldorado",
+    "Enomo",
+    "Ezcash"
+   ]
+  },
+  {
+   "imya": "m.youtube.com",
+   "telegram": false,
+   "brendov": 25,
+   "strok": 55,
+   "top3": 4,
+   "poziciya": 1,
+   "obrezano": 13,
+   "vidno": [
+    "BitStarz",
+    "Eva",
+    "Everum",
+    "Fairspin",
+    "Frank",
+    "Gama",
+    "Goldfishka",
+    "Mellstroy",
+    "Parimatch",
+    "Pokerok",
+    "Shot",
+    "Stake"
+   ]
+  },
+  {
+   "imya": "vk.ru",
+   "telegram": false,
+   "brendov": 39,
+   "strok": 76,
+   "top3": 3,
+   "poziciya": 2,
+   "obrezano": 27,
+   "vidno": [
+    "1win",
+    "AUF",
+    "Avocado",
+    "Banda",
+    "Bitz",
+    "Bitzamo",
+    "Cactus",
+    "Dragon Money",
+    "Fairspin",
+    "Fenix",
+    "Flagman",
+    "Goldfishka"
+   ]
+  },
+  {
+   "imya": "tiktok.com",
+   "telegram": false,
+   "brendov": 3,
+   "strok": 5,
+   "top3": 2,
+   "poziciya": 3,
+   "obrezano": 0,
+   "vidno": [
+    "Maxline",
+    "Fonbet",
+    "Onetap"
+   ]
+  },
+  {
+   "imya": "m.ok.ru",
+   "telegram": false,
+   "brendov": 5,
+   "strok": 9,
+   "top3": 1,
+   "poziciya": 3,
+   "obrezano": 0,
+   "vidno": [
+    "Eldorado",
+    "Lucky Bird",
+    "Million",
+    "Volna",
+    "Fonbet"
+   ]
+  },
+  {
+   "imya": "dzen.ru",
+   "telegram": false,
+   "brendov": 6,
+   "strok": 7,
+   "top3": 0,
+   "poziciya": 4,
+   "obrezano": 0,
+   "vidno": [
+    "Banda",
+    "Marathon",
+    "Mellstroy",
+    "Million",
+    "Tonplay",
+    "Fonbet"
+   ]
+  },
+  {
+   "imya": "invite.viber.com",
+   "telegram": false,
+   "brendov": 4,
+   "strok": 10,
+   "top3": 0,
+   "poziciya": 4,
+   "obrezano": 0,
+   "vidno": [
+    "Gold",
+    "Vulkan Vegas",
+    "Vulkan Russia",
+    "без бренда"
+   ]
+  },
+  {
+   "imya": "m.vk.ru",
+   "telegram": false,
+   "brendov": 4,
+   "strok": 4,
+   "top3": 0,
+   "poziciya": 7,
+   "obrezano": 0,
+   "vidno": [
+    "Mellstroy",
+    "Starda",
+    "Tonplay",
+    "Vulkan 24"
+   ]
+  },
+  {
+   "imya": "vk.link",
+   "telegram": false,
+   "brendov": 3,
+   "strok": 5,
+   "top3": 0,
+   "poziciya": 7,
+   "obrezano": 0,
+   "vidno": [
+    "Loft",
+    "Trix",
+    "vulkanroial"
+   ]
+  },
+  {
+   "imya": "x.com",
+   "telegram": false,
+   "brendov": 2,
+   "strok": 6,
+   "top3": 0,
+   "poziciya": 4,
+   "obrezano": 0,
+   "vidno": [
+    "Fresh",
+    "Rox"
+   ]
+  },
+  {
+   "imya": "rutube.ru",
+   "telegram": false,
+   "brendov": 2,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 7,
+   "obrezano": 0,
+   "vidno": [
+    "Why",
+    "Jet"
+   ]
+  },
+  {
+   "imya": "tgstat.ru",
+   "telegram": true,
+   "brendov": 2,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 4,
+   "obrezano": 0,
+   "vidno": [
+    "Trix",
+    "UP-X"
+   ]
+  },
+  {
+   "imya": "ru.pinterest.com",
+   "telegram": false,
+   "brendov": 1,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 5,
+   "obrezano": 0,
+   "vidno": [
+    "Pin Up"
+   ]
+  },
+  {
+   "imya": "twitch.tv",
+   "telegram": false,
+   "brendov": 1,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 9,
+   "obrezano": 0,
+   "vidno": [
+    "UP-X"
+   ]
+  }
+ ],
+ "ohvat_tme": 149,
+ "liderov": 15,
+ "lidery": [
+  "Arkada",
+  "Everum",
+  "Laki",
+  "Selector",
+  "Vodka",
+  "Crystalslot",
+  "Aurora Casino",
+  "Enomo",
+  "Hype",
+  "Vibe",
+  "Slotgames",
+  "Fairspin",
+  "GetX",
+  "Pokerdom",
+  "AdmiralX"
+ ],
+ "liderstvo_ryad": [
+  {
+   "imya": "t.me",
+   "n": 15
+  },
+  {
+   "imya": "casino.ru",
+   "n": 4
+  },
+  {
+   "imya": "pari.ru",
+   "n": 2
+  },
+  {
+   "imya": "v24-zerkalo.info",
+   "n": 2
+  },
+  {
+   "imya": "vstars-zerkalo.com",
+   "n": 2
+  },
+  {
+   "imya": "888starz39.fun",
+   "n": 2
+  },
+  {
+   "imya": "mostbet11.kz",
+   "n": 2
+  },
+  {
+   "imya": "lucky-bear.games",
+   "n": 1
+  }
+ ],
+ "tochno_s": 34,
+ "tochno_bez": [
+  "Boost",
+  "Champion Slots",
+  "Eva",
+  "Gold",
+  "Goldfishka",
+  "MostBet Bookmaker",
+  "Starda",
+  "Vulkan 24",
+  "Vulkan Mega",
+  "Vulkan Platinum",
+  "Vulkan Russia",
+  "avrorapri",
+  "mostbetmostbet",
+  "vulkanprestizh",
+  "vulkanroial"
+ ],
+ "neyasno": 117,
+ "bez_soc": [
+  "Boost",
+  "Champion Slots",
+  "Vulkan Platinum",
+  "Vulkan Mega",
+  "vulkanprestizh",
+  "MostBet Bookmaker",
+  "avrorapri",
+  "mostbetmostbet",
+  "vulkanroial"
+ ],
+ "brendy": [
+  {
+   "imya": "Arkada",
+   "soc": 2,
+   "vsego_sajtov": 46,
+   "strok": 100,
+   "dolya_soc": 28.5,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Everum",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 28.2,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "m.youtube.com",
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Laki",
+   "soc": 2,
+   "vsego_sajtov": 32,
+   "strok": 70,
+   "dolya_soc": 27.2,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Selector",
+   "soc": 2,
+   "vsego_sajtov": 33,
+   "strok": 90,
+   "dolya_soc": 26.6,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Vodka",
+   "soc": 4,
+   "vsego_sajtov": 44,
+   "strok": 100,
+   "dolya_soc": 25.4,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Crystalslot",
+   "soc": 2,
+   "vsego_sajtov": 50,
+   "strok": 90,
+   "dolya_soc": 25.4,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Aurora Casino",
+   "soc": 2,
+   "vsego_sajtov": 44,
+   "strok": 80,
+   "dolya_soc": 24.9,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Enomo",
+   "soc": 1,
+   "vsego_sajtov": 56,
+   "strok": 100,
+   "dolya_soc": 24.1,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Daddy",
+   "soc": 1,
+   "vsego_sajtov": 28,
+   "strok": 100,
+   "dolya_soc": 23.0,
+   "lider": "daddy707.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "ClubNika",
+   "soc": 1,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 21.2,
+   "lider": "clubnika574.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Hype",
+   "soc": 3,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 20.5,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Vibe",
+   "soc": 2,
+   "vsego_sajtov": 65,
+   "strok": 100,
+   "dolya_soc": 20.4,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Slotgames",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 90,
+   "dolya_soc": 20.2,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Fairspin",
+   "soc": 4,
+   "vsego_sajtov": 52,
+   "strok": 100,
+   "dolya_soc": 19.2,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "m.youtube.com",
+    "t.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Beef",
+   "soc": 2,
+   "vsego_sajtov": 50,
+   "strok": 100,
+   "dolya_soc": 18.2,
+   "lider": "beef992.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "GetX",
+   "soc": 3,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 17.5,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Baboss",
+   "soc": 3,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 16.7,
+   "lider": "baboss-casino-god79.top",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Kent",
+   "soc": 2,
+   "vsego_sajtov": 33,
+   "strok": 100,
+   "dolya_soc": 16.3,
+   "lider": "1kent.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Pokerdom",
+   "soc": 2,
+   "vsego_sajtov": 29,
+   "strok": 100,
+   "dolya_soc": 16.3,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Unlim Casino",
+   "soc": 2,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 15.1,
+   "lider": "unlim-casino.wtf",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Cactus",
+   "soc": 2,
+   "vsego_sajtov": 47,
+   "strok": 100,
+   "dolya_soc": 13.7,
+   "lider": "cactus-t16.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Flagman",
+   "soc": 3,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 13.3,
+   "lider": "flagmann.online",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Friends",
+   "soc": 2,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 13.2,
+   "lider": "friends-casino274.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Casino X",
+   "soc": 1,
+   "vsego_sajtov": 29,
+   "strok": 60,
+   "dolya_soc": 13.2,
+   "lider": "casino.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "BitStarz",
+   "soc": 2,
+   "vsego_sajtov": 29,
+   "strok": 98,
+   "dolya_soc": 13.0,
+   "lider": "bitstarcasino.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Mellstroy",
+   "soc": 5,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 12.9,
+   "lider": "mellstroy293.team",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "dzen.ru",
+    "m.vk.ru",
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Avocado",
+   "soc": 2,
+   "vsego_sajtov": 36,
+   "strok": 100,
+   "dolya_soc": 12.8,
+   "lider": "avocado.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Loft",
+   "soc": 2,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 12.7,
+   "lider": "loft.vipcasino29v09ip.best",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "vk.link"
+   ]
+  },
+  {
+   "imya": "AdmiralX",
+   "soc": 2,
+   "vsego_sajtov": 52,
+   "strok": 100,
+   "dolya_soc": 12.5,
+   "lider": "t.me",
+   "lider_tg": true,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Jetton",
+   "soc": 3,
+   "vsego_sajtov": 36,
+   "strok": 100,
+   "dolya_soc": 12.4,
+   "lider": "jetton1.info",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vovan",
+   "soc": 2,
+   "vsego_sajtov": 38,
+   "strok": 100,
+   "dolya_soc": 12.2,
+   "lider": "vovan888prime.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Fonbet",
+   "soc": 4,
+   "vsego_sajtov": 34,
+   "strok": 90,
+   "dolya_soc": 12.1,
+   "lider": "fon.bet",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "dzen.ru",
+    "m.ok.ru",
+    "tiktok.com"
+   ]
+  },
+  {
+   "imya": "Fenix",
+   "soc": 2,
+   "vsego_sajtov": 46,
+   "strok": 100,
+   "dolya_soc": 11.8,
+   "lider": "fenixx.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "UP-X",
+   "soc": 5,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 11.7,
+   "lider": "up-x-sqmy69.best",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "tgstat.ru",
+    "twitch.tv"
+   ]
+  },
+  {
+   "imya": "Cat",
+   "soc": 2,
+   "vsego_sajtov": 29,
+   "strok": 100,
+   "dolya_soc": 11.6,
+   "lider": "cat-40.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Zooma",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 11.6,
+   "lider": "zooma-201.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Jet",
+   "soc": 3,
+   "vsego_sajtov": 39,
+   "strok": 80,
+   "dolya_soc": 11.4,
+   "lider": "jetcasino5018.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "rutube.ru"
+   ]
+  },
+  {
+   "imya": "AUF",
+   "soc": 2,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 11.3,
+   "lider": "aauf.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Mers",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 11.3,
+   "lider": "mers.avl.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Olimp",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 11.3,
+   "lider": "olymp.casino111play.team",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Slotozal",
+   "soc": 2,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 11.3,
+   "lider": "slotozal-kasino-game.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Rox",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 10.9,
+   "lider": "roxcasino3231.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "x.com"
+   ]
+  },
+  {
+   "imya": "Spin City",
+   "soc": 2,
+   "vsego_sajtov": 36,
+   "strok": 99,
+   "dolya_soc": 10.8,
+   "lider": "spincity-casino-gon3j.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Eva",
+   "soc": 1,
+   "vsego_sajtov": 47,
+   "strok": 100,
+   "dolya_soc": 10.7,
+   "lider": "eva-casino542.lol",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Onlybets",
+   "soc": 1,
+   "vsego_sajtov": 43,
+   "strok": 90,
+   "dolya_soc": 10.7,
+   "lider": "onlybets.casino111play.team",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Pokerok",
+   "soc": 2,
+   "vsego_sajtov": 34,
+   "strok": 100,
+   "dolya_soc": 10.6,
+   "lider": "com.pokerok.cfd",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "New Retro",
+   "soc": 1,
+   "vsego_sajtov": 22,
+   "strok": 100,
+   "dolya_soc": 10.2,
+   "lider": "newretro-casino-gosys.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Bitz",
+   "soc": 3,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 10.1,
+   "lider": "bitzbitcoin.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Eldorado",
+   "soc": 5,
+   "vsego_sajtov": 48,
+   "strok": 100,
+   "dolya_soc": 9.8,
+   "lider": "eldorado.casinoymm58.buzz",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "m.ok.ru",
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Lootrun",
+   "soc": 2,
+   "vsego_sajtov": 50,
+   "strok": 100,
+   "dolya_soc": 9.8,
+   "lider": "lootcn.run",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Atom",
+   "soc": 1,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 9.7,
+   "lider": "atom140.com",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Volna",
+   "soc": 3,
+   "vsego_sajtov": 38,
+   "strok": 100,
+   "dolya_soc": 9.7,
+   "lider": "volna-casino938.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.ok.ru"
+   ]
+  },
+  {
+   "imya": "Leebet",
+   "soc": 2,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 9.6,
+   "lider": "1leebet.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Luckyduck",
+   "soc": 2,
+   "vsego_sajtov": 44,
+   "strok": 100,
+   "dolya_soc": 9.6,
+   "lider": "lucky-duck.show",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Shuffle",
+   "soc": 3,
+   "vsego_sajtov": 50,
+   "strok": 90,
+   "dolya_soc": 9.6,
+   "lider": "shuffle.club",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Sweet",
+   "soc": 1,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 9.3,
+   "lider": "sweet-bonanza.one",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Banda",
+   "soc": 2,
+   "vsego_sajtov": 55,
+   "strok": 100,
+   "dolya_soc": 9.2,
+   "lider": "banda.casino1711.top",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "dzen.ru",
+    "t.me",
+    "telegram.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Gizbo",
+   "soc": 2,
+   "vsego_sajtov": 33,
+   "strok": 100,
+   "dolya_soc": 9.1,
+   "lider": "gizbo-casino512.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "CryptoBoss",
+   "soc": 1,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 8.9,
+   "lider": "crypto-boss771.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Maxbetslots",
+   "soc": 2,
+   "vsego_sajtov": 23,
+   "strok": 100,
+   "dolya_soc": 8.8,
+   "lider": "maxslotszerkalo.info",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "krakenov",
+   "soc": 1,
+   "vsego_sajtov": 6,
+   "strok": 6,
+   "dolya_soc": 8.8,
+   "lider": "couponswift.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Goldfishka",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 8.6,
+   "lider": "goldfishka-casino-go5bd.top",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "m.youtube.com",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Motor",
+   "soc": 1,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 8.6,
+   "lider": "motor227.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "slotgame",
+   "soc": 1,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 8.6,
+   "lider": "slotgames-casino-govvi.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Lucky Bird",
+   "soc": 2,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 8.3,
+   "lider": "casino.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.ok.ru"
+   ]
+  },
+  {
+   "imya": "1xbet",
+   "soc": 1,
+   "vsego_sajtov": 48,
+   "strok": 100,
+   "dolya_soc": 8.1,
+   "lider": "1xbet-x1ad.top",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Marathon",
+   "soc": 3,
+   "vsego_sajtov": 58,
+   "strok": 100,
+   "dolya_soc": 8.1,
+   "lider": "marathonbet.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "dzen.ru"
+   ]
+  },
+  {
+   "imya": "Melbet",
+   "soc": 1,
+   "vsego_sajtov": 37,
+   "strok": 80,
+   "dolya_soc": 8.1,
+   "lider": "melbet.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan Prestige",
+   "soc": 2,
+   "vsego_sajtov": 39,
+   "strok": 60,
+   "dolya_soc": 8.1,
+   "lider": "topkazinobonus.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Dragon Money",
+   "soc": 3,
+   "vsego_sajtov": 29,
+   "strok": 100,
+   "dolya_soc": 7.8,
+   "lider": "drgn71.org",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Sykaaa",
+   "soc": 1,
+   "vsego_sajtov": 59,
+   "strok": 100,
+   "dolya_soc": 7.8,
+   "lider": "casino.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan Russia",
+   "soc": 1,
+   "vsego_sajtov": 40,
+   "strok": 80,
+   "dolya_soc": 7.8,
+   "lider": "clubvulkan72.com",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "invite.viber.com"
+   ]
+  },
+  {
+   "imya": "Gama",
+   "soc": 2,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 7.7,
+   "lider": "gama823.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Sol",
+   "soc": 1,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 7.7,
+   "lider": "solcasino2262.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Casinora",
+   "soc": 1,
+   "vsego_sajtov": 29,
+   "strok": 100,
+   "dolya_soc": 7.6,
+   "lider": "ra-casino-playo69.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Riobet",
+   "soc": 1,
+   "vsego_sajtov": 33,
+   "strok": 100,
+   "dolya_soc": 7.6,
+   "lider": "riobet-sey46.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Blitzred",
+   "soc": 1,
+   "vsego_sajtov": 66,
+   "strok": 100,
+   "dolya_soc": 7.5,
+   "lider": "blitzred.casino111play.team",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "1win",
+   "soc": 1,
+   "vsego_sajtov": 47,
+   "strok": 120,
+   "dolya_soc": 7.2,
+   "lider": "1win-rrr4.top",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Vulkan Stars",
+   "soc": 1,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 7.2,
+   "lider": "vstars-zerkalo.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Trix",
+   "soc": 5,
+   "vsego_sajtov": 56,
+   "strok": 100,
+   "dolya_soc": 7.1,
+   "lider": "trix66.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "tgstat.ru",
+    "vk.link"
+   ]
+  },
+  {
+   "imya": "Luckybear",
+   "soc": 1,
+   "vsego_sajtov": 38,
+   "strok": 150,
+   "dolya_soc": 7.0,
+   "lider": "lucky-bear.games",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Onion",
+   "soc": 2,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 7.0,
+   "lider": "onion.12casino-18.buzz",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Grizzly",
+   "soc": 1,
+   "vsego_sajtov": 55,
+   "strok": 100,
+   "dolya_soc": 6.8,
+   "lider": "grizzly.casino32019.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Brillx",
+   "soc": 2,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 6.7,
+   "lider": "brillxcazino-best.cam",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Booi",
+   "soc": 1,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 6.6,
+   "lider": "booi-casino10.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Lukkly",
+   "soc": 1,
+   "vsego_sajtov": 66,
+   "strok": 100,
+   "dolya_soc": 6.4,
+   "lider": "lukkly-casino.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Honey Money",
+   "soc": 3,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 6.3,
+   "lider": "honey-money.click",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Monro",
+   "soc": 1,
+   "vsego_sajtov": 34,
+   "strok": 100,
+   "dolya_soc": 6.3,
+   "lider": "monrocasino618.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Turbo",
+   "soc": 1,
+   "vsego_sajtov": 33,
+   "strok": 90,
+   "dolya_soc": 6.2,
+   "lider": "turbo-casino.rocks",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Million",
+   "soc": 5,
+   "vsego_sajtov": 54,
+   "strok": 100,
+   "dolya_soc": 6.1,
+   "lider": "million.casino-1611.online",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "dzen.ru",
+    "m.ok.ru"
+   ]
+  },
+  {
+   "imya": "Vavada",
+   "soc": 2,
+   "vsego_sajtov": 44,
+   "strok": 100,
+   "dolya_soc": 5.9,
+   "lider": "vavada438.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Winline",
+   "soc": 2,
+   "vsego_sajtov": 29,
+   "strok": 100,
+   "dolya_soc": 5.8,
+   "lider": "winline.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Stake",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 5.6,
+   "lider": "stakegm.cc",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "iks",
+   "soc": 1,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 5.3,
+   "lider": "casino-x-emdv.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Joycasino",
+   "soc": 2,
+   "vsego_sajtov": 43,
+   "strok": 100,
+   "dolya_soc": 5.2,
+   "lider": "joycasino-cmhj.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Fontan",
+   "soc": 1,
+   "vsego_sajtov": 30,
+   "strok": 100,
+   "dolya_soc": 5.1,
+   "lider": "fontancasino-thz.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Fresh",
+   "soc": 2,
+   "vsego_sajtov": 53,
+   "strok": 100,
+   "dolya_soc": 5.1,
+   "lider": "freshcasino2780.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "x.com"
+   ]
+  },
+  {
+   "imya": "Maxline",
+   "soc": 3,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 5.0,
+   "lider": "m.maxline.by",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "tiktok.com"
+   ]
+  },
+  {
+   "imya": "Onetap",
+   "soc": 3,
+   "vsego_sajtov": 45,
+   "strok": 60,
+   "dolya_soc": 5.0,
+   "lider": "onetap.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "tiktok.com"
+   ]
+  },
+  {
+   "imya": "Gold",
+   "soc": 1,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 4.8,
+   "lider": "casinogoldlove2.ru",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "invite.viber.com"
+   ]
+  },
+  {
+   "imya": "Goodwin",
+   "soc": 2,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 4.8,
+   "lider": "goodwin-casino-goonq.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Irwin",
+   "soc": 2,
+   "vsego_sajtov": 41,
+   "strok": 100,
+   "dolya_soc": 4.8,
+   "lider": "irwin-casino418.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Pinco",
+   "soc": 2,
+   "vsego_sajtov": 31,
+   "strok": 100,
+   "dolya_soc": 4.7,
+   "lider": "pinco420.lol",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Ramenbet",
+   "soc": 1,
+   "vsego_sajtov": 36,
+   "strok": 100,
+   "dolya_soc": 4.7,
+   "lider": "ramenbet-casino-1e2fp.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Starda",
+   "soc": 1,
+   "vsego_sajtov": 31,
+   "strok": 100,
+   "dolya_soc": 4.7,
+   "lider": "stardacasino826.com",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "m.vk.ru"
+   ]
+  },
+  {
+   "imya": "Bitzamo",
+   "soc": 3,
+   "vsego_sajtov": 30,
+   "strok": 100,
+   "dolya_soc": 4.6,
+   "lider": "bitzamo-vip.bond",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me",
+    "vk.ru"
+   ]
+  },
+  {
+   "imya": "Tonplay",
+   "soc": 3,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 4.6,
+   "lider": "tonplay2.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "dzen.ru",
+    "m.vk.ru"
+   ]
+  },
+  {
+   "imya": "Kometa",
+   "soc": 1,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 4.5,
+   "lider": "kometa-official.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Martin",
+   "soc": 2,
+   "vsego_sajtov": 43,
+   "strok": 100,
+   "dolya_soc": 4.5,
+   "lider": "martin568.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Spinto",
+   "soc": 2,
+   "vsego_sajtov": 37,
+   "strok": 100,
+   "dolya_soc": 4.4,
+   "lider": "spinto-slots9.shop",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Legzo",
+   "soc": 1,
+   "vsego_sajtov": 34,
+   "strok": 100,
+   "dolya_soc": 4.3,
+   "lider": "legzocasino1066.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Nomad",
+   "soc": 1,
+   "vsego_sajtov": 44,
+   "strok": 100,
+   "dolya_soc": 4.3,
+   "lider": "nomad-casino-gorhs.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "888",
+   "soc": 1,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 4.3,
+   "lider": "888starz39.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Frank",
+   "soc": 3,
+   "vsego_sajtov": 47,
+   "strok": 100,
+   "dolya_soc": 4.1,
+   "lider": "frank.casino85lfg.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Bigsbet",
+   "soc": 2,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 4.0,
+   "lider": "bigsbet.casinok61.buzz",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Shot",
+   "soc": 2,
+   "vsego_sajtov": 60,
+   "strok": 100,
+   "dolya_soc": 3.9,
+   "lider": "shot.casino49406.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Jozz",
+   "soc": 1,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 3.7,
+   "lider": "jozz-casino-play7ys.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Drip",
+   "soc": 1,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 3.6,
+   "lider": "casino.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Why",
+   "soc": 3,
+   "vsego_sajtov": 55,
+   "strok": 90,
+   "dolya_soc": 3.6,
+   "lider": "why-whycasino.bond",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "rutube.ru"
+   ]
+  },
+  {
+   "imya": "Parimatch",
+   "soc": 2,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 3.2,
+   "lider": "pari.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "m.youtube.com"
+   ]
+  },
+  {
+   "imya": "Slott",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 3.2,
+   "lider": "slott32.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vegasy",
+   "soc": 1,
+   "vsego_sajtov": 36,
+   "strok": 100,
+   "dolya_soc": 3.2,
+   "lider": "vegasy.org",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Spinbetter",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 3.1,
+   "lider": "spin-better.site",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Money X",
+   "soc": 2,
+   "vsego_sajtov": 36,
+   "strok": 120,
+   "dolya_soc": 2.9,
+   "lider": "money-x-casino.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Pin Up",
+   "soc": 3,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 2.9,
+   "lider": "pinup444.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "ru.pinterest.com"
+   ]
+  },
+  {
+   "imya": "Bounty",
+   "soc": 1,
+   "vsego_sajtov": 31,
+   "strok": 100,
+   "dolya_soc": 2.7,
+   "lider": "bounty-casino.uno",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Ezcash",
+   "soc": 1,
+   "vsego_sajtov": 46,
+   "strok": 100,
+   "dolya_soc": 2.7,
+   "lider": "ezcash.c25.casino",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "telegram.me"
+   ]
+  },
+  {
+   "imya": "Lev",
+   "soc": 2,
+   "vsego_sajtov": 28,
+   "strok": 100,
+   "dolya_soc": 2.7,
+   "lider": "lev-casino-qc2.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan Vegas",
+   "soc": 2,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 2.5,
+   "lider": "23vulkanvegas.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "invite.viber.com"
+   ]
+  },
+  {
+   "imya": "Weiss",
+   "soc": 1,
+   "vsego_sajtov": 48,
+   "strok": 100,
+   "dolya_soc": 2.4,
+   "lider": "weiss.casino1311.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "888starz",
+   "soc": 1,
+   "vsego_sajtov": 36,
+   "strok": 90,
+   "dolya_soc": 2.3,
+   "lider": "888starz39.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Lex",
+   "soc": 1,
+   "vsego_sajtov": 32,
+   "strok": 100,
+   "dolya_soc": 2.2,
+   "lider": "lex-casino8.org",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Lilbet",
+   "soc": 1,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 2.2,
+   "lider": "lil.bet",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Tippy",
+   "soc": 1,
+   "vsego_sajtov": 46,
+   "strok": 100,
+   "dolya_soc": 2.0,
+   "lider": "tippy.casino1311b.buzz",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Winity",
+   "soc": 1,
+   "vsego_sajtov": 49,
+   "strok": 100,
+   "dolya_soc": 2.0,
+   "lider": "winity-casino-golqf.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vivaro",
+   "soc": 2,
+   "vsego_sajtov": 48,
+   "strok": 100,
+   "dolya_soc": 1.8,
+   "lider": "vivaro-9.4781.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Club Vulkan",
+   "soc": 1,
+   "vsego_sajtov": 39,
+   "strok": 90,
+   "dolya_soc": 1.7,
+   "lider": "v24-zerkalo.info",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Bollywood",
+   "soc": 1,
+   "vsego_sajtov": 39,
+   "strok": 100,
+   "dolya_soc": 1.6,
+   "lider": "bwldpit.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "без бренда",
+   "soc": 2,
+   "vsego_sajtov": 65,
+   "strok": 80,
+   "dolya_soc": 1.5,
+   "lider": "mostbet11.kz",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": [
+    "invite.viber.com"
+   ]
+  },
+  {
+   "imya": "Betera",
+   "soc": 1,
+   "vsego_sajtov": 41,
+   "strok": 100,
+   "dolya_soc": 1.4,
+   "lider": "betera.by",
+   "lider_tg": false,
+   "status_tg": "точно есть",
+   "izvestnye": [
+    "t.me"
+   ]
+  },
+  {
+   "imya": "Kush",
+   "soc": 1,
+   "vsego_sajtov": 45,
+   "strok": 100,
+   "dolya_soc": 1.4,
+   "lider": "kush-win.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Leon",
+   "soc": 1,
+   "vsego_sajtov": 34,
+   "strok": 100,
+   "dolya_soc": 1.2,
+   "lider": "leon304.sbs",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Kraken",
+   "soc": 2,
+   "vsego_sajtov": 55,
+   "strok": 90,
+   "dolya_soc": 1.2,
+   "lider": "krakenstore.net",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Twin",
+   "soc": 1,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 1.0,
+   "lider": "twin618.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Pari",
+   "soc": 1,
+   "vsego_sajtov": 36,
+   "strok": 70,
+   "dolya_soc": 0.8,
+   "lider": "pari.ru",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Izzi",
+   "soc": 1,
+   "vsego_sajtov": 36,
+   "strok": 100,
+   "dolya_soc": 0.7,
+   "lider": "izzicasino.art",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Fraga",
+   "soc": 1,
+   "vsego_sajtov": 55,
+   "strok": 100,
+   "dolya_soc": 0.6,
+   "lider": "fraga.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Volta",
+   "soc": 1,
+   "vsego_sajtov": 49,
+   "strok": 100,
+   "dolya_soc": 0.6,
+   "lider": "volta.casino111play.team",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Betwinner",
+   "soc": 1,
+   "vsego_sajtov": 46,
+   "strok": 90,
+   "dolya_soc": 0.5,
+   "lider": "betwinner.casino1711.top",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Bonsai",
+   "soc": 1,
+   "vsego_sajtov": 62,
+   "strok": 100,
+   "dolya_soc": 0.4,
+   "lider": "bonsai.casino",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Dbbet",
+   "soc": 1,
+   "vsego_sajtov": 50,
+   "strok": 100,
+   "dolya_soc": 0.4,
+   "lider": "dbbet.casino-myau.buzz",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Jackpoker",
+   "soc": 1,
+   "vsego_sajtov": 28,
+   "strok": 100,
+   "dolya_soc": 0.4,
+   "lider": "jacks-poker.pics",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Kilogram",
+   "soc": 1,
+   "vsego_sajtov": 47,
+   "strok": 100,
+   "dolya_soc": 0.4,
+   "lider": "kilogram.casino-luxovoe.buzz",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Play Fortuna",
+   "soc": 1,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 0.4,
+   "lider": "playfortuna-354.sbs",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Mad",
+   "soc": 1,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 0.3,
+   "lider": "madcasino7.fun",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Spacewin",
+   "soc": 1,
+   "vsego_sajtov": 75,
+   "strok": 100,
+   "dolya_soc": 0.3,
+   "lider": "spacewincasino.com",
+   "lider_tg": false,
+   "status_tg": "не видно в выгрузке",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan 24",
+   "soc": 1,
+   "vsego_sajtov": 42,
+   "strok": 100,
+   "dolya_soc": 0.3,
+   "lider": "v24-zerkalo.info",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "m.vk.ru"
+   ]
+  },
+  {
+   "imya": "Boost",
+   "soc": 0,
+   "vsego_sajtov": 35,
+   "strok": 100,
+   "dolya_soc": 0.0,
+   "lider": "boostcasino.com",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "Champion Slots",
+   "soc": 0,
+   "vsego_sajtov": 40,
+   "strok": 100,
+   "dolya_soc": 0.0,
+   "lider": "slots-champion.net",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan Platinum",
+   "soc": 0,
+   "vsego_sajtov": 34,
+   "strok": 100,
+   "dolya_soc": 0.0,
+   "lider": "platinum-casino-fok.fun",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "Vulkan Mega",
+   "soc": 0,
+   "vsego_sajtov": 38,
+   "strok": 90,
+   "dolya_soc": 0.0,
+   "lider": "megaworldwinnerflow.com",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "vulkanprestizh",
+   "soc": 0,
+   "vsego_sajtov": 18,
+   "strok": 40,
+   "dolya_soc": 0.0,
+   "lider": "vstars-zerkalo.com",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "MostBet Bookmaker",
+   "soc": 0,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 0.0,
+   "lider": "mostbetaps.mobi",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "avrorapri",
+   "soc": 0,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 0.0,
+   "lider": "casinoz.biz",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "mostbetmostbet",
+   "soc": 0,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 0.0,
+   "lider": "mostbet11.kz",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": []
+  },
+  {
+   "imya": "vulkanroial",
+   "soc": 0,
+   "vsego_sajtov": 10,
+   "strok": 10,
+   "dolya_soc": 0.0,
+   "lider": "vulkanroyal.tuq.casino",
+   "lider_tg": false,
+   "status_tg": "точно нет",
+   "izvestnye": [
+    "vk.link"
+   ]
+  }
+ ],
+ "raspred_soc": [
+  {
+   "imya": "0 соцсайта",
+   "n": 9,
+   "dolya": 5.4
+  },
+  {
+   "imya": "1 соцсайт",
+   "n": 73,
+   "dolya": 44.0
+  },
+  {
+   "imya": "2 соцсайта",
+   "n": 57,
+   "dolya": 34.3
+  },
+  {
+   "imya": "3 соцсайта",
+   "n": 19,
+   "dolya": 11.4
+  },
+  {
+   "imya": "4 соцсайта",
+   "n": 3,
+   "dolya": 1.8
+  },
+  {
+   "imya": "5 соцсайтов",
+   "n": 5,
+   "dolya": 3.0
+  }
+ ]
+}

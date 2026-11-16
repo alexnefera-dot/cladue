@@ -1,0 +1,68 @@
+Телеграм: 3 хоста, 1006 строк (6.5% всей выдачи), 410 мест в топ-3 (8.8%)
+Внутри соцсетей телеграм — 84.6% строк и 97.6% мест в топ-3
+t.me встречается в выдаче 149 брендов из 166 = 89.8%
+t.me — лидер выдачи у 15 брендов: Arkada, Everum, Laki, Selector, Vodka, Crystalslot, Aurora Casino, Enomo, Hype, Vibe, Slotgames, Fairspin, GetX, Pokerdom, AdmiralX
+Самые частые лидеры вообще: [{'imya': 't.me', 'n': 15}, {'imya': 'casino.ru', 'n': 4}, {'imya': 'pari.ru', 'n': 2}, {'imya': 'v24-zerkalo.info', 'n': 2}, {'imya': 'vstars-zerkalo.com', 'n': 2}, {'imya': '888starz39.fun', 'n': 2}, {'imya': 'mostbet11.kz', 'n': 2}, {'imya': 'lucky-bear.games', 'n': 1}]
+Брендов точно с телеграмом по необрезанным спискам: 34; точно без: 15; не видно: 117
+Брендов без соцсетей вовсе: 9 — Boost, Champion Slots, Vulkan Platinum, Vulkan Mega, vulkanprestizh, MostBet Bookmaker, avrorapri, mostbetmostbet, vulkanroial
+
+сайт                 брендов  строк  топ-3  поз
+t.me                     149    913    386    1
+telegram.me               40     91     24    1
+m.youtube.com             25     55      4    1
+vk.ru                     39     76      3    2
+tiktok.com                 3      5      2    3
+m.ok.ru                    5      9      1    3
+dzen.ru                    6      7      0    4
+invite.viber.com           4     10      0    4
+m.vk.ru                    4      4      0    7
+vk.link                    3      5      0    7
+x.com                      2      6      0    4
+rutube.ru                  2      2      0    7
+tgstat.ru                  2      2      0    4
+ru.pinterest.com           1      2      0    5
+twitch.tv                  1      2      0    9
+
+бренд                 соцсайтов  доля соцсетей  всего сайтов лидер                      телеграм
+Arkada                        2          28.5%            46 t.me                       точно есть
+Everum                        2          28.2%            37 t.me                       точно есть
+Laki                          2          27.2%            32 t.me                       точно есть
+Selector                      2          26.6%            33 t.me                       точно есть
+Vodka                         4          25.4%            44 t.me                       точно есть
+Crystalslot                   2          25.4%            50 t.me                       точно есть
+Aurora Casino                 2          24.9%            44 t.me                       точно есть
+Enomo                         1          24.1%            56 t.me                       точно есть
+Daddy                         1          23.0%            28 daddy707.casino            не видно в выгрузке
+ClubNika                      1          21.2%            40 clubnika574.fun            не видно в выгрузке
+Hype                          3          20.5%            37 t.me                       точно есть
+Vibe                          2          20.4%            65 t.me                       точно есть
+Slotgames                     1          20.2%            45 t.me                       точно есть
+Fairspin                      4          19.2%            52 t.me                       точно есть
+Beef                          2          18.2%            50 beef992.casino             точно есть
+GetX                          3          17.5%            39 t.me                       точно есть
+Baboss                        3          16.7%            40 baboss-casino-god79.top    точно есть
+Kent                          2          16.3%            33 1kent.casino               не видно в выгрузке
+Pokerdom                      2          16.3%            29 t.me                       точно есть
+Unlim Casino                  2          15.1%            35 unlim-casino.wtf           не видно в выгрузке
+Cactus                        2          13.7%            47 cactus-t16.top             не видно в выгрузке
+Flagman                       3          13.3%            37 flagmann.online            не видно в выгрузке
+Friends                       2          13.2%            39 friends-casino274.com      не видно в выгрузке
+Casino X                      1          13.2%            29 casino.ru                  не видно в выгрузке
+BitStarz                      2          13.0%            29 bitstarcasino.com          не видно в выгрузке
+Mellstroy                     5          12.9%            42 mellstroy293.team          не видно в выгрузке
+Avocado                       2          12.8%            36 avocado.casino             точно есть
+Loft                          2          12.7%            40 loft.vipcasino29v09ip.best не видно в выгрузке
+AdmiralX                      2          12.5%            52 t.me                       точно есть
+Jetton                        3          12.4%            36 jetton1.info               не видно в выгрузке
+Vovan                         2          12.2%            38 vovan888prime.top          не видно в выгрузке
+Fonbet                        4          12.1%            34 fon.bet                    не видно в выгрузке
+Fenix                         2          11.8%            46 fenixx.casino              не видно в выгрузке
+UP-X                          5          11.7%            45 up-x-sqmy69.best           точно есть
+Cat                           2          11.6%            29 cat-40.casino              точно есть
+Zooma                         2          11.6%            37 zooma-201.casino           не видно в выгрузке
+Jet                           3          11.4%            39 jetcasino5018.com          не видно в выгрузке
+AUF                           2          11.3%            35 aauf.casino                точно есть
+Mers                          1          11.3%            45 mers.avl.casino            не видно в выгрузке
+Olimp                         1          11.3%            45 olymp.casino111play.team   не видно в выгрузке
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/telegram.json

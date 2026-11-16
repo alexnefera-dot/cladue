@@ -12,6 +12,7 @@ VYHOD = sys.argv[3]
 srav = json.load(open(sys.argv[4], encoding='utf-8')) if len(sys.argv) > 4 else None
 pod = json.load(open(sys.argv[5], encoding='utf-8')) if len(sys.argv) > 5 else None
 apk = json.load(open(sys.argv[6], encoding='utf-8')) if len(sys.argv) > 6 else None
+tlg = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -124,6 +125,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t3" aria-controls="list3" aria-selected="false">Сравнение съёмов</button>
       <button role="tab" id="t4" aria-controls="list4" aria-selected="false">Форматы проектов</button>
       <button role="tab" id="t5" aria-controls="list5" aria-selected="false">Каталоги APK</button>
+      <button role="tab" id="t6" aria-controls="list6" aria-selected="false">Телеграм</button>
     </div>
   </div>
 </header>
@@ -134,6 +136,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list3" role="tabpanel" aria-labelledby="t3" hidden></div>
   <div id="list4" role="tabpanel" aria-labelledby="t4" hidden></div>
   <div id="list5" role="tabpanel" aria-labelledby="t5" hidden></div>
+  <div id="list6" role="tabpanel" aria-labelledby="t6" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
@@ -660,6 +663,123 @@ if (a) document.getElementById('list5').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 6 — телеграм */
+const g = D.tlg;
+const STATUS_CVET = {'точно есть':'var(--accent)','точно нет':'var(--nash)','не видно в выгрузке':'var(--ink-3)'};
+if (g) document.getElementById('list6').innerHTML = `
+<section>
+  <h2>Телеграм в выдаче</h2>
+  <div class="vyvod" style="border-left-color:var(--nash);margin-bottom:18px">
+    <h3>Чего в этих данных нет</h3>
+    <ul><li>Выгрузка сворачивает весь телеграм в три хоста —
+      <span style="font-family:var(--mono)">t.me</span>,
+      <span style="font-family:var(--mono)">telegram.me</span>,
+      <span style="font-family:var(--mono)">tgstat.ru</span>. Имён каналов в ней нет,
+      поэтому «какой канал сколько забирает» посчитать нельзя: всё ниже — про бренды и хосты.
+      Чтобы считать по каналам, парсер должен отдавать url целиком, а не домен.</li></ul>
+  </div>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${ch(g.tg_strok)}</span><div class="pd">строк выдачи, ${pr(g.dolya_strok)} всей выдачи</div></div>
+    <div class="plitka"><span class="ch">${ch(g.tg_top3)}</span><div class="pd">мест в топ-3, ${pr(g.dolya_top3)} всех</div></div>
+    <div class="plitka"><span class="ch">${ch(g.ohvat_tme)}</span><div class="pd">брендов с t.me в выдаче из ${ch(g.brendov_vsego)}</div></div>
+    <div class="plitka vydel"><span class="ch">${ch(g.liderov)}</span><div class="pd">брендов, где t.me — лидер выдачи</div></div>
+    <div class="plitka"><span class="ch">${pr(g.dolya_tg_v_soc_top3)}</span><div class="pd">мест топ-3 всех соцсетей — это телеграм</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Телеграм против остальных соцсетей</h2>
+  <p class="vvod">Все соцсети и видеоплощадки съёма. Телеграм забирает ${pr(g.dolya_tg_v_soc_strok)} показов
+     и ${pr(g.dolya_tg_v_soc_top3)} мест в топ-3 внутри этой группы — остальные площадки показываются,
+     но в тройку почти не попадают.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Площадка</th><th class="num">Брендов</th><th class="num">Строк</th>
+        <th class="num">Мест в топ-3</th><th class="num">Лучшая позиция</th></tr></thead>
+      <tbody>${g.sajty.map(x => `<tr>
+        <td class="num" style="font-size:12.5px">${x.telegram ? '<b>' + x.imya + '</b>' : x.imya}</td>
+        <td class="num">${ch(x.brendov)}</td><td class="num">${ch(x.strok)}</td>
+        <td class="num"><b>${ch(x.top3)}</b></td><td class="num">${x.poziciya || '—'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>t.me — самый частый лидер выдачи в принципе</h2>
+  <p class="vvod">Сколько брендов у каждого сайта, где он первый по доле в выдаче бренда.
+     Ни один домен не лидирует больше чем в четырёх брендах, t.me — в ${ch(g.liderov)}.</p>
+  ${polosy(g.liderstvo_ryad.map(x => ({imya: x.imya, n: x.n,
+      dolya: Math.round(1000 * x.n / g.brendov_vsego) / 10, nash: x.imya === 't.me'})),
+      {edinica: 'брендов'})}
+  <p class="vvod" style="margin-top:10px">Бренды, где лидирует t.me:
+     <span style="font-family:var(--mono);font-size:12px">${g.lidery.join(' · ')}</span></p>
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Сколько соцсетей в выдаче одного бренда</h2>
+  ${polosy(g.raspred_soc, {edinica: 'брендов'})}
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Бренды по доле видимости соцсетей</h2>
+  <p class="vvod">Доля показов бренда, которые забирают соцсети и видео. Поскольку телеграм —
+     это ${pr(g.dolya_tg_v_soc_strok)} показов группы, колонка читается как «сколько у бренда забирает телеграм»
+     с поправкой на вк и ютуб. Колонка «телеграм» говорит, подтверждён ли он у бренда прямо:
+     «точно есть» — бренд виден в списке t.me или t.me его лидер; «точно нет» — все соцсайты бренда
+     опознаны и телеграма среди них нет; «не видно» — список брендов у t.me в выгрузке обрезан.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th class="num">Соцсайтов</th><th class="num">Доля соцсетей</th>
+        <th class="num">Всего сайтов</th><th class="num">Строк</th><th>Лидер выдачи</th><th>Телеграм</th></tr></thead>
+      <tbody>${g.brendy.slice(0, 45).map(x => `<tr>
+        <td>${x.imya}</td><td class="num">${ch(x.soc)}</td>
+        <td class="num"><b>${pr(x.dolya_soc)}</b></td>
+        <td class="num">${ch(x.vsego_sajtov)}</td><td class="num">${ch(x.strok)}</td>
+        <td class="num" style="font-size:12px">${x.lider_tg ? '<b>' + x.lider + '</b>' : x.lider}</td>
+        <td style="white-space:nowrap"><span class="tochka" style="background:${STATUS_CVET[x.status_tg]}"></span>${x.status_tg}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">05</span>Где телеграма нет</h2>
+  <div class="dve">
+    <div class="karta">
+      <div class="legenda"><b style="color:var(--ink)">Точно без телеграма — ${ch(g.tochno_bez.length)} брендов</b></div>
+      <div class="primery">${g.tochno_bez.join(' · ')}</div>
+    </div>
+    <div class="karta">
+      <div class="legenda"><b style="color:var(--ink)">Без соцсетей вообще — ${ch(g.bez_soc.length)} брендов</b></div>
+      <div class="primery">${g.bez_soc.join(' · ')}</div>
+    </div>
+  </div>
+  <p class="vvod" style="margin-top:12px">Арифметика точная: t.me есть у ${ch(g.ohvat_tme)} брендов,
+     значит у ${ch(g.brendov_vsego - g.ohvat_tme)} его нет. Поимённо из них удаётся назвать ${ch(g.tochno_bez.length)} —
+     у остальных список брендов в выгрузке обрезан.</p>
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Три хоста держат столько же, сколько треть всей дорвейной массы.</b>
+        ${ch(g.tg_top3)} мест в топ-3 у телеграма против ${ch(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).top3)} у ${ch(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).n)} доров.</li>
+    <li><b>Охват почти полный.</b> t.me стоит в выдаче ${pr(100 * g.ohvat_tme / g.brendov_vsego)} брендов,
+        и в ${ch(g.liderov)} из них он первый сайт выдачи — больше, чем любой домен в съёме.</li>
+    <li><b>Остальные соцсети не работают.</b> Вк, ютуб, ок, тикток вместе дают
+        ${ch(g.soc_top3 - g.tg_top3)} мест в топ-3 на ${ch(g.sajty.length - 3)} площадок,
+        при том что вк показывается в ${ch(g.sajty.find(x => x.imya === 'vk.ru').brendov)} брендах,
+        а ютуб в ${ch(g.sajty.find(x => x.imya === 'm.youtube.com').brendov)}. Показы есть, троек нет.</li>
+    <li><b>Где брать свободное место.</b> Телеграма нет у ${ch(g.brendov_vsego - g.ohvat_tme)} брендов,
+        а ${ch(g.bez_soc.length)} брендов не имеют вообще ни одной соцсети в выдаче:
+        <span style="font-family:var(--mono);font-size:12px">${g.bez_soc.join(', ')}</span>.
+        Это бренды, где канал заходит на пустое место.</li>
+    <li><b>Потолок по доле.</b> Даже у лидеров соцсети забирают ${pr(g.brendy[0].dolya_soc)} показов бренда
+        (${g.brendy[0].imya}); медиана заметно ниже. Телеграм — не замена сетке, а второй слой поверх неё.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -672,11 +792,11 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (['t2','t3','t4','t5'].includes(s)) document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4','t5','t6'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
-dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk},
-                    ensure_ascii=False)
+dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk,
+                     'tlg': tlg}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')
