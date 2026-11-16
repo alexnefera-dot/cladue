@@ -15,6 +15,7 @@ apk = json.load(open(sys.argv[6], encoding='utf-8')) if len(sys.argv) > 6 else N
 tlg = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else None
 prt = json.load(open(sys.argv[8], encoding='utf-8')) if len(sys.argv) > 8 else None
 bdm = json.load(open(sys.argv[9], encoding='utf-8')) if len(sys.argv) > 9 else None
+rot = json.load(open(sys.argv[10], encoding='utf-8')) if len(sys.argv) > 10 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -985,9 +986,59 @@ if (w) document.getElementById('list8').innerHTML = `
   </div>
 </section>
 
+${!D.rot ? '' : `
+<section>
+  <h2><span class="nomer">07</span>Ротация между двумя съёмами одного дня</h2>
+  <p class="vvod">Оба съёма сделаны 16.11 по одним и тем же брендам. Сравниваем поимённо:
+     сколько брендовых доменов дожило от первого съёма до второго.</p>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${pr(D.rot.uderzhanie)}</span><div class="pd">доменов A дожили до B (${ch(D.rot.obshih)} из ${ch(D.rot.a)})</div></div>
+    <div class="plitka vydel"><span class="ch">${ch(D.rot.ushli)} / ${ch(D.rot.novyh)}</span><div class="pd">выпало / появилось</div></div>
+    <div class="plitka"><span class="ch">${pr(D.rot.top3_dolya)}</span><div class="pd">сохранили место в топ-3 (${ch(D.rot.top3_derzhit)} из ${ch(D.rot.top3_a)})</div></div>
+    <div class="plitka"><span class="ch">${pr(D.rot.pervoe_dolya)}</span><div class="pd">удержали первую позицию (${ch(D.rot.pervoe_derzhit)} из ${ch(D.rot.pervoe_a)})</div></div>
+    <div class="plitka"><span class="ch">${ch(D.rot.ushli_s_top3)} / ${ch(D.rot.novye_s_top3)}</span><div class="pd">выпали с топ-3 / пришли сразу с топ-3</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">08</span>Что держится, а что вымывает — по зонам</h2>
+  <p class="vvod">Доля доменов зоны, доживших до второго съёма. Зоны от 15 доменов. Шкала 0–100%.</p>
+  ${polosy(D.rot.zony.map(x => ({imya: '.' + x.imya, n: x.obsh, dolya: x.uderzhanie})),
+      {edinica: 'доменов', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">09</span>Ротация по стилю имени и по брендам</h2>
+  <div class="dve">
+    <div>
+      <p class="vvod">Чем «официальнее» имя, тем прочнее домен сидит.</p>
+      ${polosy(D.rot.stili.map(x => ({imya: x.imya, n: x.obsh, dolya: x.uderzhanie})),
+          {edinica: 'доменов', shkala: 100})}
+    </div>
+    <div>
+      <p class="vvod">Бренды с наибольшей ротацией — от 5 доменов в первом съёме.</p>
+      <div class="karta tablica-obertka">
+        <table>
+          <thead><tr><th>Бренд</th><th class="num">A</th><th class="num">B</th>
+            <th class="num">Осталось</th><th class="num">Удержание</th></tr></thead>
+          <tbody>${D.rot.brendy.slice(0, 18).map(x => `<tr><td>${x.imya}</td>
+            <td class="num">${ch(x.a)}</td><td class="num">${ch(x.b)}</td>
+            <td class="num">${ch(x.obsh)}</td>
+            <td class="num"><b>${pr(x.uderzhanie)}</b></td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+`}
+
 <div class="vyvod">
   <h3>Что из этого следует</h3>
   <ul>
+    ${!D.rot ? '' : `<li><b>Ротация есть, но вдвое слабее дорвейной.</b> За день сменилось
+        ${ch(D.rot.ushli)} доменов из ${ch(D.rot.a)}, удержание ${pr(D.rot.uderzhanie)} против
+        ${pr(D.srav.tipy.find(x => x.imya.startsWith('доры')).uderzhanie)} у доров. Место в топ-3 держится
+        в ${pr(D.rot.top3_dolya)} случаев, первая позиция — в ${pr(D.rot.pervoe_dolya)}.</li>`}
     <li><b>Это главный формат выдачи.</b> ${pr(w.dolya_sajtov)} сайтов съёма дают ${pr(w.dolya_top3)} мест
         в топ-3 — больше, чем все ${ch(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).n)} доров вместе
         (${pr(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).dolya_top3)}). И в ${ch(w.liderov)} брендах из ${ch(w.brendov_vsego)}
@@ -1024,6 +1075,6 @@ try { const s = localStorage.getItem('list');
 '''
 
 dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk,
-                     'tlg': tlg, 'prt': prt, 'bdm': bdm}, ensure_ascii=False)
+                     'tlg': tlg, 'prt': prt, 'bdm': bdm, 'rot': rot}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')

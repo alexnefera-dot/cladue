@@ -1,0 +1,1217 @@
+{
+ "a": 1294,
+ "b": 1264,
+ "obshih": 1094,
+ "uderzhanie": 84.5,
+ "ushli": 200,
+ "novyh": 170,
+ "rotaciya": 14.5,
+ "top3_a": 564,
+ "top3_derzhit": 491,
+ "top3_dolya": 87.1,
+ "pervoe_a": 304,
+ "pervoe_derzhit": 261,
+ "pervoe_dolya": 85.9,
+ "ushli_s_top3": 28,
+ "novye_s_top3": 31,
+ "zony": [
+  {
+   "imya": "best",
+   "a": 15,
+   "obsh": 15,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "site",
+   "a": 18,
+   "obsh": 17,
+   "uderzhanie": 94.4
+  },
+  {
+   "imya": "casino",
+   "a": 101,
+   "obsh": 94,
+   "uderzhanie": 93.1
+  },
+  {
+   "imya": "click",
+   "a": 20,
+   "obsh": 18,
+   "uderzhanie": 90.0
+  },
+  {
+   "imya": "ru",
+   "a": 63,
+   "obsh": 56,
+   "uderzhanie": 88.9
+  },
+  {
+   "imya": "top",
+   "a": 338,
+   "obsh": 295,
+   "uderzhanie": 87.3
+  },
+  {
+   "imya": "com",
+   "a": 230,
+   "obsh": 200,
+   "uderzhanie": 87.0
+  },
+  {
+   "imya": "net",
+   "a": 15,
+   "obsh": 13,
+   "uderzhanie": 86.7
+  },
+  {
+   "imya": "online",
+   "a": 22,
+   "obsh": 18,
+   "uderzhanie": 81.8
+  },
+  {
+   "imya": "buzz",
+   "a": 20,
+   "obsh": 16,
+   "uderzhanie": 80.0
+  },
+  {
+   "imya": "xyz",
+   "a": 17,
+   "obsh": 13,
+   "uderzhanie": 76.5
+  },
+  {
+   "imya": "sbs",
+   "a": 21,
+   "obsh": 15,
+   "uderzhanie": 71.4
+  },
+  {
+   "imya": "fun",
+   "a": 89,
+   "obsh": 63,
+   "uderzhanie": 70.8
+  },
+  {
+   "imya": "team",
+   "a": 30,
+   "obsh": 21,
+   "uderzhanie": 70.0
+  },
+  {
+   "imya": "cfd",
+   "a": 32,
+   "obsh": 22,
+   "uderzhanie": 68.8
+  },
+  {
+   "imya": "cam",
+   "a": 16,
+   "obsh": 6,
+   "uderzhanie": 37.5
+  }
+ ],
+ "stili": [
+  {
+   "imya": "ровно имя бренда",
+   "a": 93,
+   "obsh": 85,
+   "uderzhanie": 91.4
+  },
+  {
+   "imya": "бренд + слово",
+   "a": 156,
+   "obsh": 136,
+   "uderzhanie": 87.2
+  },
+  {
+   "imya": "бренд + слово через дефис",
+   "a": 321,
+   "obsh": 270,
+   "uderzhanie": 84.1
+  },
+  {
+   "imya": "бренд + слово + цифры",
+   "a": 383,
+   "obsh": 320,
+   "uderzhanie": 83.6
+  },
+  {
+   "imya": "бренд + цифры",
+   "a": 341,
+   "obsh": 283,
+   "uderzhanie": 83.0
+  }
+ ],
+ "brendy": [
+  {
+   "imya": "Beef",
+   "a": 6,
+   "b": 2,
+   "obsh": 2,
+   "ushlo": 4,
+   "novyh": 0,
+   "top3_a": 4,
+   "top3_derzhit": 2,
+   "uderzhanie": 33.3
+  },
+  {
+   "imya": "Motor",
+   "a": 9,
+   "b": 7,
+   "obsh": 4,
+   "ushlo": 5,
+   "novyh": 3,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 44.4
+  },
+  {
+   "imya": "Bollywood",
+   "a": 14,
+   "b": 9,
+   "obsh": 8,
+   "ushlo": 6,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 2,
+   "uderzhanie": 57.1
+  },
+  {
+   "imya": "Flagman",
+   "a": 7,
+   "b": 4,
+   "obsh": 4,
+   "ushlo": 3,
+   "novyh": 0,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 57.1
+  },
+  {
+   "imya": "Vavada",
+   "a": 36,
+   "b": 35,
+   "obsh": 21,
+   "ushlo": 15,
+   "novyh": 14,
+   "top3_a": 10,
+   "top3_derzhit": 7,
+   "uderzhanie": 58.3
+  },
+  {
+   "imya": "Pinco",
+   "a": 15,
+   "b": 13,
+   "obsh": 9,
+   "ushlo": 6,
+   "novyh": 4,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 60.0
+  },
+  {
+   "imya": "Pokerdom",
+   "a": 13,
+   "b": 11,
+   "obsh": 8,
+   "ushlo": 5,
+   "novyh": 3,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 61.5
+  },
+  {
+   "imya": "Selector",
+   "a": 11,
+   "b": 8,
+   "obsh": 7,
+   "ushlo": 4,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 3,
+   "uderzhanie": 63.6
+  },
+  {
+   "imya": "без бренда",
+   "a": 11,
+   "b": 10,
+   "obsh": 7,
+   "ushlo": 4,
+   "novyh": 3,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 63.6
+  },
+  {
+   "imya": "Vodka",
+   "a": 21,
+   "b": 20,
+   "obsh": 14,
+   "ushlo": 7,
+   "novyh": 6,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 66.7
+  },
+  {
+   "imya": "Pin Up",
+   "a": 17,
+   "b": 16,
+   "obsh": 12,
+   "ushlo": 5,
+   "novyh": 3,
+   "top3_a": 5,
+   "top3_derzhit": 4,
+   "uderzhanie": 70.6
+  },
+  {
+   "imya": "Dragon Money",
+   "a": 7,
+   "b": 6,
+   "obsh": 5,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 71.4
+  },
+  {
+   "imya": "Mellstroy",
+   "a": 14,
+   "b": 13,
+   "obsh": 10,
+   "ushlo": 4,
+   "novyh": 3,
+   "top3_a": 8,
+   "top3_derzhit": 6,
+   "uderzhanie": 71.4
+  },
+  {
+   "imya": "Melbet",
+   "a": 15,
+   "b": 13,
+   "obsh": 11,
+   "ushlo": 4,
+   "novyh": 3,
+   "top3_a": 7,
+   "top3_derzhit": 5,
+   "uderzhanie": 73.3
+  },
+  {
+   "imya": "Joycasino",
+   "a": 19,
+   "b": 18,
+   "obsh": 14,
+   "ushlo": 5,
+   "novyh": 4,
+   "top3_a": 8,
+   "top3_derzhit": 6,
+   "uderzhanie": 73.7
+  },
+  {
+   "imya": "Riobet",
+   "a": 23,
+   "b": 19,
+   "obsh": 17,
+   "ushlo": 6,
+   "novyh": 2,
+   "top3_a": 8,
+   "top3_derzhit": 5,
+   "uderzhanie": 73.9
+  },
+  {
+   "imya": "Martin",
+   "a": 12,
+   "b": 10,
+   "obsh": 9,
+   "ushlo": 3,
+   "novyh": 1,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 75.0
+  },
+  {
+   "imya": "Tonplay",
+   "a": 8,
+   "b": 8,
+   "obsh": 6,
+   "ushlo": 2,
+   "novyh": 2,
+   "top3_a": 1,
+   "top3_derzhit": 1,
+   "uderzhanie": 75.0
+  },
+  {
+   "imya": "Winity",
+   "a": 8,
+   "b": 6,
+   "obsh": 6,
+   "ushlo": 2,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 75.0
+  },
+  {
+   "imya": "Aurora Casino",
+   "a": 8,
+   "b": 7,
+   "obsh": 6,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 3,
+   "top3_derzhit": 2,
+   "uderzhanie": 75.0
+  },
+  {
+   "imya": "Nomad",
+   "a": 13,
+   "b": 11,
+   "obsh": 10,
+   "ushlo": 3,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 76.9
+  },
+  {
+   "imya": "Sweet",
+   "a": 9,
+   "b": 8,
+   "obsh": 7,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 77.8
+  },
+  {
+   "imya": "Kometa",
+   "a": 23,
+   "b": 20,
+   "obsh": 18,
+   "ushlo": 5,
+   "novyh": 2,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 78.3
+  },
+  {
+   "imya": "888starz",
+   "a": 15,
+   "b": 14,
+   "obsh": 12,
+   "ushlo": 3,
+   "novyh": 2,
+   "top3_a": 7,
+   "top3_derzhit": 4,
+   "uderzhanie": 80.0
+  },
+  {
+   "imya": "Friends",
+   "a": 5,
+   "b": 4,
+   "obsh": 4,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 2,
+   "top3_derzhit": 1,
+   "uderzhanie": 80.0
+  },
+  {
+   "imya": "Spinto",
+   "a": 5,
+   "b": 5,
+   "obsh": 4,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 80.0
+  },
+  {
+   "imya": "Pokerok",
+   "a": 5,
+   "b": 5,
+   "obsh": 4,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 1,
+   "top3_derzhit": 1,
+   "uderzhanie": 80.0
+  },
+  {
+   "imya": "1win",
+   "a": 32,
+   "b": 28,
+   "obsh": 26,
+   "ushlo": 6,
+   "novyh": 2,
+   "top3_a": 9,
+   "top3_derzhit": 8,
+   "uderzhanie": 81.2
+  },
+  {
+   "imya": "Turbo",
+   "a": 11,
+   "b": 9,
+   "obsh": 9,
+   "ushlo": 2,
+   "novyh": 0,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 81.8
+  },
+  {
+   "imya": "Jetton",
+   "a": 17,
+   "b": 15,
+   "obsh": 14,
+   "ushlo": 3,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 82.4
+  },
+  {
+   "imya": "Starda",
+   "a": 17,
+   "b": 17,
+   "obsh": 14,
+   "ushlo": 3,
+   "novyh": 3,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 82.4
+  },
+  {
+   "imya": "Ezcash",
+   "a": 17,
+   "b": 20,
+   "obsh": 14,
+   "ushlo": 3,
+   "novyh": 6,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 82.4
+  },
+  {
+   "imya": "Atom",
+   "a": 18,
+   "b": 19,
+   "obsh": 15,
+   "ushlo": 3,
+   "novyh": 4,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 83.3
+  },
+  {
+   "imya": "Vulkan Vegas",
+   "a": 6,
+   "b": 5,
+   "obsh": 5,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 83.3
+  },
+  {
+   "imya": "ClubNika",
+   "a": 18,
+   "b": 16,
+   "obsh": 15,
+   "ushlo": 3,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 83.3
+  },
+  {
+   "imya": "Marathon",
+   "a": 6,
+   "b": 5,
+   "obsh": 5,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 83.3
+  },
+  {
+   "imya": "Banda",
+   "a": 6,
+   "b": 7,
+   "obsh": 5,
+   "ushlo": 1,
+   "novyh": 2,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 83.3
+  },
+  {
+   "imya": "Gama",
+   "a": 19,
+   "b": 19,
+   "obsh": 16,
+   "ushlo": 3,
+   "novyh": 3,
+   "top3_a": 8,
+   "top3_derzhit": 7,
+   "uderzhanie": 84.2
+  },
+  {
+   "imya": "Leebet",
+   "a": 13,
+   "b": 11,
+   "obsh": 11,
+   "ushlo": 2,
+   "novyh": 0,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 84.6
+  },
+  {
+   "imya": "Trix",
+   "a": 7,
+   "b": 7,
+   "obsh": 6,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 4,
+   "uderzhanie": 85.7
+  },
+  {
+   "imya": "AdmiralX",
+   "a": 14,
+   "b": 18,
+   "obsh": 12,
+   "ushlo": 2,
+   "novyh": 6,
+   "top3_a": 7,
+   "top3_derzhit": 5,
+   "uderzhanie": 85.7
+  },
+  {
+   "imya": "Fairspin",
+   "a": 7,
+   "b": 7,
+   "obsh": 6,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 1,
+   "top3_derzhit": 1,
+   "uderzhanie": 85.7
+  },
+  {
+   "imya": "Arkada",
+   "a": 15,
+   "b": 14,
+   "obsh": 13,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 86.7
+  },
+  {
+   "imya": "Betera",
+   "a": 8,
+   "b": 7,
+   "obsh": 7,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "CryptoBoss",
+   "a": 8,
+   "b": 9,
+   "obsh": 7,
+   "ushlo": 1,
+   "novyh": 2,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Fontan",
+   "a": 8,
+   "b": 8,
+   "obsh": 7,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Monro",
+   "a": 16,
+   "b": 16,
+   "obsh": 14,
+   "ushlo": 2,
+   "novyh": 2,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Drip",
+   "a": 16,
+   "b": 16,
+   "obsh": 14,
+   "ushlo": 2,
+   "novyh": 2,
+   "top3_a": 8,
+   "top3_derzhit": 7,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Izzi",
+   "a": 16,
+   "b": 15,
+   "obsh": 14,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Play Fortuna",
+   "a": 16,
+   "b": 22,
+   "obsh": 14,
+   "ushlo": 2,
+   "novyh": 8,
+   "top3_a": 5,
+   "top3_derzhit": 4,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Zooma",
+   "a": 8,
+   "b": 9,
+   "obsh": 7,
+   "ushlo": 1,
+   "novyh": 2,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 87.5
+  },
+  {
+   "imya": "Champion Slots",
+   "a": 17,
+   "b": 16,
+   "obsh": 15,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 88.2
+  },
+  {
+   "imya": "Bitz",
+   "a": 9,
+   "b": 8,
+   "obsh": 8,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 88.9
+  },
+  {
+   "imya": "Stake",
+   "a": 18,
+   "b": 17,
+   "obsh": 16,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 9,
+   "top3_derzhit": 6,
+   "uderzhanie": 88.9
+  },
+  {
+   "imya": "Gold",
+   "a": 10,
+   "b": 9,
+   "obsh": 9,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 90.0
+  },
+  {
+   "imya": "Casino X",
+   "a": 20,
+   "b": 18,
+   "obsh": 18,
+   "ushlo": 2,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 90.0
+  },
+  {
+   "imya": "Spinbetter",
+   "a": 10,
+   "b": 10,
+   "obsh": 9,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 90.0
+  },
+  {
+   "imya": "Fresh",
+   "a": 10,
+   "b": 11,
+   "obsh": 9,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 90.0
+  },
+  {
+   "imya": "Unlim Casino",
+   "a": 12,
+   "b": 11,
+   "obsh": 11,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 91.7
+  },
+  {
+   "imya": "New Retro",
+   "a": 13,
+   "b": 13,
+   "obsh": 12,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 7,
+   "top3_derzhit": 7,
+   "uderzhanie": 92.3
+  },
+  {
+   "imya": "Irwin",
+   "a": 13,
+   "b": 14,
+   "obsh": 12,
+   "ushlo": 1,
+   "novyh": 2,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 92.3
+  },
+  {
+   "imya": "Legzo",
+   "a": 13,
+   "b": 13,
+   "obsh": 12,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 92.3
+  },
+  {
+   "imya": "Money X",
+   "a": 13,
+   "b": 12,
+   "obsh": 12,
+   "ushlo": 1,
+   "novyh": 0,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 92.3
+  },
+  {
+   "imya": "Betwinner",
+   "a": 14,
+   "b": 16,
+   "obsh": 13,
+   "ushlo": 1,
+   "novyh": 3,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 92.9
+  },
+  {
+   "imya": "Leon",
+   "a": 15,
+   "b": 18,
+   "obsh": 14,
+   "ushlo": 1,
+   "novyh": 4,
+   "top3_a": 7,
+   "top3_derzhit": 5,
+   "uderzhanie": 93.3
+  },
+  {
+   "imya": "Luckybear",
+   "a": 16,
+   "b": 16,
+   "obsh": 15,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 8,
+   "top3_derzhit": 8,
+   "uderzhanie": 93.8
+  },
+  {
+   "imya": "Booi",
+   "a": 17,
+   "b": 17,
+   "obsh": 16,
+   "ushlo": 1,
+   "novyh": 1,
+   "top3_a": 8,
+   "top3_derzhit": 5,
+   "uderzhanie": 94.1
+  },
+  {
+   "imya": "Twin",
+   "a": 19,
+   "b": 20,
+   "obsh": 18,
+   "ushlo": 1,
+   "novyh": 2,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 94.7
+  },
+  {
+   "imya": "Million",
+   "a": 5,
+   "b": 6,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Lucky Bird",
+   "a": 5,
+   "b": 4,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Slott",
+   "a": 5,
+   "b": 5,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Fraga",
+   "a": 5,
+   "b": 4,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Volna",
+   "a": 14,
+   "b": 15,
+   "obsh": 14,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "1xbet",
+   "a": 15,
+   "b": 16,
+   "obsh": 15,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 9,
+   "top3_derzhit": 8,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Kent",
+   "a": 11,
+   "b": 13,
+   "obsh": 11,
+   "ushlo": 0,
+   "novyh": 2,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Brillx",
+   "a": 11,
+   "b": 11,
+   "obsh": 11,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Daddy",
+   "a": 7,
+   "b": 8,
+   "obsh": 7,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Gizbo",
+   "a": 16,
+   "b": 17,
+   "obsh": 16,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Goldfishka",
+   "a": 6,
+   "b": 7,
+   "obsh": 6,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Bitzamo",
+   "a": 14,
+   "b": 14,
+   "obsh": 14,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 10,
+   "top3_derzhit": 10,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Bounty",
+   "a": 9,
+   "b": 9,
+   "obsh": 9,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 6,
+   "top3_derzhit": 6,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Jozz",
+   "a": 15,
+   "b": 15,
+   "obsh": 15,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 10,
+   "top3_derzhit": 7,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Onion",
+   "a": 7,
+   "b": 8,
+   "obsh": 7,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 3,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Slotozal",
+   "a": 6,
+   "b": 7,
+   "obsh": 6,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Sykaaa",
+   "a": 9,
+   "b": 12,
+   "obsh": 9,
+   "ushlo": 0,
+   "novyh": 3,
+   "top3_a": 6,
+   "top3_derzhit": 5,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Cactus",
+   "a": 5,
+   "b": 5,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 2,
+   "top3_derzhit": 2,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Eldorado",
+   "a": 10,
+   "b": 10,
+   "obsh": 10,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Fenix",
+   "a": 8,
+   "b": 10,
+   "obsh": 8,
+   "ushlo": 0,
+   "novyh": 2,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "GetX",
+   "a": 6,
+   "b": 6,
+   "obsh": 6,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 3,
+   "top3_derzhit": 3,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Hype",
+   "a": 9,
+   "b": 10,
+   "obsh": 9,
+   "ushlo": 0,
+   "novyh": 1,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Jackpoker",
+   "a": 5,
+   "b": 5,
+   "obsh": 5,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 5,
+   "top3_derzhit": 5,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Ramenbet",
+   "a": 22,
+   "b": 22,
+   "obsh": 22,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 12,
+   "top3_derzhit": 11,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Shuffle",
+   "a": 13,
+   "b": 13,
+   "obsh": 13,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 7,
+   "top3_derzhit": 6,
+   "uderzhanie": 100.0
+  },
+  {
+   "imya": "Dbbet",
+   "a": 6,
+   "b": 6,
+   "obsh": 6,
+   "ushlo": 0,
+   "novyh": 0,
+   "top3_a": 4,
+   "top3_derzhit": 4,
+   "uderzhanie": 100.0
+  }
+ ],
+ "primery_ushli": [
+  "selector-99.sbs",
+  "ezcashcasino-9g.team",
+  "pinco901.fun",
+  "bollywood-casino-ewp.top",
+  "vodka957.com",
+  "888-starz-play.shop",
+  "admiralx-xup.top",
+  "beef1611.team",
+  "beef338.casino",
+  "betwinner-official-bet-bk4.top",
+  "bitz-playcasino.buzz",
+  "booi-casino-nkh.top",
+  "champion-slots9.click",
+  "dripcasino140.com",
+  "joycasino504.fun"
+ ],
+ "primery_novye": [
+  "clubnika574.fun",
+  "lucky-duck.host",
+  "playfortuna1611e.team",
+  "tonplay-casino.lol",
+  "kushcash.casino",
+  "bandacasinoonline.buzz",
+  "pokerdom265.fun",
+  "vodka1611g.fun",
+  "vodka1611gg.fun",
+  "banda-spin.casino",
+  "bonuses888starz.com",
+  "eplayfortuna39f.team",
+  "fenixcasino1.win",
+  "joycasino501.fun",
+  "kushcasino.team"
+ ]
+}
