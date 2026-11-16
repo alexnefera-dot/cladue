@@ -1,0 +1,77 @@
+Брендовых доменов: 1294 (25.2% сайтов выдачи), строк 4646 (30.0%), мест в топ-3 1848 (39.7%)
+Место в топ-3 есть у 564 сайтов из 1294
+Брендов покрыто: 150 из 166 = 90.4%, в среднем 8.6 домена на бренд
+Сайтов с несколькими брендами: 46
+Брендов без единого брендового домена: 16 — AUF, Cat, Lev, Loft, Rox, Shot, Sol, UP-X, Vulkan Mega, Why, Vulkan Russia, vulkanprestizh, 888, avrorapri, krakenov, vulkanroial
+Брендов, где брендовый домен — лидер выдачи: 89
+
+ЗОНЫ
+  .top          338  26.1%
+  .com          230  17.8%
+  .casino       101   7.8%
+  .fun           89   6.9%
+  .ru            63   4.9%
+  .cfd           32   2.5%
+  .team          30   2.3%
+  .online        22   1.7%
+  .sbs           21   1.6%
+  .click         20   1.5%
+  .buzz          20   1.5%
+  .site          18   1.4%
+
+СТИЛЬ ИМЕНИ
+  бренд + слово + цифры          516  39.9%   vulkan24-spin.ru, friends-casino274.com, honeymoney-casino-10eor.top
+  бренд + слово через дефис      321  24.8%   vulkanplatinum-officialsite.net, money-x-casino.top, arkada-casinos.casino
+  бренд + цифры                  196  15.1%   clubvulkan72.com, atom140.com, zooma-201.casino
+  бренд + слово                  154  11.9%   luckybearcasino.co.com, boostcasino.com, izzicasino.art
+  ровно имя бренда                95   7.3%   pari.ru, winline.ru, lucky-bear.games
+  цифры + бренд                   12   0.9%   1kent.casino, 13goldfishka.com, 1leebet.casino
+
+бренд                доменов  всего сайтов  доля сайтов  строк  доля показов  топ-3 лидер
+Vavada                    36            44        81.8%     70         70.0%     26 да
+1win                      32            47        68.1%     86         71.7%     29 да
+Kometa                    23            39        59.0%     72         72.0%     20 да
+Riobet                    23            33        69.7%     60         60.0%     18 да
+Ramenbet                  22            36        61.1%     79         79.0%     26 да
+Vodka                     21            44        47.7%     37         37.0%      9 
+Casino X                  20            29        69.0%     46         35.0%     14 
+Twin                      19            42        45.2%     75         75.0%     24 да
+Gama                      19            35        54.3%     58         58.0%     20 да
+Joycasino                 19            43        44.2%     57         57.0%     16 да
+Atom                      18            39        46.2%     64         64.0%     26 да
+Pin Up                    18            32        56.2%     74         63.0%     27 да
+Starda                    18            31        58.1%     64         55.0%     20 да
+Stake                     18            37        48.6%     60         60.0%     19 да
+ClubNika                  18            40        45.0%     39         39.0%      8 
+Booi                      17            35        48.6%     71         71.0%     16 да
+Jetton                    17            36        47.2%     72         72.0%     21 да
+Ezcash                    17            46        37.0%     53         53.0%     17 
+Champion Slots            17            40        42.5%     39         39.0%      8 да
+Luckybear                 16            38        42.1%    100         27.3%     34 да
+Izzi                      16            36        44.4%     64         64.0%     22 да
+Monro                     16            34        47.1%     62         62.0%     19 да
+Play Fortuna              16            35        45.7%     65         65.0%     16 да
+Gizbo                     16            33        48.5%     69         69.0%     23 да
+Drip                      16            35        45.7%     62         62.0%     20 
+Arkada                    15            46        32.6%     37         37.0%     13 
+Leon                      15            34        44.1%     59         59.0%     26 да
+Melbet                    15            37        40.5%     45         52.5%     20 да
+Pinco                     15            31        48.4%     62         62.0%     23 да
+888starz                  15            36        41.7%     46         32.2%     22 да
+1xbet                     15            48        31.2%     48         44.0%     18 да
+Jozz                      15            35        42.9%     70         70.0%     17 да
+Mellstroy                 14            42        33.3%     45         45.0%     21 да
+Bitzamo                   14            30        46.7%     75         75.0%     29 да
+AdmiralX                  14            52        26.9%     36         36.0%     14 
+Volna                     14            38        36.8%     44         35.0%     20 да
+Bollywood                 14            39        35.9%     39         36.0%      8 
+Betwinner                 14            46        30.4%     28         31.1%      7 
+Money X                   13            36        36.1%     51         42.5%     16 да
+Nomad                     13            44        29.5%     41         41.0%     20 да
+New Retro                 13            22        59.1%     74         64.0%     26 да
+Leebet                    13            42        31.0%     52         33.0%     23 да
+Legzo                     13            34        38.2%     58         58.0%     21 да
+Irwin                     13            41        31.7%     45         45.0%     23 да
+Shuffle                   13            50        26.0%     37         41.1%     14 да
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/brendovye.json

@@ -14,6 +14,7 @@ pod = json.load(open(sys.argv[5], encoding='utf-8')) if len(sys.argv) > 5 else N
 apk = json.load(open(sys.argv[6], encoding='utf-8')) if len(sys.argv) > 6 else None
 tlg = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else None
 prt = json.load(open(sys.argv[8], encoding='utf-8')) if len(sys.argv) > 8 else None
+bdm = json.load(open(sys.argv[9], encoding='utf-8')) if len(sys.argv) > 9 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -128,6 +129,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t5" aria-controls="list5" aria-selected="false">Каталоги APK</button>
       <button role="tab" id="t6" aria-controls="list6" aria-selected="false">Телеграм</button>
       <button role="tab" id="t7" aria-controls="list7" aria-selected="false">Порталы и рейтинги</button>
+      <button role="tab" id="t8" aria-controls="list8" aria-selected="false">Брендовые домены</button>
     </div>
   </div>
 </header>
@@ -140,6 +142,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list5" role="tabpanel" aria-labelledby="t5" hidden></div>
   <div id="list6" role="tabpanel" aria-labelledby="t6" hidden></div>
   <div id="list7" role="tabpanel" aria-labelledby="t7" hidden></div>
+  <div id="list8" role="tabpanel" aria-labelledby="t8" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
@@ -888,6 +891,122 @@ if (q) document.getElementById('list7').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 8 — брендовые домены */
+const w = D.bdm;
+if (w) document.getElementById('list8').innerHTML = `
+<section>
+  <h2>Брендовые домены</h2>
+  <p class="vvod">Домены, собранные вокруг имени бренда: официальные зеркала и партнёрские клоны.
+     По хосту их не разделить, поэтому формат один. Обрезка списков брендов здесь не мешает —
+     имя бренда стоит в самом домене, а сайтов с несколькими брендами в формате всего ${ch(w.mnogo_brendov)}.</p>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${ch(w.sajtov)}</span><div class="pd">доменов, ${pr(w.dolya_sajtov)} сайтов выдачи</div></div>
+    <div class="plitka vydel"><span class="ch">${ch(w.top3)}</span><div class="pd">мест в топ-3 — ${pr(w.dolya_top3)} всех</div></div>
+    <div class="plitka"><span class="ch">${ch(w.brendov)}</span><div class="pd">брендов покрыто из ${ch(w.brendov_vsego)}</div></div>
+    <div class="plitka"><span class="ch">${w.na_brend}</span><div class="pd">домена на бренд в среднем</div></div>
+    <div class="plitka"><span class="ch">${ch(w.liderov)}</span><div class="pd">брендов, где такой домен — лидер</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Зоны</h2>
+  <p class="vvod">Всего ${ch(w.zon_vsego)} зон. Картина обратная дорам: там .buzz и .casino,
+     здесь .top и .com — зоны подороже и поприличнее на вид.</p>
+  ${polosy(w.zony, {edinica: 'доменов'})}
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Как собрано имя</h2>
+  ${polosy(w.stili.map(x => ({imya: x.imya, n: x.n, dolya: x.dolya})), {edinica: 'доменов'})}
+  <div class="karta tablica-obertka" style="margin-top:12px">
+    <table>
+      <thead><tr><th>Стиль</th><th class="num">Доменов</th><th class="num">%</th><th>Примеры</th></tr></thead>
+      <tbody>${w.stili.map(x => `<tr><td>${x.imya}</td>
+        <td class="num">${ch(x.n)}</td><td class="num">${pr(x.dolya)}</td>
+        <td style="text-align:left;white-space:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3);overflow-wrap:anywhere">${x.primery.join(' · ')}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Бренды: сколько доменов и сколько выдачи</h2>
+  <p class="vvod">«Доля сайтов» — сколько брендовых доменов среди всех сайтов выдачи бренда.
+     «Доля показов» считается по доменам ровно с одним брендом, у них строки относятся
+     к бренду без дележа. Первые 45 из ${ch(w.brendov)}; полный список в файле выгрузки.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th class="num">Доменов</th><th class="num">Всего сайтов</th>
+        <th class="num">Доля сайтов</th><th class="num">Строк</th><th class="num">Доля показов</th>
+        <th class="num">Топ-3</th><th class="num">Лидер выдачи</th></tr></thead>
+      <tbody>${w.brendy.slice(0, 45).map(x => `<tr>
+        <td>${x.imya}</td><td class="num"><b>${ch(x.n)}</b></td>
+        <td class="num">${ch(x.vsego_sajtov)}</td><td class="num">${pr(x.dolya_sajtov)}</td>
+        <td class="num">${ch(x.strok)}</td><td class="num">${pr(x.dolya_strok)}</td>
+        <td class="num">${ch(x.top3)}</td>
+        <td class="num">${x.lider_brendovyy ? '<b style="color:var(--nash)">да</b>' : '—'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Где брендовые домены забрали выдачу целиком</h2>
+  <p class="vvod">Доля показов бренда, которую держат его же брендовые домены. Первые 20, шкала 0–100%.</p>
+  ${polosy(w.brendy.slice().sort((a,b) => b.dolya_strok - a.dolya_strok).slice(0, 20)
+      .map(x => ({imya: x.imya, n: x.n, dolya: x.dolya_strok})), {edinica: 'доменов', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">05</span>Бренды без единого брендового домена</h2>
+  <div class="karta">
+    <div class="legenda"><b style="color:var(--ink)">${ch(w.bez_brendovyh.length)} брендов из ${ch(w.brendov_vsego)}</b></div>
+    <div class="primery">${w.bez_brendovyh.join(' · ')}</div>
+  </div>
+  <p class="vvod" style="margin-top:12px">Это бренды, чью выдачу держат доры и прочие форматы:
+     ни одного домена с их именем в съёме нет. Там брендовый домен ставить не на что —
+     либо бренд новый, либо его просто не защищают.</p>
+</section>
+
+<section>
+  <h2><span class="nomer">06</span>Сайты формата с наибольшим числом мест в топ-3</h2>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Домен</th><th>Бренд</th><th class="num">Зона</th><th class="num">Строк</th>
+        <th class="num">Топ-3</th><th class="num">Позиция</th><th class="num">Доля в бренде</th><th>Стиль</th></tr></thead>
+      <tbody>${w.top_sajty.slice(0, 25).map(x => `<tr>
+        <td class="num" style="font-size:12.5px">${x.imya}</td><td>${x.brend}</td>
+        <td class="num">.${x.zona}</td><td class="num">${ch(x.strok)}</td>
+        <td class="num"><b>${ch(x.top3)}</b></td><td class="num">${x.poziciya || '—'}</td>
+        <td class="num">${pr(x.dolya_v_brende)}</td>
+        <td style="font-size:12px;color:var(--ink-2)">${x.stil}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Это главный формат выдачи.</b> ${pr(w.dolya_sajtov)} сайтов съёма дают ${pr(w.dolya_top3)} мест
+        в топ-3 — больше, чем все ${ch(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).n)} доров вместе
+        (${pr(D.pod.podtipy.find(x=>x.imya.startsWith('Доры')).dolya_top3)}). И в ${ch(w.liderov)} брендах из ${ch(w.brendov_vsego)}
+        именно такой домен — лидер выдачи.</li>
+    <li><b>Игра не в количество, а в имя.</b> В среднем ${w.na_brend} домена на бренд, но у лидеров
+        доля показов бренда доходит до ${pr(Math.max(...w.brendy.map(x => x.dolya_strok)))}:
+        ${w.brendy.slice().sort((a,b)=>b.dolya_strok-a.dolya_strok).slice(0,3).map(x => x.imya + ' ' + pr(x.dolya_strok)).join(', ')}.</li>
+    <li><b>Зоны другие, чем у доров.</b> .${w.zony[0].imya} ${pr(w.zony[0].dolya)} и .${w.zony[1].imya} ${pr(w.zony[1].dolya)}
+        против .buzz и .casino у дорвейных сеток. Домен под бренд берут подороже — он живёт дольше.</li>
+    <li><b>Имя собирают механически.</b> ${pr(w.stili[0].dolya + w.stili[2].dolya)} — это бренд плюс цифры
+        (с словом или без): ${w.stili[0].primery[0]}, ${w.stili[2].primery[0]}. Ровно имя бренда — только
+        ${pr(w.stili.find(x => x.imya === 'ровно имя бренда').dolya)}, и это как раз официальные сайты
+        (${w.stili.find(x => x.imya === 'ровно имя бренда').primery.slice(0,3).join(', ')}).</li>
+    <li><b>${ch(w.bez_brendovyh.length)} брендов никто не прикрывает.</b>
+        ${w.bez_brendovyh.slice(0, 8).join(', ')} — ни одного домена с их именем.
+        Это и есть бренды, где выдачу целиком держат доры.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -900,11 +1019,11 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (['t2','t3','t4','t5','t6','t7'].includes(s)) document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4','t5','t6','t7','t8'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
 dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk,
-                     'tlg': tlg, 'prt': prt}, ensure_ascii=False)
+                     'tlg': tlg, 'prt': prt, 'bdm': bdm}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')
