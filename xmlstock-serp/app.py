@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "редирект-фильтр-видно"
+APP_BUILD = "редиректор-вся-цепочка"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -755,7 +755,7 @@ def resolve_redirect(url, cfg, cancel):
             chain.append({"url": u, "status": st})
 
     try:
-        for _ in range(4):  # до 4 клиентских хопов (meta/JS); HTTP 3xx считает requests сам
+        for _ in range(8):  # до 8 клиентских хопов (meta/JS); HTTP 3xx считает requests сам
             if cancel.is_set():
                 break
             r = requests.get(current, headers=headers, timeout=cfg["timeout"],
@@ -842,18 +842,27 @@ def _browser_resolve(ctx, url, cfg):
                       wait_until="commit", timeout=cfg["timeout"] * 1000)
         except Exception:
             pass  # редирект-цепочка может «рвать» goto — дальше следим по page.url
-        waited, step = 0, 300
-        while waited < cfg["wait_ms"]:
-            cur = registrable_domain(url_host(page.url))
-            if cur and cur != src:
-                break
-            page.wait_for_timeout(step)
-            waited += step
-        final = page.url
+        def _settle(max_ms):
+            """Ждём, пока URL не перестанет меняться (quiet подряд) — ловим ВСЮ цепочку
+            (исходный → редиректор → … → финал), а не первый же хоп."""
+            waited, step, quiet, stable, last = 0, 300, 3000, 0, page.url
+            while waited < max_ms:
+                page.wait_for_timeout(step)
+                waited += step
+                cur = page.url
+                if cur != last:                 # цепочка ещё идёт — сбрасываем счётчик покоя
+                    last, stable = cur, 0
+                else:
+                    stable += step
+                    if stable >= quiet and waited >= 1500:
+                        break                   # URL замер → цепочка закончилась
+            return page.url
+
+        final = _settle(cfg["wait_ms"])
+        # застряли на исходном домене и разрешён клик — жмём «вход» и ждём остаток цепочки
         if cfg.get("click") and registrable_domain(url_host(final)) == src:
             if _try_click(page):
-                page.wait_for_timeout(min(cfg["wait_ms"], 4000))
-                final = page.url
+                final = _settle(min(max(cfg["wait_ms"], 6000), 12000))
         if final and (not chain or chain[-1]["url"] != final):
             chain.append({"url": final, "status": "browser"})
         return {"final_url": final, "status": None, "error": None, "chain": chain}
@@ -3631,7 +3640,7 @@ def api_redirects_run():
         "group_by": "root" if (data.get("group_by") or "root") == "root" else "host",
         "only_subdomains": bool(data.get("only_subdomains", True)),
         "engine_mode": "browser" if data.get("engine_mode") == "browser" else "http",
-        "wait_ms": clamp(data.get("wait_ms"), 500, 20000, 5000),
+        "wait_ms": clamp(data.get("wait_ms"), 500, 30000, 10000),
         "click": bool(data.get("click", False)),
         "ua": _UA[ua_key],
         "referer": "https://yandex.ru/" if data.get("referer", True) else "",
