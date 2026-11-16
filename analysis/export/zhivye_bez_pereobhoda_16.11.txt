@@ -1,0 +1,67 @@
+сайт                             база           создана       переобх. на базе  живых  дней
+vodka.davv.team                  davv.team      2026-09-29                   0    863     6
+faro.5337.lol                    5337.lol       2026-10-09                 150     83    10
+epicstar.ryfa.lol                ryfa.lol       2026-10-09                 150     44     1
+spinto.5296.lol                  5296.lol       2026-10-10                 150     39     9
+eva.5636.lol                     5636.lol       2026-10-10                 150     21     2
+jetton.davv.team                 davv.team      2026-09-29                   0     16    16
+spinto.davv.team                 davv.team      2026-09-29                   0     16    16
+beef.2219.lol                    2219.lol       2026-10-09                 200     14     9
+sever.5636.lol                   5636.lol       2026-10-10                 150     14    13
+sykaaa.davv.team                 davv.team      2026-09-29                   0     14     3
+wazbee.syek.lol                  syek.lol       2026-10-09                 158     13    13
+wazbee.davv.team                 davv.team      2026-09-29                   0     12    12
+spinto.unip.lol                  unip.lol       2026-10-10                 150     11    10
+epicstar.cyoz.lol                cyoz.lol       2026-10-10                 150     10     1
+dbbet.davv.team                  davv.team      2026-09-29                   0     10    10
+sever.syek.lol                   syek.lol       2026-10-09                 158      9     9
+vulkanvegas.davv.team            davv.team      2026-09-29                   0      9     9
+eva.3962.lol                     3962.lol       2026-10-11                 750      8     1
+wazbee.5636.lol                  5636.lol       2026-10-10                 150      8     8
+wazbee.5357.lol                  5357.lol       2026-10-10                 150      7     7
+spinwin.5296.lol                 5296.lol       2026-10-10                 150      7     7
+wazbee.5337.lol                  5337.lol       2026-10-09                 150      6     6
+spinwin.davv.team                davv.team      2026-09-29                   0      6     6
+spinto.4500.lol                  4500.lol       2026-10-10                 150      5     4
+winity.syek.lol                  syek.lol       2026-10-09                 158      5     5
+epicstar.4500.lol                4500.lol       2026-10-10                 150      4     1
+spinto.syek.lol                  syek.lol       2026-10-09                 158      4     4
+sever.5337.lol                   5337.lol       2026-10-09                 150      4     4
+wazbee.0118.lol                  0118.lol       2026-10-09                 150      4     4
+sever.boqi.lol                   boqi.lol       2026-10-10                 150      4     4
+dune.syek.lol                    syek.lol       2026-10-09                 158      4     4
+wazbee.mklh.lol                  mklh.lol       2026-10-10                 150      4     4
+wazbee.vuaw.lol                  vuaw.lol       2026-10-10                 600      4     4
+azino777.davv.team               davv.team      2026-09-29                   0      4     4
+melbet.j8k4.lol                  j8k4.lol       2026-10-09                 199      3     2
+beef.davv.team                   davv.team      2026-09-29                   0      3     3
+spinto.5466.lol                  5466.lol       2026-10-09                 150      3     3
+wazbee.ravl.lol                  ravl.lol       2026-10-08                 150      3     3
+wazbee.hvni.lol                  hvni.lol       2026-10-09                 150      3     3
+newretro.davv.team               davv.team      2026-09-29                   0      3     3
+wazbee.5316.lol                  5316.lol       2026-10-10                 150      3     3
+epicstar.davv.team               davv.team      2026-09-29                   0      3     2
+fenix.7454.lol                   7454.lol       2026-10-10                 150      2     1
+fenix.ravl.lol                   ravl.lol       2026-10-08                 150      2     2
+sever.5256.lol                   5256.lol       2026-09-06                 205      2     2
+wazbee.bnho.lol                  bnho.lol       2026-10-09                 150      2     2
+spinwin.ryfa.lol                 ryfa.lol       2026-10-09                 150      2     1
+champion.syek.lol                syek.lol       2026-10-09                 158      1     1
+vegasy.davv.team                 davv.team      2026-09-29                   0      1     1
+tonplay.syek.lol                 syek.lol       2026-10-09                 158      1     1
+faro.davv.team                   davv.team      2026-09-29                   0      1     1
+like.syek.lol                    syek.lol       2026-10-09                 158      1     1
+fugu.5337.lol                    5337.lol       2026-10-09                 150      1     1
+apex.zvfh.lol                    zvfh.lol       2026-10-09                 150      1     1
+betera.davv.team                 davv.team      2026-09-29                   0      1     1
+mellstroy.davv.team              davv.team      2026-09-29                   0      1     1
+zooma.davv.team                  davv.team      2026-09-29                   0      1     1
+cat.davv.team                    davv.team      2026-09-29                   0      1     1
+kush.davv.team                   davv.team      2026-09-29                   0      1     1
+flagman.davv.team                davv.team      2026-09-29                   0      1     1
+ramenbet.davv.team               davv.team      2026-09-29                   0      1     1
+explosino.davv.team              davv.team      2026-09-29                   0      1     1
+
+сайтов: 62  живых кликов: 1335
+баз: 25
+из них баз, где переобхода не было вообще ни на одном сайте: 1 ['davv.team']
