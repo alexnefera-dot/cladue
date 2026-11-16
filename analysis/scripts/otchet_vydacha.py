@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Сборка html-отчёта по выдаче: типы, разбор доров, сравнение двух съёмов.
 
-    python3 -I scripts/otchet_vydacha.py <tipy.json> <dory.json> <выход.html> [sravnenie.json]
+    python3 -I scripts/otchet_vydacha.py <tipy.json> <dory.json> <выход.html> [sravnenie.json] [podtipy.json]
 """
 import json
 import sys
@@ -10,6 +10,7 @@ tipy = json.load(open(sys.argv[1], encoding='utf-8'))
 dory = json.load(open(sys.argv[2], encoding='utf-8'))
 VYHOD = sys.argv[3]
 srav = json.load(open(sys.argv[4], encoding='utf-8')) if len(sys.argv) > 4 else None
+pod = json.load(open(sys.argv[5], encoding='utf-8')) if len(sys.argv) > 5 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -120,6 +121,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t1" aria-controls="list1" aria-selected="true">Типы сайтов</button>
       <button role="tab" id="t2" aria-controls="list2" aria-selected="false">Разбор доров</button>
       <button role="tab" id="t3" aria-controls="list3" aria-selected="false">Сравнение съёмов</button>
+      <button role="tab" id="t4" aria-controls="list4" aria-selected="false">Форматы проектов</button>
     </div>
   </div>
 </header>
@@ -128,6 +130,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list1" role="tabpanel" aria-labelledby="t1"></div>
   <div id="list2" role="tabpanel" aria-labelledby="t2" hidden></div>
   <div id="list3" role="tabpanel" aria-labelledby="t3" hidden></div>
+  <div id="list4" role="tabpanel" aria-labelledby="t4" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
@@ -149,7 +152,7 @@ function polosy(dannye, opts = {}) {
     <div class="ryad${x.nash ? ' nash' : ''}">
       <div class="nazv">${x.imya}</div>
       <div class="zhelob"><span class="fill" style="width:${(x.dolya / max * 100).toFixed(1)}%"></span></div>
-      <div class="chis"><b>${pr(x.dolya)}</b> · ${ch(x.n)}${opts.edinica ? ' ' + opts.edinica : ''}</div>
+      <div class="chis"><b>${opts.bezProcenta ? x.dolya.toLocaleString('ru-RU') : pr(x.dolya)}</b> · ${ch(x.n)}${opts.edinica ? ' ' + opts.edinica : ''}</div>
     </div>`).join('') + `</div></div>`;
 }
 
@@ -454,6 +457,118 @@ if (v) document.getElementById('list3').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 4 — форматы проектов */
+const f = D.pod;
+const GRUPPA_CVET = {'Платформы и UGC':'var(--accent)','Тематические проекты':'var(--nash)',
+  'Дорвейные форматы':'var(--ink-3)','Под имя бренда':'var(--ink-2)','Чужая тематика':'var(--ink-3)'};
+if (f) document.getElementById('list4').innerHTML = `
+<section>
+  <h2>Какие форматы вообще стоят в выдаче</h2>
+  <p class="vvod">Те же ${ch(f.vsego_sajtov)} сайтов, но разложены не на 9 типов, а на ${f.podtipy.length} форматов —
+     по тому, что это за проект. Колонка «топ-3 на сайт» показывает отдачу формата,
+     «брендов на сайт» — плечо: сколько брендов тянет один проект.</p>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${f.podtipy.length}</span><div class="pd">форматов</div></div>
+    <div class="plitka"><span class="ch">${ch(f.vsego_brendov)}</span><div class="pd">брендов в съёме</div></div>
+    <div class="plitka"><span class="ch">${ch(f.vsego_top3)}</span><div class="pd">мест в топ-3 на всех</div></div>
+    <div class="plitka vydel"><span class="ch">${pr(f.podtipy.filter(x => x.gruppa === 'Платформы и UGC').reduce((s2,x) => s2 + x.dolya_top3, 0))}</span><div class="pd">топ-3 у платформ и UGC при ${pr(f.podtipy.filter(x => x.gruppa === 'Платформы и UGC').reduce((s2,x) => s2 + x.dolya, 0))} сайтов</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Широкая таблица форматов</h2>
+  <p class="vvod">Отсортировано по отдаче на один сайт. «Охват» — доля из ${ch(f.vsego_brendov)} брендов,
+     в чьей выдаче формат вообще встречается. «Сайтов с топ-3» — доля сайтов формата,
+     у которых есть хотя бы одно место в тройке.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Формат</th><th>Группа</th><th class="num">Сайтов</th><th class="num">%</th>
+        <th class="num">Строк</th><th class="num">%</th><th class="num">Топ-3</th><th class="num">%</th>
+        <th class="num">Топ-3 на сайт</th><th class="num">Брендов</th><th class="num">Охват</th>
+        <th class="num">Брендов на сайт</th><th class="num">Сайтов с топ-3</th></tr></thead>
+      <tbody>${f.podtipy.map(x => `<tr>
+        <td>${x.imya}</td>
+        <td style="white-space:nowrap"><span class="tochka" style="background:${GRUPPA_CVET[x.gruppa]}"></span>${x.gruppa}</td>
+        <td class="num">${ch(x.n)}</td><td class="num">${pr(x.dolya)}</td>
+        <td class="num">${ch(x.strok)}</td><td class="num">${pr(x.dolya_strok)}</td>
+        <td class="num">${ch(x.top3)}</td><td class="num">${pr(x.dolya_top3)}</td>
+        <td class="num"><b>${x.top3_na_sajt.toLocaleString('ru-RU')}</b></td>
+        <td class="num">${ch(x.brendov)}</td><td class="num">${pr(x.ohvat)}</td>
+        <td class="num">${x.brendov_na_sajt.toLocaleString('ru-RU')}</td>
+        <td class="num">${pr(x.dolya_s_top3)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <p class="vvod" style="margin-top:10px">У телеграма «топ-3 на сайт» ненастоящий: три хоста
+     (<span style="font-family:var(--mono)">t.me</span>, <span style="font-family:var(--mono)">telegram.me</span>,
+     <span style="font-family:var(--mono)">tgstat.ru</span>) — это сотни отдельных каналов,
+     которых в выгрузке не видно. Считать по ним отдачу одного проекта нельзя,
+     можно только видеть, сколько выдачи формат забирает целиком.</p>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Кто сколько забирает мест в топ-3</h2>
+  ${polosy(f.podtipy.slice().sort((a,b) => b.dolya_top3 - a.dolya_top3)
+      .map(x => ({imya: x.imya, n: x.top3, dolya: x.dolya_top3})), {edinica: 'мест'})}
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Плечо: сколько брендов тянет один проект</h2>
+  <p class="vvod">Сколько брендов в среднем покрывает один сайт формата. У дора — один,
+     и это предел: чтобы закрыть ${ch(f.vsego_brendov)} брендов, нужно ${ch(f.vsego_brendov)} доров.
+     У портала — два десятка.</p>
+  ${polosy(f.podtipy.slice().sort((a,b) => b.brendov_na_sajt - a.brendov_na_sajt).slice(0, 12)
+      .map(x => ({imya: x.imya, n: x.brendov, dolya: x.brendov_na_sajt})),
+      {edinica: 'брендов охвачено всего', bezProcenta: true})}
+  <p class="vvod" style="margin-top:10px">Жирным — среднее число брендов на один сайт формата,
+     после точки — сколько брендов формат покрывает всего.</p>
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Попадаемость: доля сайтов формата, у которых есть топ-3</h2>
+  <p class="vvod">Сколько процентов проектов формата доходят хотя бы до одного места в тройке.
+     Шкала 0–100%. Это мера того, насколько формат вообще работает, а не насколько он масштабен.</p>
+  ${polosy(f.podtipy.slice().sort((a,b) => b.dolya_s_top3 - a.dolya_s_top3)
+      .map(x => ({imya: x.imya, n: x.n, dolya: x.dolya_s_top3})), {edinica: 'сайтов в формате', shkala: 100})}
+</section>
+
+<section>
+  <h2><span class="nomer">05</span>Кто в каждом формате стоит лучше всех</h2>
+  <div class="karta">${f.podtipy.map(x => `
+    <div class="ryad" style="grid-template-columns:minmax(150px,28%) 1fr">
+      <div class="nazv">${x.imya}</div>
+      <div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3);overflow-wrap:anywhere">${x.primery.join(' · ')}</div>
+    </div>`).join('')}</div>
+</section>
+
+<div class="vyvod">
+  <h3>Что имеет смысл смотреть кроме доров, брендовых сайтов и рейтингов</h3>
+  <ul>
+    <li><b>Телеграм — самый недооценённый кусок.</b> Три хоста забирают ${pr(f.podtipy.find(x=>x.imya==='Телеграм').dolya_top3)}
+        всех мест в топ-3 и ${pr(f.podtipy.find(x=>x.imya==='Телеграм').dolya_strok)} показов,
+        покрывая ${f.podtipy.find(x=>x.imya==='Телеграм').brendov} брендов. Это формат, где выдачу держит не домен, а канал.</li>
+    <li><b>Каталоги приложений и APK.</b> ${ch(f.podtipy.find(x=>x.imya.startsWith('Каталоги')).n)} сайтов,
+        но ${pr(f.podtipy.find(x=>x.imya.startsWith('Каталоги')).dolya_s_top3)} из них имеют место в тройке,
+        и один сайт тянет ${f.podtipy.find(x=>x.imya.startsWith('Каталоги')).brendov_na_sajt} бренда.
+        Ниша заполнена слабо: <span style="font-family:var(--mono)">android-station.ru</span> в одиночку держит 15 мест.</li>
+    <li><b>СМИ и спортивные медиа — лучшая попадаемость.</b>
+        ${pr(f.podtipy.find(x=>x.imya.startsWith('СМИ')).dolya_s_top3)} сайтов формата стоят в топ-3.
+        Своим проектом сюда не зайти, но размещение у них окупается местами, а не ссылками.</li>
+    <li><b>Зеркала и «вход» как отдельный формат.</b> Всего ${ch(f.podtipy.find(x=>x.imya.startsWith('Зеркала')).n)} сайтов
+        на весь съём, а отдача ${f.podtipy.find(x=>x.imya.startsWith('Зеркала')).top3_na_sajt} места на сайт —
+        в ${(f.podtipy.find(x=>x.imya.startsWith('Зеркала')).top3_na_sajt / f.podtipy.find(x=>x.imya.startsWith('Доры')).top3_na_sajt).toFixed(1)} раза выше, чем у дора. Конкуренции почти нет.</li>
+    <li><b>Вики, отзывы и вопросы-ответы.</b> По ${ch(f.podtipy.find(x=>x.imya.startsWith('Вики')).n)}–${ch(f.podtipy.find(x=>x.imya.startsWith('Отзывы')).n)} сайтов,
+        отдача ${f.podtipy.find(x=>x.imya.startsWith('Вики')).top3_na_sajt} и ${f.podtipy.find(x=>x.imya.startsWith('Отзывы')).top3_na_sajt} места на сайт —
+        вчетверо выше дора при затратах на статью, а не на сетку.</li>
+    <li><b>Чего делать не стоит: бесплатные платформы.</b> ${ch(f.podtipy.find(x=>x.imya.startsWith('Бесплатные')).n)} сайтов на vercel, wix, tilda и github
+        дали ${ch(f.podtipy.find(x=>x.imya.startsWith('Бесплатные')).top3)} место в топ-3 на всех. Формат мёртвый.</li>
+    <li><b>Отдельная история — нетематические домены.</b> ${ch(f.podtipy.find(x=>x.imya.startsWith('Нетематические')).n)} сайтов
+        с чужой тематикой в имени (керамика, курсы, техника) стоят в казино-выдаче и держат
+        ${ch(f.podtipy.find(x=>x.imya.startsWith('Нетематические')).top3)} мест. Это перекупленные или взломанные
+        чужие сайты; отдача на сайт низкая (${f.podtipy.find(x=>x.imya.startsWith('Нетематические')).top3_na_sajt}), но объём заметный.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -466,10 +581,10 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (s === 't2' || s === 't3') document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
-dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav}, ensure_ascii=False)
+dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod}, ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')
