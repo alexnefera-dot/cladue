@@ -441,6 +441,7 @@
         <div><span class="muted">Обработано</span><b id="r_done">0 / 0</b></div>
         <div class="ok"><span class="muted">Статус</span><b id="r_statusw">—</b></div>
       </div>
+      <div id="r_skipnote" class="hidden" style="margin:8px 0 0;padding:9px 12px;border:1px solid var(--warn);border-radius:8px;background:rgba(240,160,0,.10);color:var(--warn);font-size:13px"></div>
       <div class="row" style="margin-bottom:12px">
         <button class="btn-dl hidden" id="r_dlXlsx">⬇ Скачать XLSX</button>
         <button class="btn-dl hidden" id="r_dlCsv">⬇ Скачать CSV</button>
@@ -1331,6 +1332,7 @@ async function rRefresh(){
   if(d.error){ clearInterval(rPoll); rPoll=null; $("r_go").disabled=false; $("r_stop").classList.add("hidden"); $("r_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
   $("r_done").textContent=d.done+" / "+d.total;
   $("r_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  if(d.skipped_root>0){ $("r_skipnote").textContent=`⚠ Пропущено ${d.skipped_root} корневых доменов (стоит галочка «Только поддомены»). Сними её и запусти заново, чтобы проверить и их.`; $("r_skipnote").classList.remove("hidden"); } else { $("r_skipnote").classList.add("hidden"); }
   const s=d.summary||{targets:[]};
   const maxp=(s.targets&&s.targets.length)? s.targets[0].percent : 100;
   let sh=(s.targets||[]).map(t=>{

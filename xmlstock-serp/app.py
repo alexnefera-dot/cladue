@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "цепочка-редиректов"
+APP_BUILD = "редирект-фильтр-видно"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -928,11 +928,13 @@ def run_redirects(job_id, cfg, urls):
     key_root = cfg["group_by"] == "root"
     only_sub = cfg.get("only_subdomains", True)
     seen, items = set(), []
+    skipped_root = 0
     for u in urls:
         h = url_host(u)
         if not h:
             continue
-        if only_sub and not is_subdomain(h):  # только поддомены
+        if only_sub and not is_subdomain(h):  # только поддомены — корневые пропускаем
+            skipped_root += 1
             continue
         k = registrable_domain(h) if key_root else h
         if k and k not in seen:  # дедуп по корневому домену (или по хосту)
@@ -940,6 +942,7 @@ def run_redirects(job_id, cfg, urls):
             items.append({"url": u, "host": h})
     with job["lock"]:
         job["total"] = len(items)
+        job["skipped_root"] = skipped_root
 
     try:
         if cfg.get("engine_mode") == "browser":
@@ -3657,7 +3660,8 @@ def api_redirects_status(job_id):
     with job["lock"]:
         rows = list(job["rows"])
         return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
-                        "rows": rows, "summary": redir_summary(rows), "fatal": job.get("fatal")})
+                        "rows": rows, "summary": redir_summary(rows), "fatal": job.get("fatal"),
+                        "skipped_root": job.get("skipped_root", 0)})
 
 
 @app.route("/api/redirects/cancel/<job_id>", methods=["POST"])
