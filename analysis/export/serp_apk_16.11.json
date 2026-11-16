@@ -1,0 +1,1087 @@
+{
+ "sajtov": 35,
+ "strok": 195,
+ "top3": 45,
+ "brendov_zatronuto": 38,
+ "brendov_vsego": 165,
+ "dolya_brendov": 23.0,
+ "bez_brenda": {
+  "imya": "без бренда",
+  "apk_sajtov": 17,
+  "vsego_sajtov": 65,
+  "dolya": 26.2,
+  "strok_brenda": 80,
+  "s_top3": 11,
+  "sajty": [
+   "5droid.ru",
+   "android-sklad.ru",
+   "androidbaza.ru",
+   "androidp1.com",
+   "androidworlds.ru",
+   "apk-mostbet-official2507.mobi",
+   "apkshki.com",
+   "apkz.com",
+   "appku.ru",
+   "freesoft.ru",
+   "most-apk.mobi",
+   "mostbk-app.best",
+   "mostonlineapk.mobi",
+   "play-apk.net",
+   "tapappzone.com",
+   "top-android.org",
+   "trashbox.ru"
+  ]
+ },
+ "obrezano": 2,
+ "vne_spiska": {},
+ "sajty": [
+  {
+   "imya": "android-station.ru",
+   "brendov": 8,
+   "brendy": [
+    "1xbet",
+    "Parimatch",
+    "Spinbetter",
+    "888starz",
+    "Betwinner",
+    "Melbet",
+    "888",
+    "MostBet Bookmaker"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 28,
+   "top3": 15,
+   "poziciya": 1,
+   "dolya_strok": 14.4,
+   "dolya_top3": 33.3
+  },
+  {
+   "imya": "apkpure.net",
+   "brendov": 14,
+   "brendy": [
+    "Joycasino",
+    "Rox",
+    "Trix",
+    "Vibe",
+    "Vivaro",
+    "Winline",
+    "Betwinner",
+    "Fonbet",
+    "Shuffle",
+    "Why",
+    "Pari",
+    "Onetap"
+   ],
+   "brendy_vne": [],
+   "obrezano": 2,
+   "strok": 18,
+   "top3": 5,
+   "poziciya": 2,
+   "dolya_strok": 9.2,
+   "dolya_top3": 11.1
+  },
+  {
+   "imya": "android-sklad.ru",
+   "brendov": 7,
+   "brendy": [
+    "1xbet",
+    "888starz",
+    "Betwinner",
+    "888",
+    "MostBet Bookmaker",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 14,
+   "top3": 3,
+   "poziciya": 2,
+   "dolya_strok": 7.2,
+   "dolya_top3": 6.7
+  },
+  {
+   "imya": "5droid.ru",
+   "brendov": 4,
+   "brendy": [
+    "Joycasino",
+    "Betwinner",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 7,
+   "top3": 3,
+   "poziciya": 3,
+   "dolya_strok": 3.6,
+   "dolya_top3": 6.7
+  },
+  {
+   "imya": "betonmobile.by",
+   "brendov": 2,
+   "brendy": [
+    "Betera",
+    "Maxline"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 12,
+   "top3": 2,
+   "poziciya": 1,
+   "dolya_strok": 6.2,
+   "dolya_top3": 4.4
+  },
+  {
+   "imya": "play-apk.net",
+   "brendov": 4,
+   "brendy": [
+    "888starz",
+    "Betwinner",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 8,
+   "top3": 2,
+   "poziciya": 3,
+   "dolya_strok": 4.1,
+   "dolya_top3": 4.4
+  },
+  {
+   "imya": "trashbox.ru",
+   "brendov": 3,
+   "brendy": [
+    "Volna",
+    "Onetap",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 3,
+   "top3": 2,
+   "poziciya": 1,
+   "dolya_strok": 1.5,
+   "dolya_top3": 4.4
+  },
+  {
+   "imya": "androidworlds.ru",
+   "brendov": 7,
+   "brendy": [
+    "1xbet",
+    "Spinbetter",
+    "888starz",
+    "Betwinner",
+    "888",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 12,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 6.2,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "market-apk.net",
+   "brendov": 8,
+   "brendy": [
+    "Brillx",
+    "Champion Slots",
+    "Izzi",
+    "Joycasino",
+    "Rox",
+    "Starda",
+    "Vodka",
+    "iks"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 8,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 4.1,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "apkpure.com",
+   "brendov": 7,
+   "brendy": [
+    "Joycasino",
+    "Maxline",
+    "Sol",
+    "Trix",
+    "Vibe",
+    "Pari",
+    "Onetap"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 7,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 3.6,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "freesoft.ru",
+   "brendov": 4,
+   "brendy": [
+    "Dbbet",
+    "Betwinner",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 7,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 3.6,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "mostbk-app.best",
+   "brendov": 2,
+   "brendy": [
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 3,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 1.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "katemobiles.vip",
+   "brendov": 2,
+   "brendy": [
+    "Hype",
+    "Monro"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 2,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 1.0,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "melbet365apk.com",
+   "brendov": 1,
+   "brendy": [
+    "Melbet"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 2,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 1.0,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "mostonlineapk.mobi",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 2,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 1.0,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "androidapplications.store",
+   "brendov": 1,
+   "brendy": [
+    "Why"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "androidbaza.ru",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 2,
+   "dolya_strok": 0.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "androidnonestop.info",
+   "brendov": 1,
+   "brendy": [
+    "Izzi"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "most-apk.mobi",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 1,
+   "dolya_strok": 0.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "tapappzone.com",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 1,
+   "poziciya": 3,
+   "dolya_strok": 0.5,
+   "dolya_top3": 2.2
+  },
+  {
+   "imya": "apkshki.com",
+   "brendov": 6,
+   "brendy": [
+    "1xbet",
+    "Betera",
+    "Brillx",
+    "Rox",
+    "Betwinner",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 8,
+   "top3": 0,
+   "poziciya": 5,
+   "dolya_strok": 4.1,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "androidx.ru",
+   "brendov": 2,
+   "brendy": [
+    "1xbet",
+    "Melbet"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 8,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 4.1,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "coandroid.com",
+   "brendov": 4,
+   "brendy": [
+    "Joycasino",
+    "Ramenbet",
+    "Rox",
+    "Vodka"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 7,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 3.6,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "softportal.com",
+   "brendov": 4,
+   "brendy": [
+    "1xbet",
+    "888starz",
+    "Betwinner",
+    "888"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 7,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 3.6,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "appda.ru",
+   "brendov": 3,
+   "brendy": [
+    "888starz",
+    "Melbet",
+    "888"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 6,
+   "top3": 0,
+   "poziciya": 5,
+   "dolya_strok": 3.1,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "top-android.org",
+   "brendov": 5,
+   "brendy": [
+    "Brillx",
+    "CryptoBoss",
+    "Play Fortuna",
+    "Unlim Casino",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 5,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 2.6,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "appku.ru",
+   "brendov": 3,
+   "brendy": [
+    "Spinbetter",
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 4,
+   "top3": 0,
+   "poziciya": 4,
+   "dolya_strok": 2.1,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "apk-mostbet-official2507.mobi",
+   "brendov": 2,
+   "brendy": [
+    "mostbetmostbet",
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 3,
+   "top3": 0,
+   "poziciya": 6,
+   "dolya_strok": 1.5,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "apkprogs.com",
+   "brendov": 1,
+   "brendy": [
+    "888starz"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 8,
+   "dolya_strok": 1.0,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "apppokerdeal.com",
+   "brendov": 1,
+   "brendy": [
+    "Jackpoker"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 2,
+   "top3": 0,
+   "poziciya": 7,
+   "dolya_strok": 1.0,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "1000apk.ru",
+   "brendov": 1,
+   "brendy": [
+    "Why"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 10,
+   "dolya_strok": 0.5,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "1xbet-skachat-na-android-qp1.ru",
+   "brendov": 1,
+   "brendy": [
+    "1xbet"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 10,
+   "dolya_strok": 0.5,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "androidloading.com",
+   "brendov": 1,
+   "brendy": [
+    "Why"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 5,
+   "dolya_strok": 0.5,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "androidp1.com",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 10,
+   "dolya_strok": 0.5,
+   "dolya_top3": 0.0
+  },
+  {
+   "imya": "apkz.com",
+   "brendov": 1,
+   "brendy": [
+    "без бренда"
+   ],
+   "brendy_vne": [],
+   "obrezano": 0,
+   "strok": 1,
+   "top3": 0,
+   "poziciya": 8,
+   "dolya_strok": 0.5,
+   "dolya_top3": 0.0
+  }
+ ],
+ "brendy": [
+  {
+   "imya": "mostbetmostbet",
+   "apk_sajtov": 8,
+   "vsego_sajtov": 10,
+   "dolya": 80.0,
+   "strok_brenda": 10,
+   "s_top3": 6,
+   "sajty": [
+    "5droid.ru",
+    "android-sklad.ru",
+    "androidworlds.ru",
+    "apk-mostbet-official2507.mobi",
+    "appku.ru",
+    "freesoft.ru",
+    "mostbk-app.best",
+    "play-apk.net"
+   ]
+  },
+  {
+   "imya": "888",
+   "apk_sajtov": 5,
+   "vsego_sajtov": 10,
+   "dolya": 50.0,
+   "strok_brenda": 10,
+   "s_top3": 3,
+   "sajty": [
+    "android-sklad.ru",
+    "android-station.ru",
+    "androidworlds.ru",
+    "appda.ru",
+    "softportal.com"
+   ]
+  },
+  {
+   "imya": "MostBet Bookmaker",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 10,
+   "dolya": 20.0,
+   "strok_brenda": 10,
+   "s_top3": 2,
+   "sajty": [
+    "android-sklad.ru",
+    "android-station.ru"
+   ]
+  },
+  {
+   "imya": "Betwinner",
+   "apk_sajtov": 9,
+   "vsego_sajtov": 46,
+   "dolya": 19.6,
+   "strok_brenda": 90,
+   "s_top3": 7,
+   "sajty": [
+    "5droid.ru",
+    "android-sklad.ru",
+    "android-station.ru",
+    "androidworlds.ru",
+    "apkpure.net",
+    "apkshki.com",
+    "freesoft.ru",
+    "play-apk.net",
+    "softportal.com"
+   ]
+  },
+  {
+   "imya": "888starz",
+   "apk_sajtov": 7,
+   "vsego_sajtov": 36,
+   "dolya": 19.4,
+   "strok_brenda": 90,
+   "s_top3": 4,
+   "sajty": [
+    "android-sklad.ru",
+    "android-station.ru",
+    "androidworlds.ru",
+    "apkprogs.com",
+    "appda.ru",
+    "play-apk.net",
+    "softportal.com"
+   ]
+  },
+  {
+   "imya": "1xbet",
+   "apk_sajtov": 7,
+   "vsego_sajtov": 48,
+   "dolya": 14.6,
+   "strok_brenda": 100,
+   "s_top3": 3,
+   "sajty": [
+    "1xbet-skachat-na-android-qp1.ru",
+    "android-sklad.ru",
+    "android-station.ru",
+    "androidworlds.ru",
+    "androidx.ru",
+    "apkshki.com",
+    "softportal.com"
+   ]
+  },
+  {
+   "imya": "Joycasino",
+   "apk_sajtov": 5,
+   "vsego_sajtov": 43,
+   "dolya": 11.6,
+   "strok_brenda": 100,
+   "s_top3": 4,
+   "sajty": [
+    "5droid.ru",
+    "apkpure.com",
+    "apkpure.net",
+    "coandroid.com",
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Melbet",
+   "apk_sajtov": 4,
+   "vsego_sajtov": 37,
+   "dolya": 10.8,
+   "strok_brenda": 80,
+   "s_top3": 2,
+   "sajty": [
+    "android-station.ru",
+    "androidx.ru",
+    "appda.ru",
+    "melbet365apk.com"
+   ]
+  },
+  {
+   "imya": "Rox",
+   "apk_sajtov": 4,
+   "vsego_sajtov": 37,
+   "dolya": 10.8,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "apkpure.net",
+    "apkshki.com",
+    "coandroid.com",
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "iks",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 10,
+   "dolya": 10.0,
+   "strok_brenda": 10,
+   "s_top3": 1,
+   "sajty": [
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Brillx",
+   "apk_sajtov": 3,
+   "vsego_sajtov": 39,
+   "dolya": 7.7,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "apkshki.com",
+    "market-apk.net",
+    "top-android.org"
+   ]
+  },
+  {
+   "imya": "Why",
+   "apk_sajtov": 4,
+   "vsego_sajtov": 55,
+   "dolya": 7.3,
+   "strok_brenda": 90,
+   "s_top3": 2,
+   "sajty": [
+    "1000apk.ru",
+    "androidapplications.store",
+    "androidloading.com",
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Spinbetter",
+   "apk_sajtov": 3,
+   "vsego_sajtov": 45,
+   "dolya": 6.7,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "android-station.ru",
+    "androidworlds.ru",
+    "appku.ru"
+   ]
+  },
+  {
+   "imya": "Onetap",
+   "apk_sajtov": 3,
+   "vsego_sajtov": 45,
+   "dolya": 6.7,
+   "strok_brenda": 60,
+   "s_top3": 3,
+   "sajty": [
+    "apkpure.com",
+    "apkpure.net",
+    "trashbox.ru"
+   ]
+  },
+  {
+   "imya": "Pari",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 36,
+   "dolya": 5.6,
+   "strok_brenda": 70,
+   "s_top3": 2,
+   "sajty": [
+    "apkpure.com",
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Izzi",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 36,
+   "dolya": 5.6,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "androidnonestop.info",
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Betera",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 41,
+   "dolya": 4.9,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "apkshki.com",
+    "betonmobile.by"
+   ]
+  },
+  {
+   "imya": "Vodka",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 44,
+   "dolya": 4.5,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "coandroid.com",
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Maxline",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 45,
+   "dolya": 4.4,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "apkpure.com",
+    "betonmobile.by"
+   ]
+  },
+  {
+   "imya": "Trix",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 56,
+   "dolya": 3.6,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "apkpure.com",
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Jackpoker",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 28,
+   "dolya": 3.6,
+   "strok_brenda": 100,
+   "s_top3": 0,
+   "sajty": [
+    "apppokerdeal.com"
+   ]
+  },
+  {
+   "imya": "Winline",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 29,
+   "dolya": 3.4,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Starda",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 31,
+   "dolya": 3.2,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Vibe",
+   "apk_sajtov": 2,
+   "vsego_sajtov": 65,
+   "dolya": 3.1,
+   "strok_brenda": 100,
+   "s_top3": 2,
+   "sajty": [
+    "apkpure.com",
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Sol",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 32,
+   "dolya": 3.1,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "apkpure.com"
+   ]
+  },
+  {
+   "imya": "Parimatch",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 35,
+   "dolya": 2.9,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "android-station.ru"
+   ]
+  },
+  {
+   "imya": "Fonbet",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 34,
+   "dolya": 2.9,
+   "strok_brenda": 90,
+   "s_top3": 1,
+   "sajty": [
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Monro",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 34,
+   "dolya": 2.9,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "katemobiles.vip"
+   ]
+  },
+  {
+   "imya": "Play Fortuna",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 35,
+   "dolya": 2.9,
+   "strok_brenda": 100,
+   "s_top3": 0,
+   "sajty": [
+    "top-android.org"
+   ]
+  },
+  {
+   "imya": "Unlim Casino",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 35,
+   "dolya": 2.9,
+   "strok_brenda": 100,
+   "s_top3": 0,
+   "sajty": [
+    "top-android.org"
+   ]
+  },
+  {
+   "imya": "Ramenbet",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 36,
+   "dolya": 2.8,
+   "strok_brenda": 100,
+   "s_top3": 0,
+   "sajty": [
+    "coandroid.com"
+   ]
+  },
+  {
+   "imya": "Hype",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 37,
+   "dolya": 2.7,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "katemobiles.vip"
+   ]
+  },
+  {
+   "imya": "CryptoBoss",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 37,
+   "dolya": 2.7,
+   "strok_brenda": 100,
+   "s_top3": 0,
+   "sajty": [
+    "top-android.org"
+   ]
+  },
+  {
+   "imya": "Volna",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 38,
+   "dolya": 2.6,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "trashbox.ru"
+   ]
+  },
+  {
+   "imya": "Champion Slots",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 40,
+   "dolya": 2.5,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "market-apk.net"
+   ]
+  },
+  {
+   "imya": "Vivaro",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 48,
+   "dolya": 2.1,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Shuffle",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 50,
+   "dolya": 2.0,
+   "strok_brenda": 90,
+   "s_top3": 1,
+   "sajty": [
+    "apkpure.net"
+   ]
+  },
+  {
+   "imya": "Dbbet",
+   "apk_sajtov": 1,
+   "vsego_sajtov": 50,
+   "dolya": 2.0,
+   "strok_brenda": 100,
+   "s_top3": 1,
+   "sajty": [
+    "freesoft.ru"
+   ]
+  }
+ ],
+ "s_top3": 20,
+ "brendov_s_top3": 33
+}

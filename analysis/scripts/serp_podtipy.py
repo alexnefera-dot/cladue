@@ -39,9 +39,14 @@ SMI = ('sports.ru', 'championat.com', 'vedomosti.ru', 'rbc.ru', 'ria.ru', 'tass.
 SERVISY = ('avito.ru', 'ozon.ru', 'wildberries.ru', '2gis.ru', 'hh.ru', 'kinopoisk.ru', 'okko.tv',
            'gosuslugi.ru', 'play.google.com', 'apps.apple.com', 'archive.org', 'github.com',
            'yandex.ru', 'ya.ru', 'rustore.ru', 'drom.ru', 'banki.ru', 'vbr.ru', 'list-org.com',
-           'rutracker.org', 'afisha.yandex.ru', 'tr-page.yandex.ru', 'companies.rbc.ru')
-PRILOZH = ('android', 'apk', 'softportal', 'trashbox', '4pda', 'droid', 'freesoft', 'skachat',
-           'mobi', 'app')
+           'rutracker.org', 'afisha.yandex.ru', 'tr-page.yandex.ru', 'companies.rbc.ru',
+           'apple.com', 'music.apple.com', 'itunes.apple.com')
+PRILOZH = ('android', 'apk', 'softportal', 'trashbox', '4pda', 'droid', 'freesoft', 'skachat')
+# «app» и «mobi» ловим отдельно: как приставку или через разделитель, иначе в формат
+# попадают apple.com и sapphiretech.com — там «app» внутри чужого слова
+PRILOZH_RE = __import__('re').compile(r'(app|^mobi|-mobi|mobile)')
+# слова, внутри которых «app» ничего не значит
+NE_APP = ('apple', 'sapphir', 'happy', 'apparel', 'append', 'support', 'appeal', 'apprais')
 BONUS = ('bonus', 'promokod', 'promocode', 'bezdep', 'cashback', 'fribet', 'freebet', 'frispin',
          'freespin', 'podarok', 'akcii')
 PROGNOZ = ('prognoz', 'stavk', 'bet-', 'betting', 'liveresult', 'legalbet', 'score', 'match',
@@ -108,7 +113,8 @@ def podtip(r):
         return 'Бонусы и промокоды'
     if any(k in polnoe for k in ZERKALO):
         return 'Зеркала и «вход»'
-    if any(k in polnoe for k in PRILOZH):
+    if any(k in polnoe for k in PRILOZH) or (PRILOZH_RE.search(imya)
+                                             and not any(w in imya for w in NE_APP)):
         return 'Каталоги APK и приложений'
     if any(k in polnoe for k in PROGNOZ):
         return 'Прогнозы и ставки'

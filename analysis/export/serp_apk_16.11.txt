@@ -1,0 +1,83 @@
+Каталогов APK и приложений: 35; строк выдачи 195, мест в топ-3 45
+Брендов затронуто: 38 из 166 = 23.0%; из них с APK-сайтом в топ-3: 33
+Сайтов с местом в топ-3: 20 из 35
+ВНИМАНИЕ: в выгрузке обрезаны списки брендов, не видно 2 упоминаний
+
+сайт                               брендов  строк  % строк  топ-3  % топ-3  поз  бренды
+android-station.ru                       8     28    14.4%     15    33.3%    1  1xbet, Parimatch, Spinbetter, 888starz, Betwinner, Melbet, 888, MostBet Bookmaker
+apkpure.net                             14     18     9.2%      5    11.1%    2  Joycasino, Rox, Trix, Vibe, Vivaro, Winline, Betwinner, Fonbet, Shuffle, Why, Pari, Onetap (+2 не видно)
+android-sklad.ru                         7     14     7.2%      3     6.7%    2  1xbet, 888starz, Betwinner, 888, MostBet Bookmaker, mostbetmostbet, без бренда
+5droid.ru                                4      7     3.6%      3     6.7%    3  Joycasino, Betwinner, mostbetmostbet, без бренда
+betonmobile.by                           2     12     6.2%      2     4.4%    1  Betera, Maxline
+play-apk.net                             4      8     4.1%      2     4.4%    3  888starz, Betwinner, mostbetmostbet, без бренда
+trashbox.ru                              3      3     1.5%      2     4.4%    1  Volna, Onetap, без бренда
+androidworlds.ru                         7     12     6.2%      1     2.2%    2  1xbet, Spinbetter, 888starz, Betwinner, 888, mostbetmostbet, без бренда
+market-apk.net                           8      8     4.1%      1     2.2%    2  Brillx, Champion Slots, Izzi, Joycasino, Rox, Starda, Vodka, iks
+apkpure.com                              7      7     3.6%      1     2.2%    2  Joycasino, Maxline, Sol, Trix, Vibe, Pari, Onetap
+freesoft.ru                              4      7     3.6%      1     2.2%    2  Dbbet, Betwinner, mostbetmostbet, без бренда
+mostbk-app.best                          2      3     1.5%      1     2.2%    3  mostbetmostbet, без бренда
+katemobiles.vip                          2      2     1.0%      1     2.2%    2  Hype, Monro
+melbet365apk.com                         1      2     1.0%      1     2.2%    2  Melbet
+mostonlineapk.mobi                       1      2     1.0%      1     2.2%    2  без бренда
+androidapplications.store                1      1     0.5%      1     2.2%    3  Why
+androidbaza.ru                           1      1     0.5%      1     2.2%    2  без бренда
+androidnonestop.info                     1      1     0.5%      1     2.2%    3  Izzi
+most-apk.mobi                            1      1     0.5%      1     2.2%    1  без бренда
+tapappzone.com                           1      1     0.5%      1     2.2%    3  без бренда
+apkshki.com                              6      8     4.1%      0     0.0%    5  1xbet, Betera, Brillx, Rox, Betwinner, без бренда
+androidx.ru                              2      8     4.1%      0     0.0%    4  1xbet, Melbet
+coandroid.com                            4      7     3.6%      0     0.0%    4  Joycasino, Ramenbet, Rox, Vodka
+softportal.com                           4      7     3.6%      0     0.0%    4  1xbet, 888starz, Betwinner, 888
+appda.ru                                 3      6     3.1%      0     0.0%    5  888starz, Melbet, 888
+top-android.org                          5      5     2.6%      0     0.0%    4  Brillx, CryptoBoss, Play Fortuna, Unlim Casino, без бренда
+appku.ru                                 3      4     2.1%      0     0.0%    4  Spinbetter, mostbetmostbet, без бренда
+apk-mostbet-official2507.mobi            2      3     1.5%      0     0.0%    6  mostbetmostbet, без бренда
+apkprogs.com                             1      2     1.0%      0     0.0%    8  888starz
+apppokerdeal.com                         1      2     1.0%      0     0.0%    7  Jackpoker
+1000apk.ru                               1      1     0.5%      0     0.0%   10  Why
+1xbet-skachat-na-android-qp1.ru          1      1     0.5%      0     0.0%   10  1xbet
+androidloading.com                       1      1     0.5%      0     0.0%    5  Why
+androidp1.com                            1      1     0.5%      0     0.0%   10  без бренда
+apkz.com                                 1      1     0.5%      0     0.0%    8  без бренда
+
+бренд                 APK-сайтов  всего сайтов    доля  строк бренда  сайты
+mostbetmostbet                 8            10   80.0%            10  5droid.ru, android-sklad.ru, androidworlds.ru, apk-mostbet-official2507.mobi
+888                            5            10   50.0%            10  android-sklad.ru, android-station.ru, androidworlds.ru, appda.ru
+MostBet Bookmaker              2            10   20.0%            10  android-sklad.ru, android-station.ru
+Betwinner                      9            46   19.6%            90  5droid.ru, android-sklad.ru, android-station.ru, androidworlds.ru
+888starz                       7            36   19.4%            90  android-sklad.ru, android-station.ru, androidworlds.ru, apkprogs.com
+1xbet                          7            48   14.6%           100  1xbet-skachat-na-android-qp1.ru, android-sklad.ru, android-station.ru, androidworlds.ru
+Joycasino                      5            43   11.6%           100  5droid.ru, apkpure.com, apkpure.net, coandroid.com
+Melbet                         4            37   10.8%            80  android-station.ru, androidx.ru, appda.ru, melbet365apk.com
+Rox                            4            37   10.8%           100  apkpure.net, apkshki.com, coandroid.com, market-apk.net
+iks                            1            10   10.0%            10  market-apk.net
+Brillx                         3            39    7.7%           100  apkshki.com, market-apk.net, top-android.org
+Why                            4            55    7.3%            90  1000apk.ru, androidapplications.store, androidloading.com, apkpure.net
+Spinbetter                     3            45    6.7%           100  android-station.ru, androidworlds.ru, appku.ru
+Onetap                         3            45    6.7%            60  apkpure.com, apkpure.net, trashbox.ru
+Pari                           2            36    5.6%            70  apkpure.com, apkpure.net
+Izzi                           2            36    5.6%           100  androidnonestop.info, market-apk.net
+Betera                         2            41    4.9%           100  apkshki.com, betonmobile.by
+Vodka                          2            44    4.5%           100  coandroid.com, market-apk.net
+Maxline                        2            45    4.4%           100  apkpure.com, betonmobile.by
+Trix                           2            56    3.6%           100  apkpure.com, apkpure.net
+Jackpoker                      1            28    3.6%           100  apppokerdeal.com
+Winline                        1            29    3.4%           100  apkpure.net
+Starda                         1            31    3.2%           100  market-apk.net
+Vibe                           2            65    3.1%           100  apkpure.com, apkpure.net
+Sol                            1            32    3.1%           100  apkpure.com
+Parimatch                      1            35    2.9%           100  android-station.ru
+Fonbet                         1            34    2.9%            90  apkpure.net
+Monro                          1            34    2.9%           100  katemobiles.vip
+Play Fortuna                   1            35    2.9%           100  top-android.org
+Unlim Casino                   1            35    2.9%           100  top-android.org
+Ramenbet                       1            36    2.8%           100  coandroid.com
+Hype                           1            37    2.7%           100  katemobiles.vip
+CryptoBoss                     1            37    2.7%           100  top-android.org
+Volna                          1            38    2.6%           100  trashbox.ru
+Champion Slots                 1            40    2.5%           100  market-apk.net
+Vivaro                         1            48    2.1%           100  apkpure.net
+Shuffle                        1            50    2.0%            90  apkpure.net
+Dbbet                          1            50    2.0%           100  freesoft.ru
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/apk.json

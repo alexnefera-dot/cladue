@@ -11,6 +11,7 @@ dory = json.load(open(sys.argv[2], encoding='utf-8'))
 VYHOD = sys.argv[3]
 srav = json.load(open(sys.argv[4], encoding='utf-8')) if len(sys.argv) > 4 else None
 pod = json.load(open(sys.argv[5], encoding='utf-8')) if len(sys.argv) > 5 else None
+apk = json.load(open(sys.argv[6], encoding='utf-8')) if len(sys.argv) > 6 else None
 
 SHABLON = r'''<title>Анатомия выдачи</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -122,6 +123,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button role="tab" id="t2" aria-controls="list2" aria-selected="false">Разбор доров</button>
       <button role="tab" id="t3" aria-controls="list3" aria-selected="false">Сравнение съёмов</button>
       <button role="tab" id="t4" aria-controls="list4" aria-selected="false">Форматы проектов</button>
+      <button role="tab" id="t5" aria-controls="list5" aria-selected="false">Каталоги APK</button>
     </div>
   </div>
 </header>
@@ -131,6 +133,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
   <div id="list2" role="tabpanel" aria-labelledby="t2" hidden></div>
   <div id="list3" role="tabpanel" aria-labelledby="t3" hidden></div>
   <div id="list4" role="tabpanel" aria-labelledby="t4" hidden></div>
+  <div id="list5" role="tabpanel" aria-labelledby="t5" hidden></div>
   <footer>
     Источник — две выгрузки всех сайтов выдачи за 16.11.2026 по одним и тем же 166 брендам.
     Листы «Типы сайтов» и «Разбор доров» построены на съёме A. Тип считается заново по правилам
@@ -569,6 +572,94 @@ if (f) document.getElementById('list4').innerHTML = `
   </ul>
 </div>`;
 
+/* ЛИСТ 5 — каталоги APK */
+const a = D.apk;
+if (a) document.getElementById('list5').innerHTML = `
+<section>
+  <h2>Каталоги APK и приложений</h2>
+  <p class="vvod">Формат целиком: ${ch(a.sajtov)} сайтов, ${ch(a.strok)} строк выдачи,
+     ${ch(a.top3)} мест в топ-3. Доля считается по сайтам — делить показы многобрендового
+     сайта между брендами выгрузка не позволяет, таких оценок здесь нет.</p>
+  <div class="plitki">
+    <div class="plitka"><span class="ch">${ch(a.sajtov)}</span><div class="pd">сайтов в формате</div></div>
+    <div class="plitka"><span class="ch">${ch(a.brendov_zatronuto)}</span><div class="pd">брендов затронуто из ${ch(a.brendov_vsego)}</div></div>
+    <div class="plitka vydel"><span class="ch">${pr(a.dolya_brendov)}</span><div class="pd">всех брендов съёма</div></div>
+    <div class="plitka"><span class="ch">${ch(a.s_top3)} / ${ch(a.sajtov)}</span><div class="pd">сайтов имеют место в топ-3</div></div>
+    <div class="plitka"><span class="ch">${ch(a.brendov_s_top3)}</span><div class="pd">брендов, где APK-сайт в тройке</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">01</span>Какой сайт сколько забирает</h2>
+  <p class="vvod">Проценты — доля внутри формата: от ${ch(a.strok)} строк и ${ch(a.top3)} мест в топ-3,
+     которые держат все каталоги вместе.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Сайт</th><th class="num">Брендов</th><th class="num">Строк</th><th class="num">% строк</th>
+        <th class="num">Топ-3</th><th class="num">% топ-3</th><th class="num">Лучшая позиция</th><th>Бренды</th></tr></thead>
+      <tbody>${a.sajty.map(x => `<tr>
+        <td class="num" style="font-size:12.5px">${x.imya}</td>
+        <td class="num">${ch(x.brendov)}</td>
+        <td class="num">${ch(x.strok)}</td><td class="num">${pr(x.dolya_strok)}</td>
+        <td class="num"><b>${ch(x.top3)}</b></td><td class="num">${pr(x.dolya_top3)}</td>
+        <td class="num">${x.poziciya || '—'}</td>
+        <td style="text-align:left;white-space:normal;font-size:12px;color:var(--ink-2);min-width:220px">${x.brendy.join(', ') || '—'}${x.obrezano ? ` <span style="color:var(--ink-3)">(+${x.obrezano} не видно в выгрузке)</span>` : ''}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">02</span>Кто держит места в топ-3 внутри формата</h2>
+  ${polosy(a.sajty.filter(x => x.top3 > 0).map(x => ({imya: x.imya, n: x.top3, dolya: x.dolya_top3})),
+      {edinica: 'мест'})}
+</section>
+
+<section>
+  <h2><span class="nomer">03</span>Бренды: сколько выдачи забирают каталоги</h2>
+  <p class="vvod">Доля — сколько APK-каталогов среди всех сайтов выдачи этого бренда.
+     У бренда с десятью сайтами один каталог это сразу 10%, поэтому рядом стоит
+     и общее число сайтов.</p>
+  <div class="karta tablica-obertka">
+    <table>
+      <thead><tr><th>Бренд</th><th class="num">APK-сайтов</th><th class="num">Всего сайтов у бренда</th>
+        <th class="num">Доля</th><th class="num">Строк выдачи у бренда</th><th>Какие каталоги</th></tr></thead>
+      <tbody>${a.brendy.map(x => `<tr>
+        <td>${x.imya}</td><td class="num"><b>${ch(x.apk_sajtov)}</b></td>
+        <td class="num">${ch(x.vsego_sajtov)}</td><td class="num">${pr(x.dolya)}</td>
+        <td class="num">${ch(x.strok_brenda)}</td>
+        <td style="text-align:left;white-space:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3);min-width:220px;overflow-wrap:anywhere">${x.sajty.join(' · ')}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="nomer">04</span>Доля каталогов в выдаче бренда</h2>
+  <p class="vvod">Первые 20 брендов по доле. Шкала 0–100%.</p>
+  ${polosy(a.brendy.slice(0, 20).map(x => ({imya: x.imya, n: x.apk_sajtov, dolya: x.dolya})),
+      {edinica: 'каталогов', shkala: 100})}
+</section>
+
+<div class="vyvod">
+  <h3>Что из этого следует</h3>
+  <ul>
+    <li><b>Формат покрывает ${pr(a.dolya_brendov)} брендов и держится на букмекерах.</b>
+        Каталоги есть в выдаче ${ch(a.brendov_zatronuto)} брендов из ${ch(a.brendov_vsego)}, и почти все верхние строки —
+        букмекеры и их приложения: ${a.brendy.slice(0, 6).map(x => x.imya).join(', ')}.</li>
+    <li><b>Один сайт держит треть формата.</b> <span style="font-family:var(--mono)">${a.sajty[0].imya}</span> —
+        ${ch(a.sajty[0].top3)} мест в топ-3 из ${ch(a.top3)} (${pr(a.sajty[0].dolya_top3)}) на ${ch(a.sajty[0].brendov)} брендах,
+        лучшая позиция ${a.sajty[0].poziciya}. Второй, <span style="font-family:var(--mono)">${a.sajty[1].imya}</span>,
+        покрывает ${ch(a.sajty[1].brendov)} брендов, но берёт только ${ch(a.sajty[1].top3)} мест.</li>
+    <li><b>Порог входа низкий.</b> ${ch(a.s_top3)} из ${ch(a.sajtov)} сайтов формата имеют место в тройке,
+        причём среди них есть одностраничные домены под один бренд —
+        ${a.sajty.filter(x => x.brendov === 1 && x.top3 > 0).slice(0, 4).map(x => x.imya).join(', ')}.</li>
+    <li><b>Чего в формате нет.</b> Каталоги не трогают ${ch(a.brendov_vsego - a.brendov_zatronuto)} брендов —
+        ${pr(100 - a.dolya_brendov)} съёма. Это казино без приложения или без запроса на скачивание;
+        там формат работать не будет.</li>
+  </ul>
+</div>`;
+
 /* переключение листов */
 const knopki = [...document.querySelectorAll('.listy button')];
 knopki.forEach(k => k.addEventListener('click', () => {
@@ -581,10 +672,11 @@ knopki.forEach(k => k.addEventListener('click', () => {
   window.scrollTo({top: 0});
 }));
 try { const s = localStorage.getItem('list');
-  if (['t2','t3','t4'].includes(s)) document.getElementById(s).click(); } catch (e) {}
+  if (['t2','t3','t4','t5'].includes(s)) document.getElementById(s).click(); } catch (e) {}
 </script>
 '''
 
-dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod}, ensure_ascii=False)
+dannye = json.dumps({'tipy': tipy, 'dory': dory, 'srav': srav, 'pod': pod, 'apk': apk},
+                    ensure_ascii=False)
 open(VYHOD, 'w', encoding='utf-8').write(SHABLON.replace('__DANNYE__', dannye))
 print(f'-> {VYHOD}')
