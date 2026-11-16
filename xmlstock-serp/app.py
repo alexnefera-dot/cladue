@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "редиректор-вся-цепочка"
+APP_BUILD = "клик-вход-новая-вкладка"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -802,72 +802,125 @@ def _redir_row(it, res):
     }
 
 
+_CLICK_WORDS = ["регистрац", "зарегистр", "регистр", "вход", "войти", "sign up", "signup",
+                "register", "log in", "login", "sign in", "играть", "перейти", "продолж",
+                "начать", "получить", "забрать", "бонус", "play now", "play", "enter",
+                "casino", "claim", "get started", "continue", "старт", "join"]
+
+
 def _try_click(page):
-    """Best-effort клик по заметной кнопке/ссылке (для дорвеев с кнопкой-входом)."""
-    for w in ["играть", "войти", "продолж", "перейти", "начать", "получить",
-              "бонус", "play", "enter", "casino", "claim", "get", "continue"]:
+    """Клик по кнопке/ссылке «Вход»/«Регистрация»/CTA (дорвеи редиректят по клику)."""
+    for w in _CLICK_WORDS:
+        rx = re.compile(w, re.I)
+        for getter in (lambda: page.get_by_role("button", name=rx),
+                       lambda: page.get_by_role("link", name=rx),
+                       lambda: page.get_by_text(rx)):
+            try:
+                loc = getter()
+                if loc.count() > 0:
+                    loc.first.click(timeout=1500, no_wait_after=True)
+                    return True
+            except Exception:
+                continue
+    for sel in ["a.btn, button.btn, .button, .btn, [class*=reg], [class*=login], [class*=enter]",
+                "button", "a[href]"]:
         try:
-            loc = page.get_by_text(re.compile(w, re.I))
+            loc = page.locator(sel)
             if loc.count() > 0:
-                loc.first.click(timeout=1500)
+                loc.first.click(timeout=1500, no_wait_after=True)
                 return True
         except Exception:
             continue
-    try:
-        page.locator("a, button").first.click(timeout=1500)
-        return True
-    except Exception:
-        return False
+    return False
 
 
-def _browser_resolve(ctx, url, cfg):
-    """Открывает страницу в реальном браузере и ждёт смены домена (JS/таймер/клик)."""
-    page = ctx.new_page()
-    src = registrable_domain(url_host(url))
-    chain = []
-
+def _attach_nav(pg, chain):
+    """Пишем в chain каждую навигацию главного фрейма страницы pg."""
     def _on_nav(frame):
         try:
-            if frame == page.main_frame:
+            if frame == pg.main_frame:
                 u = frame.url
                 if u and u != "about:blank" and (not chain or chain[-1]["url"] != u):
                     chain.append({"url": u, "status": "browser"})
         except Exception:
             pass
+    pg.on("framenavigated", _on_nav)
 
-    page.on("framenavigated", _on_nav)
+
+def _settle_page(pg, max_ms):
+    """Ждём, пока URL страницы pg не замрёт (quiet подряд) — ловим ВСЮ цепочку."""
+    waited, step, quiet, stable = 0, 300, 3000, 0
+    try:
+        last = pg.url
+    except Exception:
+        return ""
+    while waited < max_ms:
+        try:
+            pg.wait_for_timeout(step)
+            cur = pg.url
+        except Exception:
+            break
+        waited += step
+        if cur != last:
+            last, stable = cur, 0
+        else:
+            stable += step
+            if stable >= quiet and waited >= 1500:
+                break
+    try:
+        return pg.url
+    except Exception:
+        return last
+
+
+def _browser_resolve(ctx, url, cfg):
+    """Открывает страницу в браузере, ждёт авто-редиректы, при необходимости жмёт
+    «Вход»/«Регистрация» (в т.ч. если редирект открывается в НОВОЙ вкладке)."""
+    page = ctx.new_page()
+    src = registrable_domain(url_host(url))
+    chain = []
+    popups = []
+
+    def _on_popup(p):
+        popups.append(p)
+        _attach_nav(p, chain)                   # слушаем навигации новой вкладки СРАЗУ
+        try:
+            u = p.url                           # и её стартовый URL (редиректор)
+            if u and u != "about:blank" and (not chain or chain[-1]["url"] != u):
+                chain.append({"url": u, "status": "browser"})
+        except Exception:
+            pass
+
+    _attach_nav(page, chain)
+    page.on("popup", _on_popup)
+    final = url
     try:
         try:
             page.goto(url if "://" in url else "http://" + url,
                       wait_until="commit", timeout=cfg["timeout"] * 1000)
         except Exception:
             pass  # редирект-цепочка может «рвать» goto — дальше следим по page.url
-        def _settle(max_ms):
-            """Ждём, пока URL не перестанет меняться (quiet подряд) — ловим ВСЮ цепочку
-            (исходный → редиректор → … → финал), а не первый же хоп."""
-            waited, step, quiet, stable, last = 0, 300, 3000, 0, page.url
-            while waited < max_ms:
-                page.wait_for_timeout(step)
-                waited += step
-                cur = page.url
-                if cur != last:                 # цепочка ещё идёт — сбрасываем счётчик покоя
-                    last, stable = cur, 0
-                else:
-                    stable += step
-                    if stable >= quiet and waited >= 1500:
-                        break                   # URL замер → цепочка закончилась
-            return page.url
 
-        final = _settle(cfg["wait_ms"])
-        # застряли на исходном домене и разрешён клик — жмём «вход» и ждём остаток цепочки
+        final = _settle_page(page, cfg["wait_ms"]) or final
+        long_ms = min(max(cfg["wait_ms"], 6000), 14000)
+        # дорвей не редиректит сам → жмём «Вход»/«Регистрация» (часто редирект в новую вкладку)
         if cfg.get("click") and registrable_domain(url_host(final)) == src:
             if _try_click(page):
-                final = _settle(min(max(cfg["wait_ms"], 6000), 12000))
+                page.wait_for_timeout(900)          # дать попапу/навигации появиться
+                if popups:                          # открылась новая вкладка — идём в неё
+                    newp = popups[-1]
+                    final = _settle_page(newp, long_ms) or final
+                    try:
+                        newp.close()
+                    except Exception:
+                        pass
+                else:                               # редирект в той же вкладке
+                    final = _settle_page(page, long_ms) or final
         if final and (not chain or chain[-1]["url"] != final):
             chain.append({"url": final, "status": "browser"})
         return {"final_url": final, "status": None, "error": None, "chain": chain}
     except Exception as e:  # noqa: BLE001
-        return {"final_url": url, "status": None, "error": str(e)[:200], "chain": chain}
+        return {"final_url": final, "status": None, "error": str(e)[:200], "chain": chain}
     finally:
         try:
             page.close()
