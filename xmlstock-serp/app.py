@@ -48,7 +48,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "клик-вход-новая-вкладка"
+APP_BUILD = "финал-не-chromewebdata"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -787,17 +787,19 @@ def _redir_row(it, res):
     hops = []                                   # цепочка ХОСТОВ по порядку (промежуточные + финал)
     for c in chain:
         h = url_host(c.get("url", ""))
-        if h and (not hops or hops[-1] != h):
+        if h and "chromewebdata" not in h and (not hops or hops[-1] != h):
             hops.append(h)
     if it["host"] and (not hops or hops[0] != it["host"]):
         hops = [it["host"]] + hops              # гарантируем исходный хост первым
-    if final_host and (not hops or hops[-1] != final_host):
+    if final_host and "chromewebdata" not in final_host and (not hops or hops[-1] != final_host):
         hops.append(final_host)                 # и финальный последним
+    final_failed = bool(chain and chain[-1].get("status") == "fail")
     return {
         "source_url": it["url"], "source_host": it["host"],
         "final_url": res["final_url"], "final_host": final_host,
         "final_domain": final_dom, "redirected": bool(final_dom and final_dom != src_dom),
-        "status": res["status"], "error": res["error"],
+        "status": res["status"], "error": res["error"], "note": res.get("note") or "",
+        "final_failed": final_failed,
         "chain": chain, "hops": hops, "hops_count": max(0, len(hops) - 1),
     }
 
@@ -834,17 +836,35 @@ def _try_click(page):
     return False
 
 
+def _is_error_url(u):
+    """chrome-error://chromewebdata/ и прочие служебные — это НЕ домен, а страница-ошибка."""
+    u = (u or "").lower()
+    return (not u) or u == "about:blank" or u.startswith(("chrome-error", "chrome:", "data:")) \
+        or "chromewebdata" in u
+
+
 def _attach_nav(pg, chain):
-    """Пишем в chain каждую навигацию главного фрейма страницы pg."""
+    """Пишем в chain каждую навигацию главного фрейма (кроме служебных/ошибочных)."""
     def _on_nav(frame):
         try:
             if frame == pg.main_frame:
                 u = frame.url
-                if u and u != "about:blank" and (not chain or chain[-1]["url"] != u):
+                if u and not _is_error_url(u) and (not chain or chain[-1]["url"] != u):
                     chain.append({"url": u, "status": "browser"})
         except Exception:
             pass
     pg.on("framenavigated", _on_nav)
+
+
+def _attach_fail(pg, store):
+    """Запоминаем URL упавших навигаций главного фрейма — куда вёл редирект, но не загрузилось."""
+    def _on_fail(req):
+        try:
+            if req.is_navigation_request() and req.frame == pg.main_frame and not _is_error_url(req.url):
+                store.append(req.url)
+        except Exception:
+            pass
+    pg.on("requestfailed", _on_fail)
 
 
 def _settle_page(pg, max_ms):
@@ -880,18 +900,21 @@ def _browser_resolve(ctx, url, cfg):
     src = registrable_domain(url_host(url))
     chain = []
     popups = []
+    nav_fail = []
 
     def _on_popup(p):
         popups.append(p)
         _attach_nav(p, chain)                   # слушаем навигации новой вкладки СРАЗУ
+        _attach_fail(p, nav_fail)
         try:
             u = p.url                           # и её стартовый URL (редиректор)
-            if u and u != "about:blank" and (not chain or chain[-1]["url"] != u):
+            if u and not _is_error_url(u) and (not chain or chain[-1]["url"] != u):
                 chain.append({"url": u, "status": "browser"})
         except Exception:
             pass
 
     _attach_nav(page, chain)
+    _attach_fail(page, nav_fail)
     page.on("popup", _on_popup)
     final = url
     try:
@@ -916,11 +939,24 @@ def _browser_resolve(ctx, url, cfg):
                         pass
                 else:                               # редирект в той же вкладке
                     final = _settle_page(page, long_ms) or final
-        if final and (not chain or chain[-1]["url"] != final):
+
+        # финал оказался error-страницей (chromewebdata)? значит последняя навигация упала
+        err_note = None
+        if _is_error_url(final):
+            real = next((u for u in reversed(nav_fail) if not _is_error_url(u)), "")
+            if real:                            # знаем, КУДА вёл редирект (но не загрузилось)
+                final = real
+                err_note = "редирект ведёт сюда, но страница не загрузилась (гео/UA-защита или домен недоступен)"
+                if not chain or chain[-1]["url"] != final:
+                    chain.append({"url": final, "status": "fail"})
+            else:                               # финал неизвестен — берём последний нормальный хоп
+                final = chain[-1]["url"] if chain else url
+                err_note = "финал не загрузился (ошибка навигации после редиректора)"
+        elif final and (not chain or chain[-1]["url"] != final):
             chain.append({"url": final, "status": "browser"})
-        return {"final_url": final, "status": None, "error": None, "chain": chain}
+        return {"final_url": final, "status": None, "error": None, "note": err_note, "chain": chain}
     except Exception as e:  # noqa: BLE001
-        return {"final_url": final, "status": None, "error": str(e)[:200], "chain": chain}
+        return {"final_url": final, "status": None, "error": str(e)[:200], "note": None, "chain": chain}
     finally:
         try:
             page.close()
@@ -3759,7 +3795,7 @@ def api_redirects_download(job_id):
         hops = r.get("hops") or []
         return [r["source_host"], r["source_url"], "да" if r["redirected"] else "нет",
                 r.get("hops_count", max(0, len(hops) - 1)), " -> ".join(hops),
-                r["final_domain"], r["final_url"], r["status"], r["error"] or ""]
+                r["final_domain"], r["final_url"], r["status"], r["error"] or r.get("note") or ""]
 
     if fmt == "xlsx":
         try:

@@ -1350,8 +1350,10 @@ async function rRefresh(){
     let chain;
     if(r.error && hops.length<=1){ chain='<span class="p-no">'+esc(r.error)+'</span>'; }
     else{
-      chain = hops.map((h,i)=> i===hops.length-1 ? '<b class="p-top">'+esc(h)+'</b>' : (i===0?'<span class="muted">'+esc(h)+'</span>':esc(h))).join(' <span class="muted">→</span> ');
+      const lastCls=r.final_failed?'p-mid':'p-top', lastPre=r.final_failed?'⚠ ':'';
+      chain = hops.map((h,i)=> i===hops.length-1 ? '<b class="'+lastCls+'">'+lastPre+esc(h)+'</b>' : (i===0?'<span class="muted">'+esc(h)+'</span>':esc(h))).join(' <span class="muted">→</span> ');
       if(r.error) chain += ' <span class="p-no">('+esc(r.error)+')</span>';
+      else if(r.note) chain += ' <span class="p-mid">('+esc(r.note)+')</span>';
     }
     return `<tr><td>${esc(r.source_host)}</td><td>${red}</td><td>${esc(r.final_domain||"")}</td>
       <td class="seq" style="max-width:560px;white-space:normal;word-break:break-word;line-height:1.5">${chain}</td>
