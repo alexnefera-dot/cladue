@@ -1,0 +1,463 @@
+{
+ "brendov": 166,
+ "sajtov_a": 6557,
+ "sajtov_b": 6547,
+ "strok_a": 15493,
+ "strok_b": 15511,
+ "dorov_a": 3025,
+ "dorov_b": 2970,
+ "nashih_dorov_a": 96,
+ "nashih_dorov_b": 101,
+ "dolya_dorov_a": 28.8,
+ "dolya_dorov_b": 29.2,
+ "smena_sajta": 72,
+ "smena_tipa": 29,
+ "smena_tipa_spisok": [
+  {
+   "imya": "AdmiralX",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "admiralx-dqi.top"
+  },
+  {
+   "imya": "Arkada",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "arkada-casinos.casino"
+  },
+  {
+   "imya": "Banda",
+   "bylo": "доры (поддомены)",
+   "stalo": "тематические домены",
+   "lider": "banda-spin.casino"
+  },
+  {
+   "imya": "BitStarz",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "ClubNika",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Crystalslot",
+   "bylo": "соцсети и видео",
+   "stalo": "доры (поддомены)",
+   "lider": "crystalslot.1611casino.top"
+  },
+  {
+   "imya": "Eldorado",
+   "bylo": "доры (поддомены)",
+   "stalo": "тематические домены",
+   "lider": "eldorado-casino-adrb.top"
+  },
+  {
+   "imya": "Ezcash",
+   "bylo": "доры (поддомены)",
+   "stalo": "тематические домены",
+   "lider": "ezcash-960.team"
+  },
+  {
+   "imya": "Fraga",
+   "bylo": "тематические домены",
+   "stalo": "доры (поддомены)",
+   "lider": "fraga.casino11win26.buzz"
+  },
+  {
+   "imya": "Gama",
+   "bylo": "тематические домены",
+   "stalo": "доры (поддомены)",
+   "lider": "gama.p100.casino"
+  },
+  {
+   "imya": "GetX",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "getx-777-casino.click"
+  },
+  {
+   "imya": "Hype",
+   "bylo": "соцсети и видео",
+   "stalo": "доры (поддомены)",
+   "lider": "hype.p100.casino"
+  },
+  {
+   "imya": "Jetton",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Kilogram",
+   "bylo": "доры (поддомены)",
+   "stalo": "тематические домены",
+   "lider": "kilogramcasino.fun"
+  },
+  {
+   "imya": "Kraken",
+   "bylo": "тематические домены",
+   "stalo": "прочие домены",
+   "lider": "krakefoodmarket.com"
+  },
+  {
+   "imya": "Lilbet",
+   "bylo": "тематические домены",
+   "stalo": "доры (поддомены)",
+   "lider": "lilbet.casino-1611.online"
+  },
+  {
+   "imya": "Lukkly",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Mellstroy",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Mers",
+   "bylo": "доры (поддомены)",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Onion",
+   "bylo": "доры (поддомены)",
+   "stalo": "тематические домены",
+   "lider": "onion-cazino.beauty"
+  },
+  {
+   "imya": "Onlybets",
+   "bylo": "доры (поддомены)",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Pokerdom",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "pokerdom105.fun"
+  },
+  {
+   "imya": "Pokerok",
+   "bylo": "доры (поддомены)",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Selector",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "selector455.lol"
+  },
+  {
+   "imya": "Sykaaa",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "UP-X",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Vodka",
+   "bylo": "соцсети и видео",
+   "stalo": "тематические домены",
+   "lider": "vodka613.com"
+  },
+  {
+   "imya": "Vovan",
+   "bylo": "тематические домены",
+   "stalo": "соцсети и видео",
+   "lider": "t.me"
+  },
+  {
+   "imya": "Vulkan Vegas",
+   "bylo": "прочие домены",
+   "stalo": "тематические домены",
+   "lider": "vulkanvegas1611e.team"
+  }
+ ],
+ "nashih_brendov_a": 47,
+ "nashih_brendov_b": 50,
+ "nashi_novye": [
+  "Arkada",
+  "Avocado",
+  "Bitz",
+  "Eva",
+  "Izzi",
+  "Kilogram",
+  "Marathon",
+  "New Retro",
+  "Pinco",
+  "Play Fortuna",
+  "Starda",
+  "Vulkan Stars",
+  "avrorapri"
+ ],
+ "nashi_ushli": [
+  "AdmiralX",
+  "Banda",
+  "ClubNika",
+  "Fenix",
+  "Goodwin",
+  "Lootrun",
+  "Nomad",
+  "Spinbetter",
+  "Winity",
+  "Zooma"
+ ],
+ "nashi_top": [
+  {
+   "imya": "Onetap",
+   "dolya": 6.2,
+   "sajt": "onetap.oqep.lol",
+   "poziciya": "1",
+   "dorov": 9
+  },
+  {
+   "imya": "Vulkan Prestige",
+   "dolya": 6.2,
+   "sajt": "vulkanprestige.9298.team",
+   "poziciya": "1",
+   "dorov": 5
+  },
+  {
+   "imya": "Onlybets",
+   "dolya": 4.2,
+   "sajt": "onlybets.r6n.team",
+   "poziciya": "1",
+   "dorov": 4
+  },
+  {
+   "imya": "Slotgames",
+   "dolya": 4.2,
+   "sajt": "slotgames.gakx.team",
+   "poziciya": "1",
+   "dorov": 4
+  },
+  {
+   "imya": "Lukkly",
+   "dolya": 3.7,
+   "sajt": "lukkly.ygug.team",
+   "poziciya": "1",
+   "dorov": 2
+  },
+  {
+   "imya": "Why",
+   "dolya": 2.2,
+   "sajt": "why.0665.team",
+   "poziciya": "4",
+   "dorov": 2
+  },
+  {
+   "imya": "Sykaaa",
+   "dolya": 2.1,
+   "sajt": "sykaaa.2004.team",
+   "poziciya": "4",
+   "dorov": 3
+  },
+  {
+   "imya": "avrorapri",
+   "dolya": 2.1,
+   "sajt": "aurora.2499.team",
+   "poziciya": "10",
+   "dorov": 1
+  },
+  {
+   "imya": "Bitz",
+   "dolya": 1.8,
+   "sajt": "bitz.2903.team",
+   "poziciya": "2",
+   "dorov": 1
+  },
+  {
+   "imya": "Spacewin",
+   "dolya": 1.8,
+   "sajt": "spacewin.airk.team",
+   "poziciya": "2",
+   "dorov": 11
+  },
+  {
+   "imya": "Maxline",
+   "dolya": 1.5,
+   "sajt": "maxline.pypp.team",
+   "poziciya": "4",
+   "dorov": 1
+  },
+  {
+   "imya": "Lucky Bird",
+   "dolya": 1.3,
+   "sajt": "luckybird.lrqf.team",
+   "poziciya": "4",
+   "dorov": 1
+  },
+  {
+   "imya": "Arkada",
+   "dolya": 1.2,
+   "sajt": "arkada.ikne.team",
+   "poziciya": "3",
+   "dorov": 1
+  },
+  {
+   "imya": "Frank",
+   "dolya": 1.2,
+   "sajt": "frank.5943.team",
+   "poziciya": "3",
+   "dorov": 2
+  },
+  {
+   "imya": "Leebet",
+   "dolya": 1.2,
+   "sajt": "leebet.jlrl.team",
+   "poziciya": "3",
+   "dorov": 2
+  },
+  {
+   "imya": "Vibe",
+   "dolya": 1.2,
+   "sajt": "vibe.cdfb.team",
+   "poziciya": "3",
+   "dorov": 2
+  },
+  {
+   "imya": "Vivaro",
+   "dolya": 1.2,
+   "sajt": "vivaro.0995.lol",
+   "poziciya": "3",
+   "dorov": 4
+  },
+  {
+   "imya": "Crystalslot",
+   "dolya": 1.0,
+   "sajt": "crystalslot.bhge.lol",
+   "poziciya": "4",
+   "dorov": 2
+  },
+  {
+   "imya": "Goldfishka",
+   "dolya": 1.0,
+   "sajt": "goldfishka.9069.team",
+   "poziciya": "6",
+   "dorov": 2
+  },
+  {
+   "imya": "Kilogram",
+   "dolya": 0.9,
+   "sajt": "kilogram.9662.team",
+   "poziciya": "7",
+   "dorov": 1
+  }
+ ],
+ "sdvigi_dorov": [
+  {
+   "imya": "Kush",
+   "bylo": 46.9,
+   "stalo": 14.0,
+   "raznica": -32.9
+  },
+  {
+   "imya": "Gama",
+   "bylo": 8.5,
+   "stalo": 31.3,
+   "raznica": 22.8
+  },
+  {
+   "imya": "Eva",
+   "bylo": 12.9,
+   "stalo": 34.5,
+   "raznica": 21.6
+  },
+  {
+   "imya": "Hype",
+   "bylo": 36.0,
+   "stalo": 57.6,
+   "raznica": 21.6
+  },
+  {
+   "imya": "Starda",
+   "bylo": 22.6,
+   "stalo": 3.6,
+   "raznica": -19.0
+  },
+  {
+   "imya": "vulkanroial",
+   "bylo": 52.4,
+   "stalo": 71.1,
+   "raznica": 18.7
+  },
+  {
+   "imya": "Martin",
+   "bylo": 29.6,
+   "stalo": 47.5,
+   "raznica": 17.9
+  },
+  {
+   "imya": "Bollywood",
+   "bylo": 44.0,
+   "stalo": 26.5,
+   "raznica": -17.5
+  },
+  {
+   "imya": "Mad",
+   "bylo": 42.2,
+   "stalo": 25.1,
+   "raznica": -17.1
+  },
+  {
+   "imya": "Betwinner",
+   "bylo": 27.9,
+   "stalo": 44.2,
+   "raznica": 16.3
+  },
+  {
+   "imya": "Banda",
+   "bylo": 48.7,
+   "stalo": 32.7,
+   "raznica": -16.0
+  },
+  {
+   "imya": "Vulkan 24",
+   "bylo": 25.3,
+   "stalo": 40.8,
+   "raznica": 15.5
+  },
+  {
+   "imya": "Slott",
+   "bylo": 40.2,
+   "stalo": 55.6,
+   "raznica": 15.4
+  },
+  {
+   "imya": "Lilbet",
+   "bylo": 53.4,
+   "stalo": 68.6,
+   "raznica": 15.2
+  },
+  {
+   "imya": "Sykaaa",
+   "bylo": 48.1,
+   "stalo": 33.0,
+   "raznica": -15.1
+  }
+ ],
+ "poyavilos": 2322,
+ "propalo": 2332,
+ "rotaciya_na_brend": 14.0,
+ "tipy_liderov_b": {
+  "тематические домены": 122,
+  "доры (поддомены)": 21,
+  "соцсети и видео": 18,
+  "прочие домены": 5
+ }
+}

@@ -1,0 +1,81 @@
+Брендов 166; сайтов 6557 -> 6547, строк 15493 -> 15511
+Доров сайтов 3025 -> 2970, наших доров 96 -> 101
+Средняя доля доров в бренде 28.8% -> 29.2%
+Сменился лидер-сайт у 72 брендов, лидер сменил тип у 29
+За сутки по данным выгрузки появилось 2322 сайтов, пропало 2332 — 14.0 на бренд
+Брендов, где мы видны: 47 -> 50
+  пришли: Arkada, Avocado, Bitz, Eva, Izzi, Kilogram, Marathon, New Retro, Pinco, Play Fortuna, Starda, Vulkan Stars, avrorapri
+  ушли:   AdmiralX, Banda, ClubNika, Fenix, Goodwin, Lootrun, Nomad, Spinbetter, Winity, Zooma
+
+НАШИ ЛУЧШИЕ БРЕНДЫ СЕГОДНЯ
+  бренд               наша доля  наших доров лучший сайт                        позиция
+  Onetap                   6.2%            9 onetap.oqep.lol                    1
+  Vulkan Prestige          6.2%            5 vulkanprestige.9298.team           1
+  Onlybets                 4.2%            4 onlybets.r6n.team                  1
+  Slotgames                4.2%            4 slotgames.gakx.team                1
+  Lukkly                   3.7%            2 lukkly.ygug.team                   1
+  Why                      2.2%            2 why.0665.team                      4
+  Sykaaa                   2.1%            3 sykaaa.2004.team                   4
+  avrorapri                2.1%            1 aurora.2499.team                   10
+  Bitz                     1.8%            1 bitz.2903.team                     2
+  Spacewin                 1.8%           11 spacewin.airk.team                 2
+  Maxline                  1.5%            1 maxline.pypp.team                  4
+  Lucky Bird               1.3%            1 luckybird.lrqf.team                4
+  Arkada                   1.2%            1 arkada.ikne.team                   3
+  Frank                    1.2%            2 frank.5943.team                    3
+  Leebet                   1.2%            2 leebet.jlrl.team                   3
+  Vibe                     1.2%            2 vibe.cdfb.team                     3
+  Vivaro                   1.2%            4 vivaro.0995.lol                    3
+  Crystalslot              1.0%            2 crystalslot.bhge.lol               4
+  Goldfishka               1.0%            2 goldfishka.9069.team               6
+  Kilogram                 0.9%            1 kilogram.9662.team                 7
+
+САМЫЕ БОЛЬШИЕ СДВИГИ ДОЛИ ДОРОВ ЗА СУТКИ
+  Kush                46.9% ->  14.0%  (-32.9)
+  Gama                 8.5% ->  31.3%  (+22.8)
+  Eva                 12.9% ->  34.5%  (+21.6)
+  Hype                36.0% ->  57.6%  (+21.6)
+  Starda              22.6% ->   3.6%  (-19.0)
+  vulkanroial         52.4% ->  71.1%  (+18.7)
+  Martin              29.6% ->  47.5%  (+17.9)
+  Bollywood           44.0% ->  26.5%  (-17.5)
+  Mad                 42.2% ->  25.1%  (-17.1)
+  Betwinner           27.9% ->  44.2%  (+16.3)
+  Banda               48.7% ->  32.7%  (-16.0)
+  Vulkan 24           25.3% ->  40.8%  (+15.5)
+  Slott               40.2% ->  55.6%  (+15.4)
+  Lilbet              53.4% ->  68.6%  (+15.2)
+  Sykaaa              48.1% ->  33.0%  (-15.1)
+
+ЛИДЕР СМЕНИЛ ТИП
+  AdmiralX           соцсети и видео            -> тематические домены        admiralx-dqi.top
+  Arkada             соцсети и видео            -> тематические домены        arkada-casinos.casino
+  Banda              доры (поддомены)           -> тематические домены        banda-spin.casino
+  BitStarz           тематические домены        -> соцсети и видео            t.me
+  ClubNika           тематические домены        -> соцсети и видео            t.me
+  Crystalslot        соцсети и видео            -> доры (поддомены)           crystalslot.1611casino.top
+  Eldorado           доры (поддомены)           -> тематические домены        eldorado-casino-adrb.top
+  Ezcash             доры (поддомены)           -> тематические домены        ezcash-960.team
+  Fraga              тематические домены        -> доры (поддомены)           fraga.casino11win26.buzz
+  Gama               тематические домены        -> доры (поддомены)           gama.p100.casino
+  GetX               соцсети и видео            -> тематические домены        getx-777-casino.click
+  Hype               соцсети и видео            -> доры (поддомены)           hype.p100.casino
+  Jetton             тематические домены        -> соцсети и видео            t.me
+  Kilogram           доры (поддомены)           -> тематические домены        kilogramcasino.fun
+  Kraken             тематические домены        -> прочие домены              krakefoodmarket.com
+  Lilbet             тематические домены        -> доры (поддомены)           lilbet.casino-1611.online
+  Lukkly             тематические домены        -> соцсети и видео            t.me
+  Mellstroy          тематические домены        -> соцсети и видео            t.me
+  Mers               доры (поддомены)           -> соцсети и видео            t.me
+  Onion              доры (поддомены)           -> тематические домены        onion-cazino.beauty
+  Onlybets           доры (поддомены)           -> соцсети и видео            t.me
+  Pokerdom           соцсети и видео            -> тематические домены        pokerdom105.fun
+  Pokerok            доры (поддомены)           -> соцсети и видео            t.me
+  Selector           соцсети и видео            -> тематические домены        selector455.lol
+  Sykaaa             тематические домены        -> соцсети и видео            t.me
+  UP-X               тематические домены        -> соцсети и видео            t.me
+  Vodka              соцсети и видео            -> тематические домены        vodka613.com
+  Vovan              тематические домены        -> соцсети и видео            t.me
+  Vulkan Vegas       прочие домены              -> тематические домены        vulkanvegas1611e.team
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/brendy_den.json
