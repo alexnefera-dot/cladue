@@ -234,7 +234,7 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `settings.proxies` → `buildOverrides()` sets the top-level `proxies` under the `array_key_exists` rule
   (the panel is the source of truth when the key is sent, even empty — saving with an empty field honestly
   means «go direct»; a manual `run-job` without it keeps `config.php`). The user's own format is
-  `host:port:user:pass` with NO scheme (`72.56.153.133:59100:user:pass`), which `Proxy::parse()` already
+  `host:port:user:pass` with NO scheme (`203.0.113.133:59100:user:pass`), which `Proxy::parse()` already
   took; the panel's placeholder and every example use the RFC 5737 range `203.0.113.x`, never their real
   proxies — the repository is PUBLIC. `proxies.txt` keeps working and the two lists ADD UP in
   `Runtime::proxyPool()`; the checkbox is now «Брать ещё и прокси из файла proxies.txt», and because it

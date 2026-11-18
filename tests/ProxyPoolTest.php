@@ -22,10 +22,10 @@ final class ProxyPoolTest
 
         Assert::same('http://user:p%40ss@host.example:3128', Proxy::parse('user:p@ss@host.example:3128')->url);
 
-        $p = Proxy::parse('http://72.56.153.24:59100:login:password');
-        Assert::same('http://login:password@72.56.153.24:59100', $p->url, 'формат scheme://host:port:user:pass');
-        Assert::same('http://72.56.153.24:59100', $p->label);
-        Assert::same('socks5://login:pa%3Ass%3Aword@72.56.153.24:1080', Proxy::parse('socks5://72.56.153.24:1080:login:pa:ss:word')->url, 'двоеточия в пароле');
+        $p = Proxy::parse('http://203.0.113.24:59100:login:password');
+        Assert::same('http://login:password@203.0.113.24:59100', $p->url, 'формат scheme://host:port:user:pass');
+        Assert::same('http://203.0.113.24:59100', $p->label);
+        Assert::same('socks5://login:pa%3Ass%3Aword@203.0.113.24:1080', Proxy::parse('socks5://203.0.113.24:1080:login:pa:ss:word')->url, 'двоеточия в пароле');
         Assert::same('socks5://u:p@203.0.113.12:1080', Proxy::parse('socks5://u:p@203.0.113.12:1080')->url);
         Assert::same('https://proxy.example:443', Proxy::parse('HTTPS://Proxy.Example:443/')->url);
         Assert::same('socks5h://[::1]:1080', Proxy::parse('socks5h://[::1]:1080')->url);
