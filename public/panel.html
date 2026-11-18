@@ -39,7 +39,7 @@
   a.btn-ghost,a.btn-primary{display:inline-block;text-decoration:none;font-weight:600;border-radius:9px;padding:10px 16px}
   .btn-danger{background:var(--err);color:#fff}
   button:disabled{opacity:.5;cursor:default}
-  .btns{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
   .bar{height:12px;background:var(--line);border-radius:99px;overflow:hidden;margin:8px 0}
   .bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
   .stat{display:inline-flex;flex-direction:column;background:var(--chip);border-radius:8px;padding:6px 12px;margin:4px 8px 4px 0}
@@ -306,10 +306,11 @@
         <div class="btns">
           <a class="btn-primary" id="backupBtn" href="/download?file=backup" title="Собрать архив прямо сейчас и скачать. Скачанные страницы и очищенный контент в него не идут — они восстанавливаются выгрузкой; нужны — соседняя кнопка">Скачать бекап</a>
           <a class="btn-ghost" id="backupFullBtn" href="/download?file=backup&amp;pages=1" hidden title="То же плюс скачанные страницы, очищенный контент и превью. Это гигабайты и несколько минут на сборку архива">Со страницами</a>
+          <a class="btn-ghost" id="backupStateBtn" href="/download?file=state" title="Короткий markdown: версия, что собрано, сколько в базе доменов и в истории, где остановилась очередь запросов. Ключей и адресов сайтов в нём нет — его можно переслать, в том числе новой сессии Claude: код и CLAUDE.md она читает из репозитория, а данные — отсюда. Этот же файл лежит внутри бекапа">Состояние для Claude (.md)</a>
           <span class="hint" id="backupInfo"></span>
         </div>
         <div class="msg warn" id="backupWarn" hidden></div>
-        <div class="hint" style="margin-top:6px">Развернуть на другом ПК: положить туда код, затем в папке проекта выполнить <code>php bin/backup.php --restore=backup-дата.zip</code> и запустить панель. Файлы, которые уже на месте, не перезаписываются — чтобы заменить их, нужен <code>--force</code>. Из терминала бекап делается тем же скриптом: <code>php bin/backup.php</code> (<code>--all</code> — со страницами, <code>--list</code> — только посмотреть объём).</div>
+        <div class="hint" style="margin-top:6px">Развернуть на другом ПК: положить туда код, затем в папке проекта выполнить <code>php bin/backup.php --restore=backup-дата.zip</code> и запустить панель. Файлы, которые уже на месте, не перезаписываются — чтобы заменить их, нужен <code>--force</code>. Из терминала бекап делается тем же скриптом: <code>php bin/backup.php</code> (<code>--all</code> — со страницами, <code>--list</code> — только посмотреть объём, <code>--state</code> — напечатать состояние).</div>
       </div>
 
   <div class="card tabsec" data-tab="main" id="progressCard" hidden>

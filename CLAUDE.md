@@ -1756,7 +1756,16 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   collect does not fit in memory). Panel: «Настройки» → «Бекап и перенос», `GET /api/backup` (sizes only,
   computed on demand — walking `pages/` on every 1.5 s poll is out of the question; the JS loads it once,
   when the tab is first opened) and `GET /download?file=backup[&pages=1][&secrets=0]`, which rebuilds
-  `runs/backup.zip` at click time like `content.zip` and streams it under a dated name. `a.btn-primary`
+  `runs/backup.zip` at click time like `content.zip` and streams it under a dated name.
+  «А MD ДЛЯ КЛАУДА?» — `stateMarkdown()` is the answer: the repo's own `CLAUDE.md`/`README.md` travel in
+  git and a new session reads them itself, so what a fresh Claude CANNOT see is the DATA — how many
+  domains are in the ledger, how many collects in the history, how many snapshots, where the query queue
+  stopped, what is on disk. It renders that as one markdown table plus the restore steps, carries NO keys,
+  proxies or site addresses (so it can be pasted into a chat — the CLI and the panel both say so), and
+  ships three ways: inside the archive as `backup.md` (`STATE`, skipped by `restore()` like the manifest),
+  next to it on disk, and alone through `GET /download?file=state` behind the panel's «Состояние для
+  Claude (.md)» button or `php bin/backup.php --state`. `word()` gives it Russian plural agreement
+  («1 запись» / «3 базы» / «8 018 доменов»), which `files()` now delegates to. `a.btn-primary`
   got the same link reset `a.btn-ghost` already had — the existing «Скачать новое» had been rendering as
   a bare blue link. Covered by `tests/BackupTest.php` (what is packed and what is not; the no-secrets copy
   with no `hunter2` anywhere inside it; the refusal to overwrite and `--force`; and a hand-built hostile

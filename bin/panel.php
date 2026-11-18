@@ -964,7 +964,7 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'backup') {
     try {
         // Пересобираем всегда в один и тот же файл (как content.zip): лишние архивы в runs/ не копятся,
         // а пользователю он приезжает уже с датой в имени.
-        $made = \YandexSites\Support\Backup::create($projectDir, $projectDir . '/runs/backup.zip', $withPages, $withSecrets, \YandexSites\Cli\Application::VERSION);
+        $made = \YandexSites\Support\Backup::create($projectDir, $projectDir . '/runs/backup.zip', $withPages, $withSecrets, \YandexSites\Cli\Application::VERSION, \YandexSites\Cli\Application::VERSION_DATE);
     } catch (\RuntimeException $e) {
         http_response_code(500);
         header('Content-Type: text/plain; charset=utf-8');
@@ -975,6 +975,15 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'backup') {
     header('Content-Disposition: attachment; filename="' . $name . '"');
     header('Content-Length: ' . (string) $made['zip_bytes']);
     readfile($made['zip']);
+    exit;
+}
+
+if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'state') {
+    // «Состояние для Claude»: тот же markdown, что лежит внутри бекапа — что собрано, сколько в базе,
+    // где остановилась очередь. Ключей и адресов сайтов в нём нет, поэтому его можно переслать.
+    header('Content-Type: text/markdown; charset=utf-8');
+    header('Content-Disposition: attachment; filename="yandex-sites-state-' . date('Y-m-d') . '.md"');
+    echo \YandexSites\Support\Backup::stateMarkdown($projectDir, null, \YandexSites\Cli\Application::VERSION, \YandexSites\Cli\Application::VERSION_DATE);
     exit;
 }
 

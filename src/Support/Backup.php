@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YandexSites\Support;
 
 use RuntimeException;
+use YandexSites\Dorgen\OwnBases;
 use ZipArchive;
 
 /**
@@ -29,6 +30,9 @@ final class Backup
 {
     /** Описание бекапа внутри архива: версия, дата, что включено. */
     public const MANIFEST = 'backup.json';
+
+    /** То же человеческим языком — состояние работы (см. stateMarkdown()); лежит и в архиве, и рядом с ним. */
+    public const STATE = 'backup.md';
 
     /** Файлы в корне проекта, которых нет в git: без них установка — пустая. */
     public const ROOT_FILES = ['config.php', '.env', 'proxies.txt', 'queries.txt', 'brands.txt', 'brand-pairs.txt'];
@@ -136,7 +140,7 @@ final class Backup
      *
      * @throws RuntimeException бекапить нечего или архив создать нечем
      */
-    public static function create(string $projectDir, string $zipFile, bool $withPages = false, bool $withSecrets = true, string $version = ''): array
+    public static function create(string $projectDir, string $zipFile, bool $withPages = false, bool $withSecrets = true, string $version = '', string $versionDate = ''): array
     {
         $plan = self::plan($projectDir, $withPages, $withSecrets);
         if ($plan['files'] === []) {
@@ -159,6 +163,13 @@ final class Backup
             $files = $plan['files'];
             if ($ok !== false) {
                 $files[self::MANIFEST] = $manifest;
+            }
+            // Состояние работы — рядом с описанием: числа, по которым видно, что именно перенеслось.
+            $state = $tmp . '/' . self::STATE;
+            $text = self::stateMarkdown($projectDir, $plan, $version, $versionDate);
+            if (@file_put_contents($state, $text) !== false) {
+                $files[self::STATE] = $state;
+                $plan['state_text'] = $text;
             }
             foreach ($plan['masked'] as $i => $entry) {
                 $copy = self::withoutProxies((string) $files[$entry], $tmp . '/masked-' . $i . '.json');
@@ -205,7 +216,7 @@ final class Backup
             foreach ($entries as $entry) {
                 $rel = self::entryTarget($entry);
                 if ($rel === null) {
-                    if ($entry !== self::MANIFEST && !str_ends_with($entry, '/')) {
+                    if (!in_array($entry, [self::MANIFEST, self::STATE], true) && !str_ends_with($entry, '/')) {
                         $rejected[] = $entry;
                     }
                     continue;
@@ -290,22 +301,144 @@ final class Backup
         return $bytes . ' Б';
     }
 
+    /**
+     * СОСТОЯНИЕ РАБОТЫ одним markdown-файлом — «а md для клауда?». Код лежит в git вместе с CLAUDE.md
+     * и README.md, их новая сессия Claude читает сама; чего она НЕ видит — это данные: сколько доменов
+     * в базе, сколько сборов в истории, где остановилась очередь запросов, что лежит на диске. Файл
+     * кладётся рядом с архивом и внутрь него, и его можно переслать: внутри только числа и даты,
+     * ни ключей, ни прокси, ни адресов сайтов.
+     *
+     * @param array<string, mixed>|null $plan готовый plan(), если он уже посчитан (чтобы не обходить диск дважды)
+     */
+    public static function stateMarkdown(string $projectDir, ?array $plan = null, string $version = '', string $versionDate = ''): string
+    {
+        $dir = rtrim($projectDir, '/\\');
+        $runs = $dir . '/runs';
+        $plan ??= self::plan($dir);
+        $json = static function (string $file): array {
+            $data = @json_decode((string) @file_get_contents($file), true);
+
+            return is_array($data) ? $data : [];
+        };
+        $rows = [];
+        $row = static function (string $what, string $value, string $where = '') use (&$rows): void {
+            $rows[] = '| ' . $what . ' | ' . $value . ' | ' . $where . ' |';
+        };
+
+        $base = is_file($runs . '/domains-base.txt') ? new DomainLedger($runs . '/domains-base.txt') : null;
+        $row('База пересечений доменов', $base !== null ? self::word($base->count(), 'домен', 'домена', 'доменов') : 'нет', '`runs/domains-base.txt`');
+
+        $history = CollectHistory::load($runs);
+        $last = $history[0] ?? null;
+        $row(
+            'История сборов',
+            $history === [] ? 'нет' : self::word(count($history), 'запись', 'записи', 'записей') . ', последняя ' . self::day((string) ($last['date'] ?? '')) . ' — отобрано ' . self::word((int) ($last['sites'] ?? 0), 'сайт', 'сайта', 'сайтов'),
+            '`runs/history.json`',
+        );
+
+        $snaps = SerpHistory::snapshots($runs);
+        $row(
+            'Снимки выдачи (разбор по брендам)',
+            $snaps === [] ? 'нет' : self::word(count($snaps), 'снимок', 'снимка', 'снимков') . ', последний ' . self::day((string) ($snaps[0]['at'] ?? '')) . ' — ' . self::word((int) ($snaps[0]['brands'] ?? 0), 'бренд', 'бренда', 'брендов') . ', топ-' . (int) ($snaps[0]['top'] ?? 0),
+            '`runs/serp-history.json`',
+        );
+
+        $bases = $json($runs . '/' . OwnBases::FILE);
+        $row(
+            'Наши базы из системы запусков',
+            $bases === [] ? 'не выгружались' : self::word(count((array) ($bases['bases'] ?? [])), 'база', 'базы', 'баз') . ', выгружено по ' . ((string) ($bases['date_to'] ?? '—')),
+            '`runs/' . OwnBases::FILE . '`',
+        );
+
+        $sites = $json($runs . '/current/sites.json');
+        $row('Таблица текущего прогона', $sites === [] ? 'пусто' : self::word(count((array) ($sites['sites'] ?? [])), 'сайт', 'сайта', 'сайтов'), '`runs/current/sites.json`');
+
+        $results = $runs . '/current/results.csv';
+        $row('Строки выдачи последнего сбора', is_file($results) ? self::size((int) filesize($results)) : 'нет', '`runs/current/results.csv`');
+
+        $queue = $json($runs . '/current/' . QueryQueue::FILE);
+        if ($queue !== []) {
+            $sum = QueryQueue::summary(['queries' => (array) ($queue['queries'] ?? []), 'done' => (int) ($queue['done'] ?? 0)]);
+            $row('Очередь запросов', 'пройдено ' . $sum['done'] . ' из ' . $sum['total'] . ($sum['left'] > 0 ? ' (осталось ' . $sum['left'] . ' — кнопка «Продолжить сбор»)' : ''), '`runs/current/queue.json`');
+        }
+
+        $pages = count(Archive::listFiles($runs . '/current/pages'));
+        $content = count(Archive::listFiles($runs . '/current/content'));
+        $row('Скачанные страницы', $pages > 0 ? self::files($pages) : 'нет', '`runs/current/pages`');
+        $row('Очищенные статьи', $content > 0 ? self::files($content) : 'нет', '`runs/current/content`');
+
+        $secrets = array_keys((array) $plan['secrets']);
+        $heavy = (array) $plan['pages'];
+
+        return implode("\n", [
+            '# Состояние yandex-sites — ' . date('d.m.Y'),
+            '',
+            'Код проекта лежит в git вместе с `CLAUDE.md` и `README.md` — новая сессия Claude читает их сама,'
+                . ' пересказывать их не нужно. Здесь только то, чего в git НЕТ: данные этой машины.'
+                . ($version !== '' ? ' Версия кода: **' . $version . '**' . ($versionDate !== '' ? ' от ' . self::day($versionDate) : '') . '.' : ''),
+            '',
+            '## Что в бекапе',
+            '',
+            '- ' . self::files((int) $plan['count']) . ', ' . self::size((int) $plan['bytes'])
+                . ((bool) $plan['with_pages'] ? ' — со скачанными страницами' : ' — без скачанных страниц и контента'
+                    . ((int) $heavy['files'] > 0 ? ' (на диске их ' . self::files((int) $heavy['files']) . ', ' . self::size((int) $heavy['bytes']) . ' — кнопка «Со страницами» или `--all`)' : '')),
+            '- ключи и пароли: ' . ($secrets === []
+                ? 'в архив не вошли (`--no-secrets`) — на новом ПК их придётся вписать заново'
+                : implode(', ', array_map(static fn (string $f): string => '`' . $f . '`', $secrets)) . ' — **внутри архива**, не выкладывайте его в общие папки'),
+            '- в ЭТОМ файле ключей, паролей и адресов сайтов нет — его можно переслать как есть',
+            '',
+            '## Данные на этой машине',
+            '',
+            '| Что | Сколько | Где |',
+            '|---|---|---|',
+            implode("\n", $rows),
+            '',
+            '## Развернуть на другом ПК',
+            '',
+            '```bash',
+            'git clone https://github.com/alexnefera-dot/cladue.git && cd cladue',
+            'php bin/setup.php',
+            'php bin/backup.php --restore=/путь/к/' . self::fileName((bool) $plan['with_pages'], (bool) $plan['with_secrets']),
+            'php bin/panel.php',
+            '```',
+            '',
+            'Файлы, которые уже на месте, не перезаписываются: если такой есть хоть один, не распакуется'
+                . ' ничего и команда их назовёт — перезапись по `--force`. Из архива берутся только корневые'
+                . ' настройки и `runs/`, пути наружу папки проекта игнорируются.',
+            '',
+        ]);
+    }
+
+    /** Дата из ISO-строки в привычном виде (18.11.2026); пустая строка — прочерк. */
+    private static function day(string $iso): string
+    {
+        $ts = $iso !== '' ? strtotime($iso) : false;
+
+        return $ts === false ? '—' : date('d.m.Y', $ts);
+    }
+
     /** «1 файл» / «3 файла» / «11 файлов» — число со склонением, чтобы вывод не выглядел черновиком. */
     public static function files(int $n): string
+    {
+        return self::word($n, 'файл', 'файла', 'файлов');
+    }
+
+    /** Число с нужной формой слова и пробелами в тысячах: «8 018 доменов», «1 запись», «3 базы». */
+    public static function word(int $n, string $one, string $few, string $many): string
     {
         $last = $n % 10;
         $tens = $n % 100;
         if ($tens >= 11 && $tens <= 14) {
-            $word = 'файлов';
+            $word = $many;
         } elseif ($last === 1) {
-            $word = 'файл';
+            $word = $one;
         } elseif ($last >= 2 && $last <= 4) {
-            $word = 'файла';
+            $word = $few;
         } else {
-            $word = 'файлов';
+            $word = $many;
         }
 
-        return $n . ' ' . $word;
+        return number_format($n, 0, ',', ' ') . ' ' . $word;
     }
 
     /** Имя файла бекапа по дате: backup-2026-11-18.zip, с пометкой, если страницы внутри. */
@@ -361,7 +494,7 @@ final class Backup
     private static function entryTarget(string $entry): ?string
     {
         $rel = str_replace('\\', '/', trim($entry));
-        if ($rel === '' || $rel === self::MANIFEST || str_ends_with($rel, '/')) {
+        if ($rel === '' || $rel === self::MANIFEST || $rel === self::STATE || str_ends_with($rel, '/')) {
             return null;
         }
         if (str_contains($rel, "\0") || str_starts_with($rel, '/') || preg_match('~^[A-Za-z]:~', $rel) === 1) {

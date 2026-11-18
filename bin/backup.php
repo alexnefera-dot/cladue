@@ -17,6 +17,7 @@ declare(strict_types=1);
  *                                             в настройках панели (копия, которую можно передать)
  *   php bin/backup.php --out=/путь/my.zip   — куда положить архив
  *   php bin/backup.php --list               — что попадёт и сколько весит, ничего не создавая
+ *   php bin/backup.php --state              — состояние работы в markdown (для новой сессии Claude)
  *   php bin/backup.php --restore=файл.zip   — развернуть бекап в этой папке проекта
  *   php bin/backup.php --restore=… --force  — и перезаписать файлы, которые уже на месте
  *
@@ -58,6 +59,7 @@ if (isset($args['help'])) {
       php bin/backup.php --no-secrets         без .env, config.php и proxies.txt
       php bin/backup.php --out=/путь/my.zip   куда положить архив
       php bin/backup.php --list               что попадёт в архив, без создания
+      php bin/backup.php --state              состояние работы в markdown (в stdout)
       php bin/backup.php --restore=файл.zip   развернуть бекап (--force — перезаписать)
       php bin/backup.php --dir=/путь          другая папка проекта
 
@@ -148,6 +150,11 @@ if (isset($args['restore'])) {
     exit(0);
 }
 
+if (isset($args['state'])) {
+    fwrite(STDOUT, Backup::stateMarkdown($projectDir, null, Application::VERSION, Application::VERSION_DATE) . "\n");
+    exit(0);
+}
+
 $plan = Backup::plan($projectDir, $withPages, $withSecrets);
 if ($plan['files'] === []) {
     fwrite(STDERR, "Бекапить нечего: в папке проекта нет ни настроек, ни папки runs\n");
@@ -173,12 +180,16 @@ if (isset($args['list'])) {
 
 $out = isset($args['out']) ? trim($args['out']) : $projectDir . '/runs/' . Backup::fileName($withPages, $withSecrets);
 try {
-    $result = Backup::create($projectDir, $out, $withPages, $withSecrets, Application::VERSION);
+    $result = Backup::create($projectDir, $out, $withPages, $withSecrets, Application::VERSION, Application::VERSION_DATE);
 } catch (RuntimeException $e) {
     fwrite(STDERR, $e->getMessage() . "\n");
     exit(2);
 }
 
+$stateFile = dirname($out) . '/' . Backup::STATE;
+if (isset($result['state_text'])) {
+    @file_put_contents($stateFile, (string) $result['state_text']);
+}
 fwrite(STDOUT, sprintf(
     "Бекап готов: %s\nВнутри: %s, %s (архив %s)\n",
     $result['zip'],
@@ -204,6 +215,14 @@ if ($result['secrets'] !== []) {
         . "но в облаке и общих папках архив доступен всем, у кого есть ссылка. Копия без них:\n"
         . "  php bin/backup.php --no-secrets\n",
         implode(', ', array_keys($result['secrets'])),
+    ));
+}
+if (is_file($stateFile)) {
+    fwrite(STDOUT, sprintf(
+        "Состояние работы (что собрано, сколько в базе, где остановилась очередь): %s\n"
+        . "Он же лежит внутри архива. Ключей и адресов сайтов в нём нет — можно переслать как есть,\n"
+        . "в том числе новой сессии Claude: код и CLAUDE.md она берёт из git, а данные — отсюда.\n",
+        $stateFile,
     ));
 }
 if (!$withSecrets) {

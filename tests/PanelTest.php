@@ -1665,10 +1665,19 @@ final class PanelTest
                 $names[] = (string) $zip->getNameIndex($i);
             }
             sort($names);
-            Assert::same(['.env', 'backup.json', 'config.php', 'runs/current/settings.json', 'runs/current/sites.json', 'runs/domains-base.txt', 'runs/history.json'], $names, 'в бекапе только то, чего нет в git; pid и логи — нет');
+            Assert::same(['.env', 'backup.json', 'backup.md', 'config.php', 'runs/current/settings.json', 'runs/current/sites.json', 'runs/domains-base.txt', 'runs/history.json'], $names, 'в бекапе только то, чего нет в git; pid и логи — нет');
+            Assert::contains('Состояние yandex-sites', (string) $zip->getFromName('backup.md'), 'внутри — состояние работы человеческим языком');
             Assert::same("kush.net.ru\nokna.ru\n", (string) $zip->getFromName('runs/domains-base.txt'), 'база пересечений переносится целиком');
             Assert::contains('DORGEN_TOKEN', (string) $zip->getFromName('.env'), 'ключи на новом ПК нужны');
             $zip->close();
+
+            // «Состояние для Claude»: тот же markdown отдельным файлом, без ключей и адресов сайтов.
+            $state = $this->http('GET', $base . '/download?file=state', null, $code);
+            Assert::same(200, $code, $state);
+            Assert::contains('# Состояние yandex-sites', $state);
+            Assert::contains('2 домена', $state, 'база пересечений посчитана со склонением');
+            Assert::false(str_contains($state, 'secret123'), 'ключей в состоянии нет — его можно переслать');
+            Assert::false(str_contains($state, 'hunter2'), 'паролей прокси тоже нет');
 
             // pages=1 добавляет скачанные страницы — тем же архивом, который панель пересобирает заново.
             $body = $this->http('GET', $base . '/download?file=backup&pages=1', null, $code);
