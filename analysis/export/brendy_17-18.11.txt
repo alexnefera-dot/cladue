@@ -1,0 +1,89 @@
+Брендов 166; сайтов 6547 -> 6881, строк 15511 -> 15510
+Доров сайтов 2970 -> 3373, наших доров 101 -> 190
+Средняя доля доров в бренде 29.2% -> 32.4%
+Сменился лидер-сайт у 83 брендов, лидер сменил тип у 37
+За сутки по данным выгрузки появилось 3336 сайтов, пропало 3002 — 19.1 на бренд
+Брендов, где мы видны: 50 -> 65
+  пришли: 888starz, Banda, Betwinner, Brillx, Club Vulkan, Dbbet, Fenix, Gold, Goodwin, Grizzly, Jozz, Lootrun, Luckybear, Million, Nomad, Onion, Parimatch, Pokerok, Shot, Spinbetter, Sweet, Vodka, Volta, Vulkan Mega, Vulkan Platinum, Winity, Zooma
+  ушли:   Bitz, Bonsai, Champion Slots, Eva, GetX, Izzi, Lilbet, Marathon, Motor, Pinco, Slotozal, Vulkan Stars
+
+НАШИ ЛУЧШИЕ БРЕНДЫ СЕГОДНЯ
+  бренд               наша доля  наших доров лучший сайт                        позиция
+  Kilogram                14.3%            1 kilogram.4680.lol                  1
+  Onetap                  12.5%           10 onetap.jlrl.team                   1
+  avrorapri                8.6%            2 aurora.5246.team                   4
+  Vulkan Prestige          6.2%            7 vulkanprestige.2296.team           1
+  Lucky Bird               5.6%            2 luckybird.lrqf.team                1
+  Aurora Casino            4.7%            5 aurora.4791.team                   1
+  Onlybets                 4.2%           11 onlybets.6819.team                 1
+  Slotgames                4.2%            5 slotgames.2296.team                1
+  Blitzred                 3.7%            5 blitzred.1894.team                 1
+  Goodwin                  3.7%           11 goodwin.cdfb.team                  1
+  Nomad                    3.7%            6 nomad.7299.team                    1
+  Shot                     3.7%           10 shot.6819.team                     1
+  Spacewin                 3.7%            7 spacewin.1998.team                 1
+  Arkada                   2.6%            1 arkada.ikne.team                   3
+  888starz                 2.0%            1 888starz.5539.team                 2
+  Betwinner                2.0%            4 betwinner.2296.team                2
+  Vulkan Mega              2.0%            1 vulkanmega.agvl.team               2
+  Avocado                  1.8%            8 avocado.9164.team                  2
+  Banda                    1.8%            1 banda.bxgr.team                    2
+  Betera                   1.8%            8 betera.6584.team                   2
+
+САМЫЕ БОЛЬШИЕ СДВИГИ ДОЛИ ДОРОВ ЗА СУТКИ
+  Nomad               18.3% ->  54.2%  (+35.9)
+  avrorapri            8.0% ->  41.2%  (+33.2)
+  Vulkan Platinum     44.9% ->  74.7%  (+29.8)
+  Vulkan Vegas        30.3% ->  58.2%  (+27.9)
+  Onion               31.8% ->  58.4%  (+26.6)
+  Winity              44.8% ->  69.4%  (+24.6)
+  Mad                 25.1% ->  48.8%  (+23.7)
+  Mers                67.7% ->  90.6%  (+22.9)
+  Casinora            23.0% ->  42.7%  (+19.7)
+  Fairspin            46.9% ->  66.6%  (+19.7)
+  Eva                 34.5% ->  15.9%  (-18.6)
+  AdmiralX            39.4% ->  57.7%  (+18.3)
+  Kilogram            78.5% ->  96.7%  (+18.2)
+  Hype                57.6% ->  39.8%  (-17.8)
+  BitStarz            19.6% ->  37.1%  (+17.5)
+
+ЛИДЕР СМЕНИЛ ТИП
+  1xbet              тематические домены        -> прочие домены              android-station.ru
+  888                тематические домены        -> прочие домены              android-station.ru
+  888starz           прочие домены              -> тематические домены        888starz39.fun
+  AdmiralX           тематические домены        -> доры (поддомены)           admiralx.casinosa11.fun
+  Avocado            тематические домены        -> соцсети и видео            t.me
+  Banda              тематические домены        -> доры (поддомены)           banda.casinok79.fun
+  Betwinner          доры (поддомены)           -> тематические домены        betwinner.com.ru
+  Bigsbet            доры (поддомены)           -> тематические домены        casino.ru
+  BitStarz           соцсети и видео            -> тематические домены        respin.info
+  Casinora           тематические домены        -> доры (поддомены)           casinora.casinosa16.fun
+  ClubNika           соцсети и видео            -> тематические домены        clubnika574.fun
+  Drip               тематические домены        -> доры (поддомены)           drip.1casino19n11o.buzz
+  Eva                тематические домены        -> соцсети и видео            t.me
+  Fairspin           соцсети и видео            -> доры (поддомены)           fairspin.1casino19n11o.buzz
+  Gama               доры (поддомены)           -> тематические домены        gama823.casino
+  Goldfishka         тематические домены        -> прочие домены              13goldfishka.com
+  Hype               доры (поддомены)           -> тематические домены        hypecasino-aim.top
+  Jackpoker          тематические домены        -> прочие домены              gipsyteam.ru
+  Jetton             соцсети и видео            -> тематические домены        jetton1.info
+  Jozz               тематические домены        -> доры (поддомены)           jozz.casino1826nov.sbs
+  Kilogram           тематические домены        -> доры (поддомены)           kilogram.7kx.casino
+  Lukkly             соцсети и видео            -> доры (поддомены)           lukkly.casino051126qk.buzz
+  Mellstroy          соцсети и видео            -> тематические домены        mellstroy-425.team
+  Mers               соцсети и видео            -> доры (поддомены)           mers.casinosa14.fun
+  Million            доры (поддомены)           -> тематические домены        million-casino-gocix.top
+  Nomad              тематические домены        -> доры (поддомены)           kz.nomadgamescasinos.org.kz
+  Onion              тематические домены        -> соцсети и видео            t.me
+  Onlybets           соцсети и видео            -> доры (поддомены)           onlybets.casino472top.best
+  Selector           тематические домены        -> соцсети и видео            t.me
+  Slott              тематические домены        -> доры (поддомены)           slott.17casino-18.buzz
+  Sykaaa             соцсети и видео            -> тематические домены        sykaaa-casino-playx2n.top
+  UP-X               соцсети и видео            -> тематические домены        primulabio.ru
+  Vodka              тематические домены        -> соцсети и видео            t.me
+  Vovan              соцсети и видео            -> доры (поддомены)           vovan.1casino19n11o.buzz
+  Vulkan Platinum    тематические домены        -> доры (поддомены)           vulkanplatinum.casinosa11.fun
+  Vulkan Vegas       тематические домены        -> доры (поддомены)           vulkanvegas.casinosa15.fun
+  Winity             тематические домены        -> доры (поддомены)           winity.casino472top.best
+
+-> /tmp/claude-0/-home-user-cladue/de95974e-6e28-5d1d-820f-f09c0d0e2b43/scratchpad/brendy_17_18.json
