@@ -36,6 +36,7 @@ cladue/
 ├── bin/run-job.php             # background job: collect / download / clean stages, writes runs/current/status.json
 ├── bin/clean-content.php       # content prep: article-body templates from downloaded pages (%domain%/%date%/%brand%)
 ├── bin/dorgen-sync.php         # fetch OUR launched subdomains from the dorgen API into runs/dorgen-bases.json
+├── bin/backup.php              # backup/restore of everything that is not in git (--all/--no-secrets/--list/--restore)
 ├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── public/serp.html            # separate page /serp — technical SERP breakdown by brand (own CSS/JS + /api/serp)
 ├── public/chart.js             # shared per-collect line charts (served at /chart.js, used by both pages)
@@ -65,7 +66,8 @@ cladue/
 │   │                           # SiteCleaner (one site → content/N-стр/<host>, shared by panel + run-job), BrandDetector, KnownBrands
 │   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer),
 │                               # SiteRows (sites.json → Site objects + panel table rows, shared by run-job and panel),
-│                               # Archive (zip of a folder: ZipArchive, else bsdtar — «Скачать архив контента»)
+│                               # Archive (zip of a folder: ZipArchive, else bsdtar — «Скачать архив контента»),
+│                               # Backup (what is not in git → one zip and back: «Бекап и перенос»)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
 ├── proxies.example.txt         # proxy list formats
@@ -117,6 +119,7 @@ cp .env.example .env      # fill in credentials for the chosen source
 | Live SERP through proxies | `php bin/yandex-sites.php --live --proxies=proxies.txt queries.txt` |
 | Visits with screenshots | `php bin/yandex-sites.php queries.txt --visit --variants=2` |
 | Prepare content templates | `php bin/clean-content.php --brand-ru=… --brand-en=… --zip=out/content.zip` |
+| Backup to carry to another PC | `php bin/backup.php` (`--all` with pages, `--no-secrets`, `--list`); restore: `php bin/backup.php --restore=backup-….zip` |
 | Debug SERP parsing | `php bin/yandex-sites.php --parse-html=cache/live/xx/…html` |
 | Show CLI help | `php bin/yandex-sites.php --help` |
 | Run all tests | `php tests/run.php` |
@@ -1725,6 +1728,41 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
   keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
   `PanelTest::testContentArchiveDownload`.
+- `Support\Backup` + `bin/backup.php` are «дай бекап перенести на другой пк и клауд»: ONE archive with
+  everything that is NOT in git, because the code reinstalls itself (`git clone`, `setup.php --update`)
+  while the data exists only on the user's machine. IN: `config.php`, `.env`, `proxies.txt`,
+  `queries.txt`, `brands.txt`, `brand-pairs.txt` (`ROOT_FILES`) and ALL of `runs/` — the domain ledger,
+  `history.json`, `serp-history.json`, the dorgen bases, the panel settings and the current table. OUT:
+  `cache/` and `out/` (refetchable), `*.log`, `*.zip` (otherwise a backup packs the previous backup) and
+  `pid`/`stop`/`dorgen-progress.json` (`SKIP_NAMES` — a foreign pid and a stop flag would sabotage the
+  first job on the new machine) and anything whose path has a hidden segment (`isHidden()`: the user's
+  macOS `.DS_Store`, and a `.backup-…` temp dir left behind by an interrupted archive run, which would
+  otherwise be packed into the next backup), plus, by default, `HEAVY_DIRS` = `current/pages|content|preview|removed`:
+  gigabytes that a download restores, included only with `--all`. `plan()` counts them anyway (`pages`),
+  so the panel button can say «Со страницами (1,4 ГБ)» without a second walk of thousands of files.
+  THE ARCHIVE CARRIES KEYS — that is the point, otherwise the new PC cannot collect anything — so it is
+  never silent about it: `plan()['secrets']` names the files, the CLI prints the warning under the result
+  and the panel shows the amber `#backupWarn`. `--no-secrets` (`&secrets=0`) is the copy that may be
+  handed on: it drops those three files AND runs the panel's own settings through `withoutProxies()`
+  (`MASKED_FILES` = `runs/current/settings.json` + `status.json`, both of which hold `settings.proxies`
+  WITH PASSWORDS — the same reason `settingsForReport()` strips it from `sites.json`); a file that does
+  not parse as JSON is dropped rather than shipped, and what the flag does NOT remove is stated outright
+  (proxy host:port in the collect reports stays, the passwords do not). RESTORE is deliberately paranoid,
+  because the archive comes back through cloud storage: `entryTarget()` takes ONLY `ROOT_FILES` and
+  `runs/**` — a tampered zip cannot replace `src/`, `bin/` or `composer.json` — rejects `..`, absolute
+  paths and drive letters, normalises `./` and `//`, and `restore()` writes NOTHING when ANY target file
+  already exists unless `--force` (half-restored state is worse than none; the refusal names the files),
+  then chmods `.env`/`proxies.txt` to 0600 and copies each entry as a STREAM (`results.csv` of a big
+  collect does not fit in memory). Panel: «Настройки» → «Бекап и перенос», `GET /api/backup` (sizes only,
+  computed on demand — walking `pages/` on every 1.5 s poll is out of the question; the JS loads it once,
+  when the tab is first opened) and `GET /download?file=backup[&pages=1][&secrets=0]`, which rebuilds
+  `runs/backup.zip` at click time like `content.zip` and streams it under a dated name. `a.btn-primary`
+  got the same link reset `a.btn-ghost` already had — the existing «Скачать новое» had been rendering as
+  a bare blue link. Covered by `tests/BackupTest.php` (what is packed and what is not; the no-secrets copy
+  with no `hunter2` anywhere inside it; the refusal to overwrite and `--force`; and a hand-built hostile
+  zip with `../escaped.txt`, `runs/../../escaped2.txt`, `/etc/…`, `src/Runner.php`, `bin/panel.php` and
+  `runs/current/pid`, of which only `queries.txt` and `runs/history.json` land) and
+  `PanelTest::testBackupDownloadCarriesEverythingThatIsNotInGit`.
 - `Visit\KeyPages` reports the pages the CONTENT links to — `registracia`, `vhod`, `zerkalo`, `bonus`,
   `app`, `slots` (`PAGES`: label + URL words, matched on the LAST path segment like
   `ContentCleaner::mapLink()`, `bonus` before `app` so «бонусы» is its own page). A missing one is a dead

@@ -1602,6 +1602,96 @@ final class PanelTest
         }
     }
 
+    public function testBackupDownloadCarriesEverythingThatIsNotInGit(): void
+    {
+        // «Скачать бекап»: /api/backup показывает объём ДО сборки (чтобы было понятно, что качаешь),
+        // /download?file=backup собирает архив в момент нажатия и отдаёт его. Внутри — настройки с
+        // ключами, база доменов, история сборов и таблица сайтов; страницы — только по pages=1.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-backup-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir . '/pages/9-стр/kush.net.ru', 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($dir . '/.env', "XMLSTOCK_KEY=secret123\nDORGEN_TOKEN=tok456\n");
+        file_put_contents($dir . '/runs/domains-base.txt', "kush.net.ru\nokna.ru\n");
+        file_put_contents($dir . '/runs/history.json', '{"records":[{"id":"a","sites":2}]}');
+        file_put_contents($runDir . '/settings.json', json_encode(['queries' => 'вулкан', 'proxies' => '203.0.113.7:59100:user:hunter2'], JSON_UNESCAPED_UNICODE));
+        file_put_contents($runDir . '/sites.json', '{"sites":[]}');
+        file_put_contents($runDir . '/pid', '12345');
+        file_put_contents($runDir . '/run.log', "строка журнала\n");
+        file_put_contents($runDir . '/pages/9-стр/kush.net.ru/main.html', '<html>страница</html>');
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-backup.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+            $info = json_decode((string) $this->http('GET', $base . '/api/backup'), true);
+            Assert::true((bool) ($info['ok'] ?? false), 'размеры бекапа считаются по запросу');
+            Assert::same(6, $info['files'], 'настройки, ключи, база, история, настройки панели и таблица');
+            Assert::same(['config.php', '.env'], $info['secrets'], 'про ключи панель предупреждает по именам файлов');
+            Assert::same(1, $info['pages']['files'], 'скачанная страница посчитана отдельно — она в архив не идёт');
+            Assert::contains('Б', (string) $info['size'], 'объём человекочитаемый');
+
+            $body = $this->http('GET', $base . '/download?file=backup', null, $code);
+            if ($code === 500) {
+                Assert::skip('архив создать нечем: ' . $body);
+            }
+            Assert::same(200, $code, $body);
+            Assert::same('PK', substr($body, 0, 2), 'ответ — zip');
+            if (!class_exists('ZipArchive')) {
+                Assert::skip('нет расширения zip');
+            }
+            $zip = new \ZipArchive();
+            Assert::true($zip->open($dir . '/runs/backup.zip') === true, 'архив собран в runs/');
+            $names = [];
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $names[] = (string) $zip->getNameIndex($i);
+            }
+            sort($names);
+            Assert::same(['.env', 'backup.json', 'config.php', 'runs/current/settings.json', 'runs/current/sites.json', 'runs/domains-base.txt', 'runs/history.json'], $names, 'в бекапе только то, чего нет в git; pid и логи — нет');
+            Assert::same("kush.net.ru\nokna.ru\n", (string) $zip->getFromName('runs/domains-base.txt'), 'база пересечений переносится целиком');
+            Assert::contains('DORGEN_TOKEN', (string) $zip->getFromName('.env'), 'ключи на новом ПК нужны');
+            $zip->close();
+
+            // pages=1 добавляет скачанные страницы — тем же архивом, который панель пересобирает заново.
+            $body = $this->http('GET', $base . '/download?file=backup&pages=1', null, $code);
+            Assert::same(200, $code, $body);
+            $zip = new \ZipArchive();
+            Assert::true($zip->open($dir . '/runs/backup.zip') === true);
+            Assert::true($zip->locateName('runs/current/pages/9-стр/kush.net.ru/main.html') !== false, 'страница внутри полного бекапа');
+            $zip->close();
+
+            // Копия «без ключей» — для облака: ни .env, ни пароля прокси в настройках панели.
+            $body = $this->http('GET', $base . '/download?file=backup&secrets=0', null, $code);
+            Assert::same(200, $code, $body);
+            $zip = new \ZipArchive();
+            Assert::true($zip->open($dir . '/runs/backup.zip') === true);
+            Assert::same(false, $zip->locateName('.env'), 'ключей в копии нет');
+            Assert::false(str_contains((string) $zip->getFromName('runs/current/settings.json'), 'hunter2'), 'пароль прокси вырезан');
+            $zip->close();
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testSerpAnalysisPageAndEndpoint(): void
     {
         // Технический разбор выдачи — ОТДЕЛЬНАЯ страница /serp со своим API: строит блоки по брендам прямо

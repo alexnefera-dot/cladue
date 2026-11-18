@@ -538,6 +538,26 @@ if ($path === '/api/stop' && $method === 'POST') {
     jsonOut(['ok' => true, 'force' => $force]);
 }
 
+if ($path === '/api/backup') {
+    // Размеры бекапа ДО создания архива: панель показывает их на кнопке, чтобы было понятно,
+    // что качается — состояние (единицы МБ) или всё со страницами (гигабайты). Считается по запросу,
+    // а не в /api/state: обход папки pages/ на тысячи файлов в опросе каждые 1,5 с не нужен.
+    $plan = \YandexSites\Support\Backup::plan($projectDir);
+    jsonOut([
+        'ok' => true,
+        'files' => $plan['count'],
+        'files_text' => \YandexSites\Support\Backup::files($plan['count']),
+        'bytes' => $plan['bytes'],
+        'size' => \YandexSites\Support\Backup::size($plan['bytes']),
+        'secrets' => array_keys($plan['secrets']),
+        'pages' => [
+            'files' => $plan['pages']['files'],
+            'size' => \YandexSites\Support\Backup::size($plan['pages']['bytes']),
+            'total_size' => \YandexSites\Support\Backup::size($plan['bytes'] + $plan['pages']['bytes']),
+        ],
+    ]);
+}
+
 if ($path === '/api/reset-base' && $method === 'POST') {
     // «Очистить базу и файлы»: база пересечений доменов + ВСЕ рабочие файлы прогона — скачанные страницы,
     // очищенный контент, превью, списки и очередь запросов. Итоговый архив контента пользователь скачивает
@@ -931,6 +951,30 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'content') {
     header('Content-Disposition: attachment; filename="' . $name . '"');
     header('Content-Length: ' . (string) filesize($runDir . '/content.zip'));
     readfile($runDir . '/content.zip');
+    exit;
+}
+
+if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'backup') {
+    // «Скачать бекап»: архив со всем, чего нет в git — настройки, ключи, база доменов, история сборов,
+    // снимки выдачи, таблица сайтов. pages=1 добавляет скачанные страницы и контент (гигабайты).
+    // Собирается в момент нажатия, как архив контента, и кладётся в runs/, откуда и отдаётся.
+    $withPages = (string) ($_GET['pages'] ?? '') === '1';
+    $withSecrets = (string) ($_GET['secrets'] ?? '1') !== '0';
+    $name = \YandexSites\Support\Backup::fileName($withPages, $withSecrets);
+    try {
+        // Пересобираем всегда в один и тот же файл (как content.zip): лишние архивы в runs/ не копятся,
+        // а пользователю он приезжает уже с датой в имени.
+        $made = \YandexSites\Support\Backup::create($projectDir, $projectDir . '/runs/backup.zip', $withPages, $withSecrets, \YandexSites\Cli\Application::VERSION);
+    } catch (\RuntimeException $e) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $e->getMessage();
+        exit;
+    }
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $name . '"');
+    header('Content-Length: ' . (string) $made['zip_bytes']);
+    readfile($made['zip']);
     exit;
 }
 

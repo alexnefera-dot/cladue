@@ -36,7 +36,7 @@
   button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:10px 16px;cursor:pointer}
   .btn-primary{background:var(--accent);color:var(--accent-ink)}
   .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-  a.btn-ghost{display:inline-block;text-decoration:none;font-weight:600;border-radius:9px;padding:10px 16px}
+  a.btn-ghost,a.btn-primary{display:inline-block;text-decoration:none;font-weight:600;border-radius:9px;padding:10px 16px}
   .btn-danger{background:var(--err);color:#fff}
   button:disabled{opacity:.5;cursor:default}
   .btns{display:flex;gap:10px;align-items:center;margin-top:8px}
@@ -87,6 +87,7 @@
   .msg{padding:8px 12px;border-radius:8px;margin-top:8px;font-size:13px}
   .msg.err{background:#fee2e2;color:var(--err)}
   .msg.ok{background:#dcfce7;color:var(--ok)}
+  .msg.warn{background:#fef3c7;color:var(--warn)}
   .saved{color:var(--ok);font-size:12px;margin-left:8px}
   a{color:var(--accent)}
   #statBody tr{cursor:pointer}
@@ -299,6 +300,18 @@
         <input type="number" id="repeat" value="0" min="0" step="1">
       </div>
 
+  <div class="card tabsec" data-tab="config">
+        <h2>Бекап и перенос</h2>
+        <div class="hint">Архив со всем, что есть только на этом компьютере: ключи и настройки (<b>config.php</b>, <b>.env</b>, <b>proxies.txt</b>, список запросов), база пересечений доменов, история сборов, снимки выдачи, список наших баз из системы запусков и таблица сайтов текущего прогона. Код в бекап не входит — на новом ПК он ставится заново (<code>git clone</code> или <code>php bin/setup.php</code>), поэтому архив маленький.</div>
+        <div class="btns">
+          <a class="btn-primary" id="backupBtn" href="/download?file=backup" title="Собрать архив прямо сейчас и скачать. Скачанные страницы и очищенный контент в него не идут — они восстанавливаются выгрузкой; нужны — соседняя кнопка">Скачать бекап</a>
+          <a class="btn-ghost" id="backupFullBtn" href="/download?file=backup&amp;pages=1" hidden title="То же плюс скачанные страницы, очищенный контент и превью. Это гигабайты и несколько минут на сборку архива">Со страницами</a>
+          <span class="hint" id="backupInfo"></span>
+        </div>
+        <div class="msg warn" id="backupWarn" hidden></div>
+        <div class="hint" style="margin-top:6px">Развернуть на другом ПК: положить туда код, затем в папке проекта выполнить <code>php bin/backup.php --restore=backup-дата.zip</code> и запустить панель. Файлы, которые уже на месте, не перезаписываются — чтобы заменить их, нужен <code>--force</code>. Из терминала бекап делается тем же скриптом: <code>php bin/backup.php</code> (<code>--all</code> — со страницами, <code>--list</code> — только посмотреть объём).</div>
+      </div>
+
   <div class="card tabsec" data-tab="main" id="progressCard" hidden>
     <h2>Прогресс <span id="phaseText" class="muted"></span></h2>
     <div class="bar"><span id="barFill"></span></div>
@@ -505,9 +518,32 @@ function showTab(name){
   document.querySelectorAll('.tabsec').forEach(el=>{ el.style.display = (el.dataset.tab===name) ? '' : 'none'; });
   try{ localStorage.setItem('ys-tab', name); }catch(e){}
 }
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>{ showTab(b.dataset.tab); if(b.dataset.tab==='stats') loadStats(); }));
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>{ showTab(b.dataset.tab); if(b.dataset.tab==='stats') loadStats(); if(b.dataset.tab==='config') loadBackup(); }));
 let startTab='main'; try{ startTab=localStorage.getItem('ys-tab')||'main'; }catch(e){}
 showTab(startTab);
+
+// ---- Бекап: размеры считаются по запросу (обход runs/ со страницами недешёвый), один раз на открытие
+// вкладки «Настройки». Сам архив собирается в момент нажатия кнопки — /download?file=backup.
+let backupLoaded=false;
+async function loadBackup(){
+  if(backupLoaded) return; backupLoaded=true;
+  try{
+    const r=await fetch('/api/backup'); const j=await r.json();
+    if(!j || !j.ok){ backupLoaded=false; return; }
+    $('backupBtn').textContent='Скачать бекап ('+j.size+')';
+    $('backupInfo').textContent=j.files_text+(j.pages.files>0?' · страниц и статей на диске: '+j.pages.files+' ('+j.pages.size+')':'');
+    const full=$('backupFullBtn');
+    if(j.pages.files>0){ full.hidden=false; full.textContent='Со страницами ('+j.pages.total_size+')'; }
+    const w=$('backupWarn');
+    if(j.secrets && j.secrets.length){
+      w.hidden=false;
+      w.innerHTML='В архиве есть ключи и пароли — <b>'+j.secrets.join('</b>, <b>')+'</b>. Для переноса на свой ПК это нормально, но в облаке и общих папках файл доступен всем, у кого есть ссылка. Копия без них: <code>php bin/backup.php --no-secrets</code>';
+    }
+  }catch(e){ backupLoaded=false; }
+}
+// Вызов — ПОСЛЕ объявления backupLoaded: при старте на вкладке «Настройки» обращение к let-переменной
+// выше по тексту падает с ReferenceError, и карточка бекапа осталась бы пустой.
+if(startTab==='config') loadBackup();
 
 // ---- Вкладка «Статистика»: история сборов (runs/history.json через /api/history) --------------
 // Что тут видно: за какую дату сколько доменов собрано, сколько из них повторились (были в базе),
