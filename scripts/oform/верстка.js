@@ -5,9 +5,12 @@
 // Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/верстка.js <папка> [сколько] [ширины]
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
+const { pathToFileURL } = require('url');
 
 (async () => {
-  const корень = process.argv[2], предел = Number(process.argv[3] || 1e9);
+  // Путь приводим к абсолютному: с относительным 'file://' уводит папку с кириллицей
+  // в punycode-хост и страница не открывается.
+  const корень = path.resolve(process.argv[2] || ''), предел = Number(process.argv[3] || 1e9);
   const ширины = (process.argv[4] || '1100,420').split(',').map(Number);
   const комплекты = fs.readdirSync(корень).filter(d => fs.statSync(path.join(корень, d)).isDirectory()).slice(0, предел);
   const браузер = await chromium.launch();
@@ -17,7 +20,7 @@ const fs = require('fs'), path = require('path');
     for (const f of fs.readdirSync(path.join(корень, к)).filter(x => x.endsWith('.html')).sort()) {
      for (const ш of ширины) {
       await стр.setViewportSize({ width: ш, height: 900 });
-      await стр.goto('file://' + path.join(корень, к, f), { waitUntil: 'load' });
+      await стр.goto(pathToFileURL(path.join(корень, к, f)).href, { waitUntil: 'load' });
       const беда = await стр.evaluate(() => {
         const итог = [];
         for (const el of document.querySelectorAll('h1,h2,h3,h4,p,li,td,th,span,a,div,summary,figcaption')) {
