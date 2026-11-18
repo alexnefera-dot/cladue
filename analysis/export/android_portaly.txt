@@ -1,0 +1,82 @@
+# Андроид-порталы и каталоги приложений в выдаче
+# Съёмов обработано: 2; сайтов найдено: 38
+#
+сайт                               съёмов брендов  строк  топ-3  поз  бренды
+android-station.ru                      2       8     28     15    1  1xbet, 888, 888starz, Betwinner, Melbet, MostBet Bookmaker, Parimatch, Spinbetter
+apkpure.net                             2      15     18      5    2  Betwinner, Fonbet, Joycasino, Onetap, Pari, Rox, Shuffle, Sweet, Trix, UP-X, Vibe, Vivaro, Why, Winline
+android-sklad.ru                        2       7     14      4    2  1xbet, 888, 888starz, Betwinner, MostBet Bookmaker, mostbetmostbet, без бренда
+5droid.ru                               2       4      8      3    2  Betwinner, Joycasino, mostbetmostbet, без бренда
+apkpure.com                             2       7      7      2    2  Joycasino, Maxline, Onetap, Pari, Sol, Trix, Vibe
+play-apk.net                            2       5      9      2    3  888starz, Betwinner, Spinbetter, mostbetmostbet, без бренда
+betonmobile.by                          2       3     12      2    1  Betera, Fonbet, Maxline
+trashbox.ru                             2       3      3      2    1  Onetap, Volna, без бренда
+market-apk.net                          2       8      8      1    2  Brillx, Champion Slots, Izzi, Joycasino, Rox, Starda, Vodka, iks
+androidworlds.ru                        2       7     12      1    2  1xbet, 888, 888starz, Betwinner, Spinbetter, mostbetmostbet, без бренда
+coandroid.com                           2       4      7      1    3  Joycasino, Ramenbet, Rox, Vodka
+freesoft.ru                             2       4      7      1    2  Betwinner, Dbbet, mostbetmostbet, без бренда
+androidnonestop.info                    2       3      3      1    3  Beef, Izzi, Rox
+katemobiles.vip                         2       2      2      1    2  Hype, Monro
+mostbk-app.best                         2       2      3      1    3  mostbetmostbet, без бренда
+androidapplications.store               2       1      1      1    3  Why
+androidbaza.ru                          2       1      1      1    2  без бренда
+melbet365apk.com                        2       1      2      1    2  Melbet
+most-apk.mobi                           2       1      1      1    1  без бренда
+mostonlineapk.mobi                      2       1      3      1    2  без бренда
+tapappzone.com                          2       1      1      1    3  без бренда
+apkshki.com                             2       7      9      0    5  1xbet, Betera, Betwinner, Brillx, Rox, mostbetmostbet, без бренда
+top-android.org                         2       5      5      0    4  Brillx, CryptoBoss, Onion, Play Fortuna, Unlim Casino, без бренда
+softportal.com                          2       4      7      0    4  1xbet, 888, 888starz, Betwinner
+androidx.ru                             2       3      9      0    4  1xbet, Melbet, Pinco
+appda.ru                                2       3      6      0    5  888, 888starz, Melbet
+appku.ru                                2       3      4      0    4  Spinbetter, mostbetmostbet, без бренда
+apk-mostbet-official2507.mobi           2       2      3      0    5  mostbetmostbet, без бренда
+1000apk.ru                              2       1      1      0    9  Why
+1xbet-skachat-na-android-qp1.ru         2       1      1      0    7  1xbet
+androidloading.com                      2       1      1      0    5  Why
+androidp1.com                           1       1      1      0   10  без бренда
+androidtop.net                          1       1      1      0   10  Onlybets
+apkprogs.com                            2       1      2      0    8  888starz
+apkz.com                                2       1      1      0    8  без бренда
+apppokerdeal.com                        2       1      2      0    7  Jackpoker
+kappercheck.ru                          1       1      1      0   10  Trix
+wildroid.ru                             1       1      1      0   10  Why
+
+# Список в столбик
+android-station.ru
+apkpure.net
+android-sklad.ru
+5droid.ru
+apkpure.com
+play-apk.net
+betonmobile.by
+trashbox.ru
+market-apk.net
+androidworlds.ru
+coandroid.com
+freesoft.ru
+androidnonestop.info
+katemobiles.vip
+mostbk-app.best
+androidapplications.store
+androidbaza.ru
+melbet365apk.com
+most-apk.mobi
+mostonlineapk.mobi
+tapappzone.com
+apkshki.com
+top-android.org
+softportal.com
+androidx.ru
+appda.ru
+appku.ru
+apk-mostbet-official2507.mobi
+1000apk.ru
+1xbet-skachat-na-android-qp1.ru
+androidloading.com
+androidp1.com
+androidtop.net
+apkprogs.com
+apkz.com
+apppokerdeal.com
+kappercheck.ru
+wildroid.ru
