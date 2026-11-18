@@ -51,6 +51,12 @@ foreach (array_slice($argv, 1) as $arg) {
 }
 
 if ($update !== null) {
+    if ($update === '') {
+        // Сборка без адреса обновления (так собирается пакет для передачи): качать нечего, и молча
+        // падать на пустом URL нельзя — говорим, что делать.
+        fwrite(STDERR, "Автообновление в этой сборке не настроено: обновите код архивом или укажите адрес — php bin/setup.php --update=URL\n");
+        exit(2);
+    }
     exit(updateProject($target, $update));
 }
 

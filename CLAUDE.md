@@ -37,7 +37,8 @@ cladue/
 ├── bin/clean-content.php       # content prep: article-body templates from downloaded pages (%domain%/%date%/%brand%)
 ├── bin/dorgen-sync.php         # fetch OUR launched subdomains from the dorgen API into runs/dorgen-bases.json
 ├── bin/backup.php              # backup/restore of everything that is not in git (--all/--no-secrets/--list/--restore)
-├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
+<!-- handover:start -->├── bin/handover.php            # handover package: code only, no .git, no authorship (checked, then zipped)
+<!-- handover:end -->├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── public/serp.html            # separate page /serp — technical SERP breakdown by brand (own CSS/JS + /api/serp)
 ├── public/chart.js             # shared per-collect line charts (served at /chart.js, used by both pages)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
@@ -120,7 +121,8 @@ cp .env.example .env      # fill in credentials for the chosen source
 | Visits with screenshots | `php bin/yandex-sites.php queries.txt --visit --variants=2` |
 | Prepare content templates | `php bin/clean-content.php --brand-ru=… --brand-en=… --zip=out/content.zip` |
 | Backup to carry to another PC | `php bin/backup.php` (`--all` with pages, `--no-secrets`, `--list`); restore: `php bin/backup.php --restore=backup-….zip` |
-| Debug SERP parsing | `php bin/yandex-sites.php --parse-html=cache/live/xx/…html` |
+<!-- handover:start -->| Package for a contractor | `php bin/handover.php` (code only, no `.git`, no authorship; `--list` to preview) |
+<!-- handover:end -->| Debug SERP parsing | `php bin/yandex-sites.php --parse-html=cache/live/xx/…html` |
 | Show CLI help | `php bin/yandex-sites.php --help` |
 | Run all tests | `php tests/run.php` |
 | Run tests matching a name | `php tests/run.php Live` |
@@ -1772,6 +1774,30 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   zip with `../escaped.txt`, `runs/../../escaped2.txt`, `/etc/…`, `src/Runner.php`, `bin/panel.php` and
   `runs/current/pid`, of which only `queries.txt` and `runs/history.json` land) and
   `PanelTest::testBackupDownloadCarriesEverythingThatIsNotInGit`.
+<!-- handover:start -->
+- `bin/handover.php` is «давай соберём без гит и без авторства»: the package a contractor gets. It
+  copies `bin|src|public|tools|tests` plus the example files into a staging dir — never `.git`,
+  `runs/`, `cache/`, `out/` or any real `config.php`/`.env`/`proxies.txt`, which are simply not on
+  the list — renames `CLAUDE.md` to `DOCS.md` and rewrites the places that name the author or the
+  account: `GLOBAL_RULES` (the doc's name, the clone URL, the composer vendor) applied to every text
+  file, then `FILE_RULES`, exact old → new strings per file. A `FILE_RULES` entry that no longer
+  matches ABORTS the build instead of being skipped — otherwise an edited sentence would carry its
+  mention into the package unnoticed — and because `GLOBAL_RULES` run first, those rules are written
+  against the ALREADY-substituted text. `bin/setup.php`'s `UPDATE_BRANCH`/`UPDATE_URL` (which name
+  the account AND a branch called `claude/…`) become empty strings, so the repo's own setup.php
+  gained the guard that answers «автообновление в этой сборке не настроено» with exit 2 instead of
+  downloading an empty URL. `HANDOVER.md` is generated into the package: what is inside, what is NOT
+  (data and keys travel separately, by `bin/backup.php` — the split is the point: the code may be
+  shown to anyone, the backup only to the person you trust), and the three commands to start.
+  THE LAST STEP IS THE PROOF, not a promise: every text file is scanned for `FORBIDDEN`
+  (`claude`, the Cyrillic `клауд`, `anthropic`, the account name) and a single hit aborts the build
+  with the list. That check immediately caught `bin/handover.php` itself — the rules table contains
+  every word it strips — which is why `EXCLUDE` keeps the builder and its test out of the package.
+  Covered by `tests/HandoverTest.php` (the package has `DOCS.md` and no `CLAUDE.md`, carries the
+  code and the tests, has no `.git`/`runs`/keys, contains none of the forbidden words, and its
+  `setup.php --update` exits 2 with the explanation). The repository itself is NOT de-authored: the
+  package is a snapshot, and `CLAUDE.md` stays where it is.
+<!-- handover:end -->
 - `Visit\KeyPages` reports the pages the CONTENT links to — `registracia`, `vhod`, `zerkalo`, `bonus`,
   `app`, `slots` (`PAGES`: label + URL words, matched on the LAST path segment like
   `ContentCleaner::mapLink()`, `bonus` before `app` so «бонусы» is its own page). A missing one is a dead
