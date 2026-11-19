@@ -1,0 +1,692 @@
+{
+ "bounty.sevv.team": {
+  "peredan": "2026-11-10",
+  "trigger": "2026-11-09",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-09": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "leon.2663.lol": {
+  "peredan": "2026-11-10",
+  "trigger": "2026-11-10",
+  "trigger_sob": {
+   "reg": 2
+  },
+  "do": {
+   "2026-09-30": {
+    "reg": 1
+   },
+   "2026-10-08": {
+    "reg": 2,
+    "fd": 2
+   },
+   "2026-10-10": {
+    "reg": 2
+   },
+   "2026-10-15": {
+    "reg": 1
+   },
+   "2026-10-17": {
+    "reg": 2
+   },
+   "2026-10-20": {
+    "reg": 1
+   },
+   "2026-10-21": {
+    "reg": 2
+   },
+   "2026-10-22": {
+    "reg": 1
+   },
+   "2026-10-24": {
+    "reg": 1,
+    "fd": 1
+   },
+   "2026-10-26": {
+    "reg": 1
+   },
+   "2026-10-30": {
+    "reg": 1
+   },
+   "2026-11-03": {
+    "reg": 1
+   },
+   "2026-11-07": {
+    "reg": 1
+   },
+   "2026-11-09": {
+    "reg": 1,
+    "fd": 1
+   },
+   "2026-11-10": {
+    "reg": 2
+   }
+  },
+  "posle": {
+   "2026-11-11": {
+    "reg": 1
+   },
+   "2026-11-12": {
+    "reg": 1
+   },
+   "2026-11-13": {
+    "reg": 1
+   },
+   "2026-11-15": {
+    "reg": 2
+   },
+   "2026-11-16": {
+    "reg": 2
+   },
+   "2026-11-17": {
+    "reg": 1
+   },
+   "2026-11-18": {
+    "reg": 1
+   },
+   "2026-11-19": {
+    "reg": 1
+   }
+  },
+  "reg_posle": 10,
+  "fd_posle": 0,
+  "reg_do": 20,
+  "fd_do": 4
+ },
+ "lootrun.0146.team": {
+  "peredan": "2026-11-10",
+  "trigger": "2026-11-10",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-10": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "apex.6420.lol": {
+  "peredan": "2026-11-10",
+  "trigger": "2026-11-09",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-11-09": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "pinco.i6g8.lol": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "kush.4981.lol": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "getx.4432.team": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "twin.zwpw.team": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "spincity.9634.lol": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "spincity.2663.lol": {
+  "peredan": "2026-11-11",
+  "trigger": "2026-11-11",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-11-11": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "trix.4409.team": {
+  "peredan": "2026-11-12",
+  "trigger": "2026-11-12",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-11-12": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "vodka.2499.team": {
+  "peredan": "2026-11-12",
+  "trigger": "2026-11-12",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-12": {
+    "reg": 1
+   }
+  },
+  "posle": {
+   "2026-11-18": {
+    "reg": 2
+   }
+  },
+  "reg_posle": 2,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "eva.ikne.team": {
+  "peredan": "2026-11-12",
+  "trigger": "2026-11-12",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-11-12": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "tonplay.2503.team": {
+  "peredan": "2026-11-12",
+  "trigger": "2026-11-12",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-12": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "spincity.casinor4.lol": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-10-09": {
+    "reg": 1
+   },
+   "2026-11-13": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 2,
+  "fd_do": 1
+ },
+ "pinco.ypur.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "bounty.jqtz.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "lootrun.1927.lol": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "pinco.9095.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "mellstroy.2640.lol": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "lex.9298.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-13",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-13": {
+    "reg": 1
+   }
+  },
+  "posle": {
+   "2026-11-16": {
+    "reg": 1
+   },
+   "2026-11-18": {
+    "reg": 1
+   },
+   "2026-11-19": {
+    "reg": 1
+   }
+  },
+  "reg_posle": 3,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "vodka.3393.lol": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {
+   "2026-11-16": {
+    "reg": 1
+   },
+   "2026-11-19": {
+    "reg": 1
+   }
+  },
+  "reg_posle": 2,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "olimp.rvue.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-09-03",
+  "trigger_sob": {
+   "reg": 1,
+   "fd": 1
+  },
+  "do": {
+   "2026-09-03": {
+    "reg": 1,
+    "fd": 1
+   }
+  },
+  "posle": {
+   "2026-11-16": {
+    "reg": 1
+   }
+  },
+  "reg_posle": 1,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "leebet.jlrl.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "leebet.cdfb.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "banda.casino0087.lol": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "admiralx.9366.team": {
+  "peredan": "2026-11-13",
+  "trigger": "2026-11-02",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-02": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "trix.5093.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "trix.4220.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "aurora.2296.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "goodwin.9095.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "kush.ikne.team": {
+  "peredan": "2026-11-13",
+  "trigger": null,
+  "trigger_sob": {},
+  "do": {},
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 0,
+  "fd_do": 0
+ },
+ "vulkan24.0868.team": {
+  "peredan": "2026-11-18",
+  "trigger": "2026-11-18",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-18": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "flagman.1009ds.casino": {
+  "peredan": "2026-11-18",
+  "trigger": "2026-11-18",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-18": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "vodka.1998.team": {
+  "peredan": "2026-11-18",
+  "trigger": "2026-11-18",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-18": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ },
+ "platinum.hvfa.team": {
+  "peredan": "2026-11-18",
+  "trigger": "2026-11-18",
+  "trigger_sob": {
+   "fd": 1
+  },
+  "do": {
+   "2026-10-12": {
+    "reg": 1
+   },
+   "2026-11-18": {
+    "fd": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 1
+ },
+ "pinco.ikne.team": {
+  "peredan": "2026-11-18",
+  "trigger": "2026-11-18",
+  "trigger_sob": {
+   "reg": 1
+  },
+  "do": {
+   "2026-11-18": {
+    "reg": 1
+   }
+  },
+  "posle": {},
+  "reg_posle": 0,
+  "fd_posle": 0,
+  "reg_do": 1,
+  "fd_do": 0
+ }
+}

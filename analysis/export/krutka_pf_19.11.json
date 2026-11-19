@@ -1,0 +1,1719 @@
+{
+ "okno": {
+  "start": "2026-11-09",
+  "konec": "2026-11-19",
+  "dney": 11
+ },
+ "pod": {
+  "bounty.sevv.team": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-09",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-09": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 9
+  },
+  "leon.2663.lol": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-10",
+   "trigger_sob": {
+    "reg": 2
+   },
+   "do": {
+    "2026-09-30": {
+     "reg": 1
+    },
+    "2026-10-08": {
+     "reg": 2,
+     "fd": 2
+    },
+    "2026-10-10": {
+     "reg": 2
+    },
+    "2026-10-15": {
+     "reg": 1
+    },
+    "2026-10-17": {
+     "reg": 2
+    },
+    "2026-10-20": {
+     "reg": 1
+    },
+    "2026-10-21": {
+     "reg": 2
+    },
+    "2026-10-22": {
+     "reg": 1
+    },
+    "2026-10-24": {
+     "reg": 1,
+     "fd": 1
+    },
+    "2026-10-26": {
+     "reg": 1
+    },
+    "2026-10-30": {
+     "reg": 1
+    },
+    "2026-11-03": {
+     "reg": 1
+    },
+    "2026-11-07": {
+     "reg": 1
+    },
+    "2026-11-09": {
+     "reg": 1,
+     "fd": 1
+    },
+    "2026-11-10": {
+     "reg": 2
+    }
+   },
+   "posle": {
+    "2026-11-11": {
+     "reg": 1
+    },
+    "2026-11-12": {
+     "reg": 1
+    },
+    "2026-11-13": {
+     "reg": 1
+    },
+    "2026-11-15": {
+     "reg": 2
+    },
+    "2026-11-16": {
+     "reg": 2
+    },
+    "2026-11-17": {
+     "reg": 1
+    },
+    "2026-11-18": {
+     "reg": 1
+    },
+    "2026-11-19": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 10,
+   "fd_posle": 0,
+   "reg_do": 20,
+   "fd_do": 4,
+   "temp_do": 0.59,
+   "temp_posle": 1.11,
+   "dney_do": 41,
+   "dney_posle": 9
+  },
+  "lootrun.0146.team": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-10",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-10": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 9
+  },
+  "apex.6420.lol": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-09",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-11-09": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 2.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 9
+  },
+  "pinco.i6g8.lol": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "kush.4981.lol": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "getx.4432.team": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "twin.zwpw.team": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "spincity.9634.lol": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 2.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "spincity.2663.lol": {
+   "peredan": "2026-11-11",
+   "trigger": "2026-11-11",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-11-11": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 2.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 8
+  },
+  "trix.4409.team": {
+   "peredan": "2026-11-12",
+   "trigger": "2026-11-12",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-11-12": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 2.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 7
+  },
+  "vodka.2499.team": {
+   "peredan": "2026-11-12",
+   "trigger": "2026-11-12",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-12": {
+     "reg": 1
+    }
+   },
+   "posle": {
+    "2026-11-18": {
+     "reg": 2
+    }
+   },
+   "reg_posle": 2,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.29,
+   "dney_do": 1,
+   "dney_posle": 7
+  },
+  "eva.ikne.team": {
+   "peredan": "2026-11-12",
+   "trigger": "2026-11-12",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-11-12": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 2.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 7
+  },
+  "tonplay.2503.team": {
+   "peredan": "2026-11-12",
+   "trigger": "2026-11-12",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-12": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 7
+  },
+  "spincity.casinor4.lol": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-10-09": {
+     "reg": 1
+    },
+    "2026-11-13": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 2,
+   "fd_do": 1,
+   "temp_do": 0.09,
+   "temp_posle": 0.0,
+   "dney_do": 35,
+   "dney_posle": 6
+  },
+  "pinco.ypur.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "bounty.jqtz.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "lootrun.1927.lol": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "pinco.9095.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "mellstroy.2640.lol": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "lex.9298.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-13",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-13": {
+     "reg": 1
+    }
+   },
+   "posle": {
+    "2026-11-16": {
+     "reg": 1
+    },
+    "2026-11-18": {
+     "reg": 1
+    },
+    "2026-11-19": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 3,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.5,
+   "dney_do": 1,
+   "dney_posle": 6
+  },
+  "vodka.3393.lol": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {
+    "2026-11-16": {
+     "reg": 1
+    },
+    "2026-11-19": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 2,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.33,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "olimp.rvue.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-09-03",
+   "trigger_sob": {
+    "reg": 1,
+    "fd": 1
+   },
+   "do": {
+    "2026-09-03": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "posle": {
+    "2026-11-16": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 1,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 0.03,
+   "temp_posle": 0.17,
+   "dney_do": 71,
+   "dney_posle": 6
+  },
+  "leebet.jlrl.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "leebet.cdfb.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "banda.casino0087.lol": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "admiralx.9366.team": {
+   "peredan": "2026-11-13",
+   "trigger": "2026-11-02",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-02": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 0.09,
+   "temp_posle": 0.0,
+   "dney_do": 11,
+   "dney_posle": 6
+  },
+  "trix.5093.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "trix.4220.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "aurora.2296.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "goodwin.9095.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "kush.ikne.team": {
+   "peredan": "2026-11-13",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 6
+  },
+  "vulkan24.0868.team": {
+   "peredan": "2026-11-18",
+   "trigger": "2026-11-18",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-18": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 1
+  },
+  "flagman.1009ds.casino": {
+   "peredan": "2026-11-18",
+   "trigger": "2026-11-18",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-18": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 1
+  },
+  "vodka.1998.team": {
+   "peredan": "2026-11-18",
+   "trigger": "2026-11-18",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-18": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 1
+  },
+  "platinum.hvfa.team": {
+   "peredan": "2026-11-18",
+   "trigger": "2026-11-18",
+   "trigger_sob": {
+    "fd": 1
+   },
+   "do": {
+    "2026-10-12": {
+     "reg": 1
+    },
+    "2026-11-18": {
+     "fd": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 1,
+   "temp_do": 0.05,
+   "temp_posle": 0.0,
+   "dney_do": 37,
+   "dney_posle": 1
+  },
+  "pinco.ikne.team": {
+   "peredan": "2026-11-18",
+   "trigger": "2026-11-18",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-18": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 1
+  }
+ },
+ "dom": {
+  "ramenbetgames17.click": {
+   "peredan": "2026-11-09",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {
+    "2026-11-10": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 1,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.1,
+   "dney_do": null,
+   "dney_posle": 10
+  },
+  "booislots-plays.buzz": {
+   "peredan": "2026-11-09",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 10
+  },
+  "cryptoboss808.site": {
+   "peredan": "2026-11-09",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 10
+  },
+  "cryptoboss-casino465.top": {
+   "peredan": "2026-11-09",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {
+    "2026-11-10": {
+     "reg": 1
+    },
+    "2026-11-12": {
+     "reg": 1
+    },
+    "2026-11-15": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 3,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.3,
+   "dney_do": null,
+   "dney_posle": 10
+  },
+  "cryptobosscasino365.top": {
+   "peredan": "2026-11-09",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 10
+  },
+  "eplayfortuna39f.team": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-10",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-10": {
+     "reg": 1
+    }
+   },
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.0,
+   "dney_do": 1,
+   "dney_posle": 9
+  },
+  "unlimwinclub.click": {
+   "peredan": "2026-11-10",
+   "trigger": "2026-11-10",
+   "trigger_sob": {
+    "reg": 1
+   },
+   "do": {
+    "2026-11-10": {
+     "reg": 1
+    }
+   },
+   "posle": {
+    "2026-11-14": {
+     "reg": 1
+    },
+    "2026-11-16": {
+     "reg": 1
+    }
+   },
+   "reg_posle": 2,
+   "fd_posle": 0,
+   "reg_do": 1,
+   "fd_do": 0,
+   "temp_do": 1.0,
+   "temp_posle": 0.22,
+   "dney_do": 1,
+   "dney_posle": 9
+  },
+  "aurora880.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "arkadaslots-deposit.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "clubnikagames777login.click": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "cryptobossboost.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "cryptobosszone365.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "gizbos4532.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "stardacasino-wep.click": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "hypefreespins.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "hypebonus999.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "unlimbonus777.click": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "azino777slots13.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "cazino777wins1.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "cryptoboss655.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "admiralx-tta.click": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "ypepremium.casino": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "zoomagames777portal.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "zoomaslots777login.top": {
+   "peredan": "2026-11-11",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 8
+  },
+  "dripcasin665.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "vovan888prime.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "gizbo777bonus7.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "dripslots777wins.buzz": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {
+    "2026-11-14": {
+     "reg": 1,
+     "fd": 1
+    },
+    "2026-11-15": {
+     "reg": 1,
+     "fd": 1
+    }
+   },
+   "reg_posle": 2,
+   "fd_posle": 2,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.57,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "crypto-boss121.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "cryptobossbase.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  },
+  "cryptoboss790.top": {
+   "peredan": "2026-11-12",
+   "trigger": null,
+   "trigger_sob": {},
+   "do": {},
+   "posle": {},
+   "reg_posle": 0,
+   "fd_posle": 0,
+   "reg_do": 0,
+   "fd_do": 0,
+   "temp_do": null,
+   "temp_posle": 0.0,
+   "dney_do": null,
+   "dney_posle": 7
+  }
+ },
+ "svod_pod": {
+  "vzyato": 37,
+  "srabotali": 5,
+  "uspeh": 13.5,
+  "reg_posle": 18,
+  "fd_posle": 0,
+  "reg_do": 48,
+  "fd_do": 12,
+  "bez_trigger": [
+   "aurora.2296.team",
+   "banda.casino0087.lol",
+   "goodwin.9095.team",
+   "kush.ikne.team",
+   "leebet.cdfb.team",
+   "leebet.jlrl.team",
+   "trix.4220.team",
+   "trix.5093.team",
+   "vodka.3393.lol"
+  ]
+ },
+ "svod_dom": {
+  "vzyato": 31,
+  "srabotali": 4,
+  "uspeh": 12.9,
+  "reg_posle": 8,
+  "fd_posle": 2,
+  "reg_do": 2,
+  "fd_do": 0,
+  "bez_trigger": [
+   "admiralx-tta.click",
+   "arkadaslots-deposit.top",
+   "aurora880.top",
+   "azino777slots13.casino",
+   "booislots-plays.buzz",
+   "cazino777wins1.casino",
+   "clubnikagames777login.click",
+   "crypto-boss121.top",
+   "cryptoboss-casino465.top",
+   "cryptoboss655.top",
+   "cryptoboss790.top",
+   "cryptoboss808.site",
+   "cryptobossbase.top",
+   "cryptobossboost.casino",
+   "cryptobosscasino365.top",
+   "cryptobosszone365.casino",
+   "dripcasin665.top",
+   "dripslots777wins.buzz",
+   "gizbo777bonus7.top",
+   "gizbos4532.top",
+   "hypebonus999.top",
+   "hypefreespins.casino",
+   "ramenbetgames17.click",
+   "stardacasino-wep.click",
+   "unlimbonus777.click",
+   "vovan888prime.top",
+   "ypepremium.casino",
+   "zoomagames777portal.top",
+   "zoomaslots777login.top"
+  ]
+ },
+ "svod_vse": {
+  "vzyato": 68,
+  "srabotali": 9,
+  "uspeh": 13.2,
+  "reg_posle": 26,
+  "fd_posle": 2,
+  "reg_do": 50,
+  "fd_do": 12,
+  "bez_trigger": [
+   "admiralx-tta.click",
+   "arkadaslots-deposit.top",
+   "aurora.2296.team",
+   "aurora880.top",
+   "azino777slots13.casino",
+   "banda.casino0087.lol",
+   "booislots-plays.buzz",
+   "cazino777wins1.casino",
+   "clubnikagames777login.click",
+   "crypto-boss121.top",
+   "cryptoboss-casino465.top",
+   "cryptoboss655.top",
+   "cryptoboss790.top",
+   "cryptoboss808.site",
+   "cryptobossbase.top",
+   "cryptobossboost.casino",
+   "cryptobosscasino365.top",
+   "cryptobosszone365.casino",
+   "dripcasin665.top",
+   "dripslots777wins.buzz",
+   "gizbo777bonus7.top",
+   "gizbos4532.top",
+   "goodwin.9095.team",
+   "hypebonus999.top",
+   "hypefreespins.casino",
+   "kush.ikne.team",
+   "leebet.cdfb.team",
+   "leebet.jlrl.team",
+   "ramenbetgames17.click",
+   "stardacasino-wep.click",
+   "trix.4220.team",
+   "trix.5093.team",
+   "unlimbonus777.click",
+   "vodka.3393.lol",
+   "vovan888prime.top",
+   "ypepremium.casino",
+   "zoomagames777portal.top",
+   "zoomaslots777login.top"
+  ]
+ },
+ "po_dnyam": {
+  "2026-11-09": {
+   "peredano": 5,
+   "reg": 0,
+   "fd": 0
+  },
+  "2026-11-10": {
+   "peredano": 6,
+   "reg": 2,
+   "fd": 0
+  },
+  "2026-11-11": {
+   "peredano": 23,
+   "reg": 1,
+   "fd": 0
+  },
+  "2026-11-12": {
+   "peredano": 11,
+   "reg": 2,
+   "fd": 0
+  },
+  "2026-11-13": {
+   "peredano": 18,
+   "reg": 1,
+   "fd": 0
+  },
+  "2026-11-14": {
+   "peredano": 0,
+   "reg": 2,
+   "fd": 1
+  },
+  "2026-11-15": {
+   "peredano": 0,
+   "reg": 4,
+   "fd": 1
+  },
+  "2026-11-16": {
+   "peredano": 0,
+   "reg": 6,
+   "fd": 0
+  },
+  "2026-11-17": {
+   "peredano": 0,
+   "reg": 1,
+   "fd": 0
+  },
+  "2026-11-18": {
+   "peredano": 5,
+   "reg": 4,
+   "fd": 0
+  },
+  "2026-11-19": {
+   "peredano": 0,
+   "reg": 3,
+   "fd": 0
+  }
+ },
+ "brendy": {
+  "cryptoboss": {
+   "dom": 9,
+   "pod": 0,
+   "posle": 3
+  },
+  "pinco": {
+   "dom": 0,
+   "pod": 4,
+   "posle": 0
+  },
+  "spincity": {
+   "dom": 0,
+   "pod": 3,
+   "posle": 0
+  },
+  "trix": {
+   "dom": 0,
+   "pod": 3,
+   "posle": 0
+  },
+  "vodka": {
+   "dom": 0,
+   "pod": 3,
+   "posle": 4
+  },
+  "bounty": {
+   "dom": 0,
+   "pod": 2,
+   "posle": 0
+  },
+  "lootrun": {
+   "dom": 0,
+   "pod": 2,
+   "posle": 0
+  },
+  "kush": {
+   "dom": 0,
+   "pod": 2,
+   "posle": 0
+  },
+  "leebet": {
+   "dom": 0,
+   "pod": 2,
+   "posle": 0
+  },
+  "admiralx": {
+   "dom": 1,
+   "pod": 1,
+   "posle": 0
+  },
+  "aurora": {
+   "dom": 1,
+   "pod": 1,
+   "posle": 0
+  },
+  "unlim": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 2
+  },
+  "gizbo": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 0
+  },
+  "hype": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 0
+  },
+  "azino": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 0
+  },
+  "zooma": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 0
+  },
+  "drip": {
+   "dom": 2,
+   "pod": 0,
+   "posle": 4
+  },
+  "leon": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 10
+  },
+  "apex": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "getx": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "twin": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "eva": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "tonplay": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "mellstroy": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "lex": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 3
+  },
+  "olimp": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 1
+  },
+  "banda": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "goodwin": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "vulkan24": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "flagman": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "platinum": {
+   "dom": 0,
+   "pod": 1,
+   "posle": 0
+  },
+  "ramenbet": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 1
+  },
+  "booi": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "playfortuna": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "arkada": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "clubnika": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "starda": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "ypepremium": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  },
+  "vovan": {
+   "dom": 1,
+   "pod": 0,
+   "posle": 0
+  }
+ }
+}

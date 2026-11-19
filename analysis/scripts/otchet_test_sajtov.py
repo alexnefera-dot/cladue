@@ -9,7 +9,7 @@ import sys
 D = json.load(open(sys.argv[1], encoding='utf-8'))
 VYHOD = sys.argv[2]
 
-SHABLON = r'''<title>Тест сайтов, ноябрь</title>
+SHABLON = r'''<title>Крутка ПФ, ноябрь</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -90,14 +90,15 @@ footer{margin-top:40px;color:var(--ink-3);font-size:12px;border-top:1px solid va
 </style>
 
 <header class="shapka"><div class="shapka-vnutri">
-  <h1>Тест сайтов, ноябрь</h1>
+  <h1>Крутка ПФ, ноябрь</h1>
   <div class="podzag" id="podzag"></div>
 </div></header>
 <div class="obolochka"><div id="telo"></div>
 <footer>
-  Конверсии по поддоменам взяты из трекера напрямую, окно 10–19.11; конверсии до 10.11
-  показаны отдельно и в зачёт теста не идут. По чужим доменам трекер данных не отдаёт —
-  там цифры из отчёта исполнителей. Повторная конверсия — любая, кроме первой по сайту.
+  Методика: сайт попадал в работу после того, как давал конверсию сам — эта конверсия
+  здесь названа триггером и в результат не засчитывается. Результатом считается только то,
+  что пришло строго позже даты передачи. Конверсии по поддоменам взяты из трекера напрямую,
+  по чужим доменам трекер данных не отдаёт — там цифры из отчёта исполнителей.
 </footer></div>
 
 <script id="dannye" type="application/json">__DANNYE__</script>
@@ -109,151 +110,157 @@ const den = d => d.slice(8,10) + '.' + d.slice(5,7);
 const sv = D.svod_vse, sp = D.svod_pod, sd = D.svod_dom;
 
 document.getElementById('podzag').textContent =
-  `Окно ${den(D.okno.start)}–${den(D.okno.konec)}, ${D.okno.dney} дней · взято ${ch(sv.vzyato)} сайтов · `
-  + `${ch(sv.reg)} регистраций и ${ch(sv.fd)} депозитов`;
+  `Окно ${den(D.okno.start)}–${den(D.okno.konec)}, ${D.okno.dney} дней · передано ${ch(sv.vzyato)} сайтов · `
+  + `после передачи ${ch(sv.reg_posle)} регистраций и ${ch(sv.fd_posle)} депозита`;
 
-function stroki(karta, zagolovok) {
+function sob(c) {
+  return [c.reg ? c.reg + ' рег' : '', c.fd ? c.fd + ' фд' : ''].filter(Boolean).join(', ');
+}
+function stroki(karta, zagolovok, chuzhie) {
   const sp2 = Object.entries(karta).sort((a,b) =>
-    b[1].vsego - a[1].vsego || a[1].postavlen.localeCompare(b[1].postavlen) || a[0].localeCompare(b[0]));
-  const it = sp2.reduce((s,[,o]) => ({reg:s.reg+o.reg, fd:s.fd+o.fd, povtor:s.povtor+o.povtor}),
-    {reg:0,fd:0,povtor:0});
+    (b[1].reg_posle + b[1].fd_posle) - (a[1].reg_posle + a[1].fd_posle)
+    || a[1].peredan.localeCompare(b[1].peredan) || a[0].localeCompare(b[0]));
+  const it = sp2.reduce((s,[,o]) => ({rp:s.rp+o.reg_posle, fp:s.fp+o.fd_posle,
+    rd:s.rd+o.reg_do, fd:s.fd+o.fd_do}), {rp:0,fp:0,rd:0,fd:0});
   return `<div class="karta tablica-obertka"><table>
-    <thead><tr><th>Сайт</th><th class="num">Поставлен</th><th class="num">Дней в работе</th>
-      <th class="num">Рег</th><th class="num">ФД</th><th class="num">Всего</th>
-      <th class="num">Повторных</th><th>Даты конверсий</th><th>Было до теста</th></tr></thead>
-    <tbody>${sp2.map(([s,o]) => `<tr>
+    <thead><tr><th>Сайт</th><th class="num">Передан</th><th class="num">Триггер</th>
+      <th>Что было триггером</th><th class="num">Дней после передачи</th>
+      <th class="num">Рег после</th><th class="num">ФД после</th>
+      <th>Даты конверсий после передачи</th>
+      <th class="num">Темп до</th><th class="num">Темп после</th></tr></thead>
+    <tbody>${sp2.map(([s,o]) => {
+      const n = o.reg_posle + o.fd_posle;
+      return `<tr${n ? ' style="background:var(--surface-2)"' : ''}>
       <td class="sait">${s}</td>
-      <td class="num">${den(o.postavlen)}</td><td class="num">${ch(o.dney)}</td>
-      <td class="num">${o.reg ? '<b>' + ch(o.reg) + '</b>' : '—'}</td>
-      <td class="num">${o.fd ? '<b style="color:var(--nash)">' + ch(o.fd) + '</b>' : '—'}</td>
-      <td class="num">${o.vsego || '—'}</td>
-      <td class="num">${o.povtor ? ch(o.povtor) : '—'}</td>
-      <td class="daty">${Object.entries(o.dni).map(([d,c]) =>
-        den(d) + ' — ' + [c.reg ? c.reg + ' рег' : '', c.fd ? c.fd + ' фд' : '']
-          .filter(Boolean).join(', ')).join(' · ') || '—'}</td>
-      <td class="daty">${Object.keys(o.do_testa).length
-        ? Object.entries(o.do_testa).map(([k,v]) => v + ' ' + (k === 'reg' ? 'рег' : 'фд')).join(', ')
-        : '—'}</td></tr>`).join('')}
+      <td class="num">${den(o.peredan)}</td>
+      <td class="num">${o.trigger ? den(o.trigger)
+        : (chuzhie ? '<span style="color:var(--ink-3)">нет данных</span>'
+                   : '<b style="color:var(--nash)">нет</b>')}</td>
+      <td style="text-align:left;font-size:12.5px;color:var(--ink-2)">${sob(o.trigger_sob) || '—'}</td>
+      <td class="num">${ch(o.dney_posle)}</td>
+      <td class="num">${o.reg_posle ? '<b>' + ch(o.reg_posle) + '</b>' : '—'}</td>
+      <td class="num">${o.fd_posle ? '<b style="color:var(--nash)">' + ch(o.fd_posle) + '</b>' : '—'}</td>
+      <td class="daty">${Object.entries(o.posle).map(([d,c]) => den(d) + ' — ' + sob(c)).join(' · ') || '—'}</td>
+      <td class="num">${o.temp_do !== null && o.temp_do !== undefined ? o.temp_do.toLocaleString('ru-RU') : '—'}</td>
+      <td class="num">${o.temp_posle ? o.temp_posle.toLocaleString('ru-RU') : '—'}</td></tr>`;}).join('')}
       <tr class="itogo"><td>${zagolovok}: ${ch(sp2.length)}</td><td></td><td></td>
-        <td class="num">${ch(it.reg)}</td><td class="num">${ch(it.fd)}</td>
-        <td class="num">${ch(it.reg + it.fd)}</td><td class="num">${ch(it.povtor)}</td>
-        <td></td><td></td></tr>
+        <td>триггеров: ${ch(it.rd)} рег, ${ch(it.fd)} фд</td><td></td>
+        <td class="num">${ch(it.rp)}</td><td class="num">${ch(it.fp)}</td><td></td><td></td><td></td></tr>
     </tbody></table></div>`;
 }
 
-const maxд = Math.max(...Object.values(D.po_dnyam).map(v => Math.max(v.postavleno, v.reg + v.fd)));
+const maxд = Math.max(...Object.values(D.po_dnyam).map(v => Math.max(v.peredano, v.reg + v.fd)));
 
 document.getElementById('telo').innerHTML = `
 <section>
   <h2>Что получилось</h2>
-  <p class="vvod">Тест шёл ${D.okno.dney} дней: первые домены поставлены ${den(D.okno.start)},
-     последние данные по конверсиям — ${den(D.okno.konec)}. Считаются только конверсии
-     с ${den('2026-11-10')}, когда пошли первые поддомены; всё, что было раньше, вынесено
-     в отдельную колонку и в зачёт не идёт.</p>
+  <p class="vvod">Сайт ставился на крутку после того, как сам давал конверсию — она здесь
+     названа <b>триггером</b> и в результат не идёт. Результат крутки — только конверсии
+     строго после даты передачи. Поэтому цифры ниже меньше, чем общее число конверсий
+     по этим сайтам: большая часть приходится на день передачи и раньше.</p>
   <div class="plitki">
-    <div class="plitka"><span class="ch">${ch(sv.vzyato)}</span><div class="pd">сайтов взято в работу</div></div>
-    <div class="plitka a"><span class="ch">${ch(sv.s_konv)}</span><div class="pd">дали конверсию — ${pr(sv.uspeh)}</div></div>
-    <div class="plitka n"><span class="ch">${ch(sv.s_povtor)}</span><div class="pd">дали повторную — ${pr(sv.uspeh_povtor)}</div></div>
-    <div class="plitka"><span class="ch">${ch(sv.reg)}</span><div class="pd">регистраций</div></div>
-    <div class="plitka"><span class="ch">${ch(sv.fd)}</span><div class="pd">депозитов</div></div>
-    <div class="plitka"><span class="ch">${ch(sv.povtor)}</span><div class="pd">повторных конверсий</div></div>
+    <div class="plitka"><span class="ch">${ch(sv.vzyato)}</span><div class="pd">сайтов передано в работу</div></div>
+    <div class="plitka a"><span class="ch">${ch(sv.srabotali)}</span><div class="pd">дали конверсию после передачи — ${pr(sv.uspeh)}</div></div>
+    <div class="plitka"><span class="ch">${ch(sv.reg_posle)}</span><div class="pd">регистраций после передачи</div></div>
+    <div class="plitka n"><span class="ch">${ch(sv.fd_posle)}</span><div class="pd">депозитов после передачи</div></div>
+    <div class="plitka"><span class="ch">${ch(sv.reg_do + sv.fd_do)}</span><div class="pd">конверсий-триггеров, в результат не идут</div></div>
+    <div class="plitka"><span class="ch">${D.okno.dney}</span><div class="pd">дней работы, ${den(D.okno.start)}–${den(D.okno.konec)}</div></div>
   </div>
 </section>
 
 <section>
   <h2><span class="nomer">01</span>Поддомены против доменов</h2>
-  <p class="vvod">Успешность считается двумя способами: доля сайтов, давших хотя бы одну
-     конверсию, и доля сайтов, у которых конверсия повторилась. Второе показательнее —
-     одиночная конверсия на сайте может быть случайной.</p>
   <div class="karta tablica-obertka"><table>
-    <thead><tr><th>Тип</th><th class="num">Взято</th><th class="num">С конверсией</th>
-      <th class="num">Успешность</th><th class="num">С повторной</th><th class="num">Успешность по повторным</th>
-      <th class="num">Рег</th><th class="num">ФД</th><th class="num">Конверсий всего</th>
-      <th class="num">Повторных</th><th class="num">Конверсий на сайт</th></tr></thead>
+    <thead><tr><th>Тип</th><th class="num">Передано</th><th class="num">Сработали после передачи</th>
+      <th class="num">Успешность</th><th class="num">Рег после</th><th class="num">ФД после</th>
+      <th class="num">Конверсий после на сайт</th><th class="num">Было до передачи</th></tr></thead>
     <tbody>
       ${[['Поддомены (наши доры)', sp], ['Домены (брендовые)', sd]].map(([imya, s]) => `<tr>
-        <td>${imya}</td><td class="num">${ch(s.vzyato)}</td><td class="num">${ch(s.s_konv)}</td>
-        <td class="num"><b>${pr(s.uspeh)}</b></td><td class="num">${ch(s.s_povtor)}</td>
-        <td class="num"><b style="color:var(--nash)">${pr(s.uspeh_povtor)}</b></td>
-        <td class="num">${ch(s.reg)}</td><td class="num">${ch(s.fd)}</td>
-        <td class="num">${ch(s.reg + s.fd)}</td><td class="num">${ch(s.povtor)}</td>
-        <td class="num">${((s.reg + s.fd) / s.vzyato).toFixed(2)}</td></tr>`).join('')}
+        <td>${imya}</td><td class="num">${ch(s.vzyato)}</td><td class="num">${ch(s.srabotali)}</td>
+        <td class="num"><b>${pr(s.uspeh)}</b></td>
+        <td class="num">${ch(s.reg_posle)}</td>
+        <td class="num">${s.fd_posle ? '<b style="color:var(--nash)">' + ch(s.fd_posle) + '</b>' : '0'}</td>
+        <td class="num">${((s.reg_posle + s.fd_posle) / s.vzyato).toFixed(2)}</td>
+        <td class="num">${ch(s.reg_do)} рег, ${ch(s.fd_do)} фд</td></tr>`).join('')}
       <tr class="itogo"><td>Всего</td><td class="num">${ch(sv.vzyato)}</td>
-        <td class="num">${ch(sv.s_konv)}</td><td class="num">${pr(sv.uspeh)}</td>
-        <td class="num">${ch(sv.s_povtor)}</td><td class="num">${pr(sv.uspeh_povtor)}</td>
-        <td class="num">${ch(sv.reg)}</td><td class="num">${ch(sv.fd)}</td>
-        <td class="num">${ch(sv.reg + sv.fd)}</td><td class="num">${ch(sv.povtor)}</td>
-        <td class="num">${((sv.reg + sv.fd) / sv.vzyato).toFixed(2)}</td></tr>
+        <td class="num">${ch(sv.srabotali)}</td><td class="num">${pr(sv.uspeh)}</td>
+        <td class="num">${ch(sv.reg_posle)}</td><td class="num">${ch(sv.fd_posle)}</td>
+        <td class="num">${((sv.reg_posle + sv.fd_posle) / sv.vzyato).toFixed(2)}</td>
+        <td class="num">${ch(sv.reg_do)} рег, ${ch(sv.fd_do)} фд</td></tr>
     </tbody></table></div>
+  <p class="vvod" style="margin-top:12px">Ни один поддомен не дал депозита после передачи —
+     все ${ch(sp.fd_do)} депозита по поддоменам были до постановки на крутку. Оба депозита
+     после передачи пришли с одного домена.</p>
 </section>
 
 <section>
-  <h2><span class="nomer">02</span>По дням: сколько ставили и сколько получали</h2>
+  <h2><span class="nomer">02</span>По дням: передавали и получали</h2>
   <div class="karta"><div class="legenda">
-    <span><span class="tochka" style="background:var(--ink-3)"></span>поставлено сайтов</span>
-    <span><span class="tochka" style="background:var(--accent)"></span>регистрации</span>
-    <span><span class="tochka" style="background:var(--nash)"></span>депозиты</span>
+    <span><span class="tochka" style="background:var(--ink-3)"></span>передано сайтов</span>
+    <span><span class="tochka" style="background:var(--accent)"></span>регистрации после передачи</span>
+    <span><span class="tochka" style="background:var(--nash)"></span>депозиты после передачи</span>
   </div><div class="polosy">
     ${Object.entries(D.po_dnyam).map(([d,v]) => `
       <div class="ryad"><div class="nazv">${den(d)}</div>
         <div class="zhelob">
-          <span class="fill" style="width:${v.postavleno / maxд * 50}%;background:var(--ink-3)"></span>
-          <span class="fill" style="width:${v.reg / maxд * 50}%;background:var(--accent);border-radius:0"></span>
-          <span class="fill" style="width:${v.fd / maxд * 50}%;background:var(--nash)"></span>
+          <span class="fill" style="width:${v.peredano / maxд * 60}%;background:var(--ink-3)"></span>
+          <span class="fill" style="width:${v.reg / maxд * 60}%;background:var(--accent);border-radius:0"></span>
+          <span class="fill" style="width:${v.fd / maxд * 60}%;background:var(--nash)"></span>
         </div>
-        <div class="chis">поставлено <b>${ch(v.postavleno)}</b> · рег <b>${ch(v.reg)}</b> · фд <b>${ch(v.fd)}</b></div>
+        <div class="chis">передано <b>${ch(v.peredano)}</b> · рег <b>${ch(v.reg)}</b> · фд <b>${ch(v.fd)}</b></div>
       </div>`).join('')}
   </div></div>
 </section>
 
 <section>
   <h2><span class="nomer">03</span>Все поддомены — ${ch(sp.vzyato)} штук</h2>
-  <p class="vvod">Полный список без сокращений, отсортирован по числу конверсий.</p>
+  <p class="vvod">Полный список. «Триггер» — конверсия, после которой сайт отдали в работу.
+     «Темп» — конверсий в сутки до передачи и после неё: по нему видно, ускорился сайт или нет.</p>
   ${stroki(D.pod, 'Поддомены')}
 </section>
 
 <section>
   <h2><span class="nomer">04</span>Все домены — ${ch(sd.vzyato)} штук</h2>
-  <p class="vvod">Конверсии известны только по тем доменам, что попали в отчёт исполнителей;
-     трекер по чужим доменам данных не отдаёт.</p>
-  ${stroki(D.dom, 'Домены')}
+  <p class="vvod">По чужим доменам трекер данных не отдаёт: видно только те конверсии,
+     что были в отчёте исполнителей. Поэтому у большинства в колонке «триггер» стоит
+     «нет данных», а не «не было конверсии».</p>
+  ${stroki(D.dom, 'Домены', true)}
 </section>
 
 <section>
   <h2><span class="nomer">05</span>По брендам</h2>
-  <p class="vvod">Сколько сайтов каждого бренда взяли и что они дали. Видно, где
-     распыляли силы на один бренд.</p>
   <div class="karta tablica-obertka"><table>
     <thead><tr><th>Бренд</th><th class="num">Доменов</th><th class="num">Поддоменов</th>
-      <th class="num">Всего сайтов</th><th class="num">Рег</th><th class="num">ФД</th></tr></thead>
+      <th class="num">Всего сайтов</th><th class="num">Конверсий после передачи</th></tr></thead>
     <tbody>${Object.entries(D.brendy).map(([b,v]) => `<tr>
       <td>${b}</td><td class="num">${v.dom || '—'}</td><td class="num">${v.pod || '—'}</td>
       <td class="num"><b>${ch(v.dom + v.pod)}</b></td>
-      <td class="num">${v.reg || '—'}</td><td class="num">${v.fd || '—'}</td></tr>`).join('')}
+      <td class="num">${v.posle ? '<b>' + ch(v.posle) + '</b>' : '—'}</td></tr>`).join('')}
     </tbody></table></div>
 </section>
 
 <div class="vyvod">
   <h3>Итог</h3>
   <ul>
-    <li><b>Взято ${ch(sv.vzyato)} сайтов за ${D.okno.dney} дней, конверсию дали ${ch(sv.s_konv)} — ${pr(sv.uspeh)}.</b>
-        Повторилась конверсия у ${ch(sv.s_povtor)} сайтов, это ${pr(sv.uspeh_povtor)} от всего взятого.
-        Суммарно ${ch(sv.reg)} регистраций и ${ch(sv.fd)} депозитов.</li>
-    <li><b>Поддомены сработали в четыре раза лучше доменов.</b>
-        ${pr(sp.uspeh)} поддоменов дали конверсию против ${pr(sd.uspeh)} доменов;
-        по повторным ${pr(sp.uspeh_povtor)} против ${pr(sd.uspeh_povtor)}.
-        На один поддомен приходится ${((sp.reg + sp.fd) / sp.vzyato).toFixed(2)} конверсии,
-        на домен — ${((sd.reg + sd.fd) / sd.vzyato).toFixed(2)}.</li>
-    <li><b>Преобладали поддомены:</b> ${ch(sp.vzyato)} из ${ch(sv.vzyato)}
-        (${pr(100 * sp.vzyato / sv.vzyato)}), и они же дали
-        ${pr(100 * (sp.reg + sp.fd) / (sv.reg + sv.fd))} всех конверсий.</li>
-    <li><b>Результат держится на нескольких сайтах.</b> Больше всего дал
-        ${Object.entries(D.pod).sort((a,b) => b[1].vsego - a[1].vsego)[0][0]} —
-        ${ch(Object.entries(D.pod).sort((a,b) => b[1].vsego - a[1].vsego)[0][1].vsego)} конверсий,
-        это ${pr(100 * Object.entries(D.pod).sort((a,b) => b[1].vsego - a[1].vsego)[0][1].vsego / (sv.reg + sv.fd))}
-        всего результата теста.</li>
-    <li><b>Депозиты редки:</b> ${ch(sv.fd)} на ${ch(sv.reg)} регистраций, то есть
-        ${pr(100 * sv.fd / sv.reg)} от числа регистраций.</li>
+    <li><b>Из ${ch(sv.vzyato)} переданных сайтов после постановки на крутку сработали ${ch(sv.srabotali)} — ${pr(sv.uspeh)}.</b>
+        Они дали ${ch(sv.reg_posle)} регистраций и ${ch(sv.fd_posle)} депозита за ${D.okno.dney} дней.</li>
+    <li><b>Поддомены и домены сработали одинаково:</b> ${pr(sp.uspeh)} против ${pr(sd.uspeh)}.
+        Разрыв, который был виден без учёта даты передачи, целиком объяснялся триггерными
+        конверсиями — теми, за которые сайт и попал в работу.</li>
+    <li><b>Депозитов после крутки почти нет.</b> ${ch(sv.fd_posle)} на ${ch(sv.reg_posle)} регистраций,
+        и оба с одного домена <span style="font-family:var(--mono)">dripslots777wins.buzz</span>.
+        По поддоменам — ни одного.</li>
+    <li><b>Больше половины результата — один сайт.</b>
+        <span style="font-family:var(--mono)">leon.2663.lol</span> дал
+        ${ch(D.pod['leon.2663.lol'].reg_posle)} регистраций из ${ch(sv.reg_posle)}.
+        Но он конвертил и до крутки: темп ${D.pod['leon.2663.lol'].temp_do} конверсии в сутки до передачи
+        против ${D.pod['leon.2663.lol'].temp_posle} после. Прирост есть, но сайт не был пустым.</li>
+    <li><b>${ch(sp.bez_trigger.length)} поддоменов попали в работу без конверсии-триггера.</b>
+        По данным трекера у них до передачи конверсий не было вовсе:
+        <span style="font-family:var(--mono);font-size:12px">${sp.bez_trigger.join(', ')}</span>.
+        Либо их брали по другому признаку, либо конверсия была отнесена к другому сайту.
+        Один из них, <span style="font-family:var(--mono)">vodka.3393.lol</span>, после передачи
+        дал ${ch(D.pod['vodka.3393.lol'].reg_posle)} регистрации.</li>
   </ul>
 </div>`;
 </script>
